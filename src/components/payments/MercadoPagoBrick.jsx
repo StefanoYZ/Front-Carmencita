@@ -178,4 +178,5 @@ export default function MercadoPagoBrick({ amount = 100 }) {
       )}
     </>
   );
+  
 }

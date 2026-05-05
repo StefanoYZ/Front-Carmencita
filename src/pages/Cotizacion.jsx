@@ -4,6 +4,7 @@ import Card from "../components/common/Card.jsx";
 import Input from "../components/common/Input.jsx";
 import { cotizacionService } from "../services/cotizacion.service.js";
 import MercadoPagoBrick from "../components/payments/MercadoPagoBrick.jsx";
+import YapePayment from "../components/payments/YapePayment.jsx";
 
 function Cotizacion() {
   const [form, setForm] = useState({
@@ -15,6 +16,7 @@ function Cotizacion() {
   });
 
   const [result, setResult] = useState(null);
+  const [metodoPago, setMetodoPago] = useState("tarjeta");
 
   const updateField = (event) => {
     setForm((current) => ({
@@ -25,17 +27,19 @@ function Cotizacion() {
 
   const handleSubmit = async (event) => {
     event.preventDefault();
+
     const response = await cotizacionService.calcular(form);
     console.log("RESULTADO COTIZACION:", response);
+
     setResult(response);
   };
 
   return (
     <div className="space-y-6">
       <div>
-        <h2 className="page-title">Cotizacion</h2>
+        <h2 className="page-title">Cotización</h2>
         <p className="page-subtitle">
-          Calculo referencial de tarifa en soles.
+          Cálculo referencial de tarifa en soles.
         </p>
       </div>
 
@@ -116,7 +120,66 @@ function Cotizacion() {
           <Card>
             <h3 className="mb-4 text-lg font-semibold">Realizar pago</h3>
 
-            <MercadoPagoBrick amount={Number(result.monto)} />
+            <div className="grid gap-4 md:grid-cols-2 mb-6">
+              <button
+                type="button"
+                onClick={() => setMetodoPago("tarjeta")}
+                className={`rounded-xl border p-4 text-left transition ${
+                  metodoPago === "tarjeta"
+                    ? "border-blue-500 bg-blue-50"
+                    : "border-gray-200 bg-white hover:bg-gray-50"
+                }`}
+              >
+                <div className="flex items-center gap-3">
+                  <span className="text-2xl">💳</span>
+                  <div>
+                    <p className="font-semibold">Tarjeta</p>
+                    <p className="text-sm text-gray-500">
+                      Crédito o débito
+                    </p>
+                  </div>
+                </div>
+              </button>
+
+              <button
+                type="button"
+                onClick={() => setMetodoPago("yape")}
+                className={`rounded-xl border p-4 text-left transition ${
+                  metodoPago === "yape"
+                    ? "border-purple-500 bg-purple-50"
+                    : "border-gray-200 bg-white hover:bg-gray-50"
+                }`}
+              >
+                <div className="flex items-center gap-3">
+                  <span className="text-2xl">📱</span>
+                  <div>
+                    <p className="font-semibold text-purple-700">Yape</p>
+                    <p className="text-sm text-gray-500">
+                      Celular + código de aprobación
+                    </p>
+                  </div>
+                </div>
+              </button>
+            </div>
+
+            {metodoPago === "tarjeta" && (
+              <div>
+                <h4 className="mb-3 font-medium">Pago con tarjeta</h4>
+                  <MercadoPagoBrick
+                    key={`mp-${metodoPago}-${result.monto}`}
+                    amount={Number(result.monto)}
+                  />
+              </div>
+            )}
+
+            {metodoPago === "yape" && (
+              <div>
+                <h4 className="mb-3 font-medium text-purple-700">
+                  Pago con Yape
+                </h4>
+                <YapePayment amount={Number(result.monto)} />
+              </div>
+            )}
           </Card>
         </>
       )}

@@ -5,6 +5,7 @@ export default function MercadoPagoBrick({ amount = 100 }) {
 
   useEffect(() => {
     let brickController = null;
+    const containerId = `paymentBrick_container_${amount}`;
 
     const loadMercadoPagoSDK = () => {
       return new Promise((resolve, reject) => {
@@ -33,7 +34,7 @@ export default function MercadoPagoBrick({ amount = 100 }) {
 
     const loadBrick = async () => {
       try {
-        const container = document.getElementById("paymentBrick_container");
+        const container = document.getElementById(containerId);
         if (container) container.innerHTML = "";
 
         await loadMercadoPagoSDK();
@@ -56,7 +57,7 @@ export default function MercadoPagoBrick({ amount = 100 }) {
 
         brickController = await bricksBuilder.create(
           "payment",
-          "paymentBrick_container",
+          containerId,
           {
             initialization: {
               amount: Number(amount),
@@ -85,8 +86,6 @@ export default function MercadoPagoBrick({ amount = 100 }) {
 
               onSubmit: async ({ formData }) => {
                 try {
-                  console.log("FORM DATA:", formData);
-
                   const response = await fetch(
                     `${import.meta.env.VITE_API_URL}/payments/process-payment`,
                     {
@@ -99,7 +98,6 @@ export default function MercadoPagoBrick({ amount = 100 }) {
                   );
 
                   const data = await response.json();
-
                   console.log("RESPUESTA BACKEND:", data);
 
                   if (!response.ok) {
@@ -145,12 +143,17 @@ export default function MercadoPagoBrick({ amount = 100 }) {
       if (brickController) {
         brickController.unmount();
       }
+
+      const container = document.getElementById(containerId);
+      if (container) {
+        container.innerHTML = "";
+      }
     };
   }, [amount]);
 
   return (
     <>
-      <div id="paymentBrick_container"></div>
+      <div id={`paymentBrick_container_${amount}`}></div>
 
       {pagoExitoso && (
         <div className="fixed inset-0 bg-black/50 flex items-center justify-center z-50">
@@ -178,5 +181,4 @@ export default function MercadoPagoBrick({ amount = 100 }) {
       )}
     </>
   );
-  
 }

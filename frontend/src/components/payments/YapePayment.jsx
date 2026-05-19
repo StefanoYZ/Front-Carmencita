@@ -29,7 +29,7 @@ export default function YapePayment({ amount = 100 }) {
       await loadMercadoPagoSDK();
 
       const keyResponse = await fetch(
-        `${import.meta.env.VITE_API_URL}/payments/public-key`
+        `${import.meta.env.VITE_API_BASE_URL}/payments/public-key`
       );
 
       const { publicKey } = await keyResponse.json();
@@ -48,7 +48,7 @@ export default function YapePayment({ amount = 100 }) {
       console.log("TOKEN YAPE:", yapeToken);
 
       const response = await fetch(
-        `${import.meta.env.VITE_API_URL}/yape/process-payment`,
+        `${import.meta.env.VITE_API_BASE_URL}/yape/process-payment`,
         {
           method: "POST",
           headers: {

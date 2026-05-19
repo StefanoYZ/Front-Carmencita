@@ -1,16 +1,19 @@
 import React from 'react';
 import { NavLink } from 'react-router-dom';
-import logo from '../../assets/logo.svg';
+import logo from '../../assets/icons/logo.svg';
 
 const links = [
-  { label: 'Dashboard', path: '/' },
-  { label: 'Clientes', path: '/clientes' },
-  { label: 'Encomiendas', path: '/encomiendas' },
-  { label: 'Cotizacion', path: '/cotizacion' },
-  { label: 'Tracking', path: '/tracking' },
-  { label: 'SUNAT / Boletas', path: '/sunat-boletas' },
-  { label: 'RENIEC', path: '/reniec' },
-  { label: 'Optimizacion de carga', path: '/optimizacion-carga' },
+  { label: 'Dashboard', path: '/admin' },
+  { label: 'Clientes', path: '/admin/clientes' },
+  { label: 'Encomiendas', path: '/admin/encomiendas' },
+  { label: 'Nueva encomienda', path: '/admin/encomiendas/nueva' },
+  { label: 'Cotizaciones', path: '/admin/cotizaciones' },
+  { label: 'Tracking interno', path: '/admin/tracking' },
+  { label: 'SUNAT / Boletas', path: '/admin/sunat/boletas' },
+  { label: 'RENIEC', path: '/admin/reniec' },
+  { label: 'Payments', path: '/admin/payments' },
+  { label: 'Yape', path: '/admin/yape' },
+  { label: 'Optimizacion de carga', path: '/admin/optimizacion-carga' },
 ];
 
 function Sidebar() {

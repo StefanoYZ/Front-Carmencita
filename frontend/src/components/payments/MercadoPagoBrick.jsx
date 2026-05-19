@@ -40,7 +40,7 @@ export default function MercadoPagoBrick({ amount = 100 }) {
         await loadMercadoPagoSDK();
 
         const keyResponse = await fetch(
-          `${import.meta.env.VITE_API_URL}/payments/public-key`
+          `${import.meta.env.VITE_API_BASE_URL}/payments/public-key`
         );
 
         if (!keyResponse.ok) {
@@ -87,7 +87,7 @@ export default function MercadoPagoBrick({ amount = 100 }) {
               onSubmit: async ({ formData }) => {
                 try {
                   const response = await fetch(
-                    `${import.meta.env.VITE_API_URL}/payments/process-payment`,
+                    `${import.meta.env.VITE_API_BASE_URL}/payments/process-payment`,
                     {
                       method: "POST",
                       headers: {

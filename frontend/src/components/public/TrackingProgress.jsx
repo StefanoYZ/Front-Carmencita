@@ -1,17 +1,17 @@
 import React from 'react';
 import packageIcon from '../../assets/icons/paquete.svg';
-import truckIcon from '../../assets/icons/camion.svg';
 import locationIcon from '../../assets/icons/pin-de-ubicacion.svg';
 import checkIcon from '../../assets/icons/flecha-correcta.svg';
 
 const steps = [
   { key: 'recepcionado', label: 'Recepcionado', icon: packageIcon },
-  { key: 'transito', label: 'En transito', icon: truckIcon },
+  { key: 'transito', label: 'En transito', icon: checkIcon },
   { key: 'destino', label: 'En destino', icon: locationIcon },
   { key: 'entregado', label: 'Entregado', icon: checkIcon },
 ];
 
 const statusIndex = {
+  PRE_REGISTRADA: 0,
   REGISTRADA: 0,
   COTIZADA: 0,
   PAGO_CONFIRMADO: 0,
@@ -23,11 +23,14 @@ const statusIndex = {
 
 function GreenIcon({ src, active }) {
   return (
-    <span
-      className={`block h-10 w-10 ${active ? 'bg-white' : 'bg-[#2F9448]'}`}
+    <img
+      src={src}
+      alt=""
+      className="h-7 w-7 object-contain sm:h-8 sm:w-8"
       style={{
-        WebkitMask: `url(${src}) center / contain no-repeat`,
-        mask: `url(${src}) center / contain no-repeat`,
+        filter: active
+          ? 'brightness(0) invert(1)'
+          : 'invert(42%) sepia(70%) saturate(555%) hue-rotate(88deg) brightness(91%) contrast(86%)',
       }}
     />
   );
@@ -47,16 +50,16 @@ function TrackingProgress({ estado }) {
   const activeIndex = Object.prototype.hasOwnProperty.call(statusIndex, normalized) ? statusIndex[normalized] : -1;
 
   return (
-    <div className="relative mx-auto grid max-w-3xl grid-cols-2 gap-y-8 sm:grid-cols-4">
-      <div className="absolute left-[12%] right-[12%] top-9 hidden h-1 bg-[#2F9448]/55 sm:block" />
+    <div className="relative mx-auto grid max-w-3xl grid-cols-2 gap-x-3 gap-y-6 sm:grid-cols-4">
+      <div className="absolute left-[12%] right-[12%] top-8 hidden h-1 bg-[#2F9448]/55 sm:block" />
       {steps.map((step, index) => {
         const completed = activeIndex >= index;
         return (
           <div key={step.key} className="relative z-10 flex flex-col items-center text-center">
-            <span className={`flex h-[74px] w-[74px] items-center justify-center rounded-full border-4 ${completed ? 'border-[#2F9448] bg-[#2F9448]' : 'border-[#2F9448]/35 bg-white'}`}>
+            <span className={`flex h-14 w-14 items-center justify-center rounded-full border-[3px] sm:h-16 sm:w-16 ${completed ? 'border-[#2F9448] bg-[#2F9448]' : 'border-[#2F9448]/35 bg-white'}`}>
               <GreenIcon src={step.icon} active={completed} />
             </span>
-            <span className="mt-3 text-xs font-black text-[#1F2937]">{step.label}</span>
+            <span className="mt-2 text-[11px] font-black leading-tight text-[#1F2937] sm:text-xs">{step.label}</span>
           </div>
         );
       })}

@@ -1,11 +1,66 @@
-import React, { useEffect, useState } from "react";
+import React, { useEffect, useMemo, useRef, useState } from 'react';
+import { apiBaseURL } from '../../services/apiClient.js';
 
-export default function MercadoPagoBrick({ amount = 100 }) {
-  const [pagoExitoso, setPagoExitoso] = useState(false);
+function getPaymentErrorMessage(data, fallback) {
+  if (Array.isArray(data?.detail)) {
+    return data.detail.map((item) => item.msg || JSON.stringify(item)).join(' ');
+  }
+  return data?.detail || data?.message || data?.mensaje || fallback;
+}
+
+async function readPaymentResponse(response, fallback) {
+  const text = await response.text();
+  const data = text
+    ? (() => {
+        try {
+          return JSON.parse(text);
+        } catch {
+          return { message: text };
+        }
+      })()
+    : {};
+
+  if (!response.ok) {
+    throw new Error(getPaymentErrorMessage(data, fallback));
+  }
+
+  return data;
+}
+
+export default function MercadoPagoBrick({
+  amount = 100,
+  payerEmail = 'test@test.com',
+  payerName = 'Cliente',
+  onApproved,
+  onPending,
+  onRejected,
+  onError,
+}) {
+  const [status, setStatus] = useState('');
+  const [message, setMessage] = useState('');
+  const callbacksRef = useRef({
+    onApproved,
+    onPending,
+    onRejected,
+    onError,
+  });
+  const containerId = useMemo(
+    () => `paymentBrick_container_${String(amount).replace(/[^a-zA-Z0-9_-]/g, '_')}`,
+    [amount],
+  );
+
+  useEffect(() => {
+    callbacksRef.current = {
+      onApproved,
+      onPending,
+      onRejected,
+      onError,
+    };
+  }, [onApproved, onError, onPending, onRejected]);
 
   useEffect(() => {
     let brickController = null;
-    const containerId = `paymentBrick_container_${amount}`;
+    let mounted = true;
 
     const loadMercadoPagoSDK = () => {
       return new Promise((resolve, reject) => {
@@ -14,171 +69,155 @@ export default function MercadoPagoBrick({ amount = 100 }) {
           return;
         }
 
-        const existingScript = document.querySelector(
-          'script[src="https://sdk.mercadopago.com/js/v2"]'
-        );
-
+        const existingScript = document.querySelector('script[src="https://sdk.mercadopago.com/js/v2"]');
         if (existingScript) {
           existingScript.onload = resolve;
           existingScript.onerror = reject;
           return;
         }
 
-        const script = document.createElement("script");
-        script.src = "https://sdk.mercadopago.com/js/v2";
+        const script = document.createElement('script');
+        script.src = 'https://sdk.mercadopago.com/js/v2';
         script.onload = resolve;
         script.onerror = reject;
         document.body.appendChild(script);
       });
     };
 
+    const updateStatus = (nextStatus, nextMessage) => {
+      if (!mounted) return;
+      setStatus(nextStatus);
+      setMessage(nextMessage);
+    };
+
     const loadBrick = async () => {
       try {
         const container = document.getElementById(containerId);
-        if (container) container.innerHTML = "";
+        if (container) container.innerHTML = '';
 
         await loadMercadoPagoSDK();
+        if (!mounted) return;
 
-        const keyResponse = await fetch(
-          `${import.meta.env.VITE_API_BASE_URL}/payments/public-key`
-        );
+        const keyResponse = await fetch(`${apiBaseURL}/payments/public-key`);
+        const keyData = await readPaymentResponse(keyResponse, 'No se pudo obtener la Public Key.');
+        if (!mounted) return;
 
-        if (!keyResponse.ok) {
-          throw new Error("No se pudo obtener la Public Key");
-        }
-
-        const { publicKey } = await keyResponse.json();
-
-        const mp = new window.MercadoPago(publicKey, {
-          locale: "es-PE",
+        const mp = new window.MercadoPago(keyData.publicKey, {
+          locale: 'es-PE',
         });
 
         const bricksBuilder = mp.bricks();
 
-        brickController = await bricksBuilder.create(
-          "payment",
-          containerId,
-          {
-            initialization: {
-              amount: Number(amount),
-              payer: {
-                email: "test@test.com",
-                firstName: "APRO",
-                lastName: "",
+        const controller = await bricksBuilder.create('payment', containerId, {
+          initialization: {
+            amount: Number(amount),
+            payer: {
+              email: payerEmail,
+              firstName: payerName,
+              lastName: '',
+            },
+          },
+          customization: {
+            visual: {
+              style: {
+                theme: 'default',
               },
             },
-            customization: {
-              visual: {
-                style: {
-                  theme: "default",
-                },
-              },
-              paymentMethods: {
-                creditCard: "all",
-                debitCard: "all",
-                maxInstallments: 1,
-              },
+            paymentMethods: {
+              creditCard: 'all',
+              debitCard: 'all',
+              maxInstallments: 1,
             },
-            callbacks: {
-              onReady: () => {
-                console.log("Payment Brick listo");
-              },
+          },
+          callbacks: {
+            onReady: () => {
+              updateStatus('', '');
+            },
 
-              onSubmit: async ({ formData }) => {
-                try {
-                  const response = await fetch(
-                    `${import.meta.env.VITE_API_BASE_URL}/payments/process-payment`,
-                    {
-                      method: "POST",
-                      headers: {
-                        "Content-Type": "application/json",
-                      },
-                      body: JSON.stringify(formData),
-                    }
-                  );
+            onSubmit: async ({ formData }) => {
+              try {
+                updateStatus('processing', 'Procesando pago con tarjeta...');
 
-                  const data = await response.json();
-                  console.log("RESPUESTA BACKEND:", data);
+                const response = await fetch(`${apiBaseURL}/payments/process-payment`, {
+                  method: 'POST',
+                  headers: {
+                    'Content-Type': 'application/json',
+                  },
+                  body: JSON.stringify(formData),
+                });
 
-                  if (!response.ok) {
-                    alert(
-                      "Error en el pago: " +
-                        JSON.stringify(data.detail || data)
-                    );
-                    return;
-                  }
+                const data = await readPaymentResponse(response, 'No se pudo procesar el pago con tarjeta.');
 
-                  const paymentStatus =
-                    data?.response?.status || data?.status || "desconocido";
+                const paymentStatus = data?.response?.status || data?.status || data?.data?.status;
 
-                  if (paymentStatus === "approved") {
-                    setPagoExitoso(true);
-                  } else if (paymentStatus === "rejected") {
-                    alert("Pago rechazado");
-                  } else if (paymentStatus === "pending") {
-                    alert("Pago pendiente");
-                  } else {
-                    alert(`Estado del pago: ${paymentStatus}`);
-                  }
-                } catch (error) {
-                  console.error("Error procesando pago:", error);
-                  alert("Error inesperado procesando el pago");
+                if (paymentStatus === 'approved') {
+                  updateStatus('approved', 'Pago con tarjeta aprobado.');
+                  callbacksRef.current.onApproved?.(data);
+                } else if (paymentStatus === 'pending') {
+                  updateStatus('pending', 'Pago con tarjeta pendiente.');
+                  callbacksRef.current.onPending?.(data);
+                } else {
+                  updateStatus('rejected', 'Pago con tarjeta rechazado.');
+                  callbacksRef.current.onRejected?.(data);
                 }
-              },
-
-              onError: (error) => {
-                console.error("Error Payment Brick:", error);
-              },
+              } catch (error) {
+                updateStatus('error', error?.message || 'Error inesperado procesando el pago.');
+                callbacksRef.current.onError?.(error);
+              }
             },
-          }
-        );
+
+            onError: (error) => {
+              updateStatus('error', 'Error cargando el formulario de pago.');
+              callbacksRef.current.onError?.(error);
+            },
+          },
+        });
+
+        if (!mounted) {
+          controller.unmount();
+          if (container) container.innerHTML = '';
+          return;
+        }
+
+        brickController = controller;
       } catch (error) {
-        console.error("Error cargando Payment Brick:", error);
+        updateStatus('error', error?.message || 'Error cargando Mercado Pago.');
+        callbacksRef.current.onError?.(error);
       }
     };
 
     loadBrick();
 
     return () => {
+      mounted = false;
       if (brickController) {
         brickController.unmount();
       }
 
       const container = document.getElementById(containerId);
       if (container) {
-        container.innerHTML = "";
+        container.innerHTML = '';
       }
     };
-  }, [amount]);
+  }, [amount, containerId, payerEmail, payerName]);
 
   return (
-    <>
-      <div id={`paymentBrick_container_${amount}`}></div>
+    <div className="min-h-[328px] rounded-md bg-white">
+      <div id={containerId} className="min-h-[250px]" />
 
-      {pagoExitoso && (
-        <div className="fixed inset-0 bg-black/50 flex items-center justify-center z-50">
-          <div className="bg-white rounded-2xl shadow-xl p-8 w-[380px] text-center">
-            <div className="mx-auto mb-4 w-16 h-16 rounded-full bg-green-100 flex items-center justify-center">
-              <span className="text-green-600 text-4xl">✓</span>
-            </div>
-
-            <h2 className="text-2xl font-bold text-gray-800">
-              Pago aprobado
-            </h2>
-
-            <p className="text-gray-600 mt-2">
-              Tu pago fue procesado correctamente.
-            </p>
-
-            <button
-              onClick={() => setPagoExitoso(false)}
-              className="mt-6 bg-green-600 text-white px-6 py-2 rounded-lg hover:bg-green-700"
-            >
-              Aceptar
-            </button>
-          </div>
+      {status && (
+        <div
+          className={`mt-4 rounded-md p-4 text-center font-semibold ${
+            status === 'approved'
+              ? 'bg-green-100 text-green-700'
+              : status === 'pending' || status === 'processing'
+                ? 'bg-amber-100 text-amber-800'
+                : 'bg-red-100 text-red-700'
+          }`}
+        >
+          {message}
         </div>
       )}
-    </>
+    </div>
   );
 }

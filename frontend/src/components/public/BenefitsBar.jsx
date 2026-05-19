@@ -11,12 +11,11 @@ const benefits = [
 
 function GreenIcon({ src }) {
   return (
-    <span
-      className="block h-14 w-14 bg-[#63C132]"
-      style={{
-        WebkitMask: `url(${src}) center / contain no-repeat`,
-        mask: `url(${src}) center / contain no-repeat`,
-      }}
+    <img
+      src={src}
+      alt=""
+      className="h-12 w-12 object-contain"
+      style={{ filter: 'invert(57%) sepia(67%) saturate(739%) hue-rotate(75deg) brightness(93%) contrast(88%)' }}
     />
   );
 }

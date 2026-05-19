@@ -1,5 +1,6 @@
 import axios from 'axios';
 import { API_CONFIG } from '../config/api.config.js';
+import { getStoredAuthToken } from '../auth/session.js';
 
 export const apiBaseURL = API_CONFIG.baseURL.replace(/\/$/, '');
 
@@ -54,9 +55,22 @@ const apiClient = axios.create({
   },
 });
 
+apiClient.interceptors.request.use((config) => {
+  const token = getStoredAuthToken();
+  if (token) {
+    config.headers.Authorization = `Bearer ${token}`;
+  }
+  return config;
+});
+
 apiClient.interceptors.response.use(
   (response) => response,
-  (error) => Promise.reject(error),
+  (error) => {
+    if (error?.response?.status === 401) {
+      window.dispatchEvent(new CustomEvent('carmencita:auth-expired'));
+    }
+    return Promise.reject(error);
+  },
 );
 
 export default apiClient;

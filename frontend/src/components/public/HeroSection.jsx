@@ -14,9 +14,9 @@ function HeroSection() {
     >
       <div className="absolute inset-y-0 left-0 hidden w-[44%] bg-black/[0.18] backdrop-blur-sm lg:block" />
 
-      <div className="relative mx-auto flex min-h-[650px] max-w-[1840px] flex-col justify-center px-5 py-12 sm:px-8 lg:min-h-[680px] lg:px-16 2xl:min-h-[720px]">
-        <div className="max-w-[620px] 2xl:max-w-[700px]">
-          <h1 className="text-[42px] font-black leading-[1.16] text-white sm:text-6xl lg:text-[66px] 2xl:text-[78px]">
+      <div className="relative mx-auto flex min-h-[560px] max-w-7xl flex-col justify-center px-4 py-12 sm:px-6 lg:min-h-[620px] lg:px-8">
+        <div className="max-w-[560px]">
+          <h1 className="text-[36px] font-black leading-[1.16] text-white sm:text-6xl lg:text-[58px] xl:text-[62px]">
             Enviamos lo que te importa
             <span className="mt-3 block text-[#63C132]">seguro y a tiempo</span>
           </h1>
@@ -26,7 +26,7 @@ function HeroSection() {
           </p>
           <Link
             to="/registrar-envio"
-            className="mt-8 inline-flex min-h-16 items-center gap-3 rounded-lg bg-[#2F9448] px-6 py-4 text-lg font-black text-white shadow-xl shadow-black/20 transition hover:bg-[#356B3F]"
+            className="mt-8 inline-flex min-h-14 items-center gap-3 rounded-lg bg-[#2F9448] px-6 py-4 text-base font-black text-white shadow-xl shadow-black/20 transition hover:bg-[#356B3F] sm:text-lg"
           >
             <img src={packageIcon} alt="" className="h-8 w-8 brightness-0 invert" />
             Registro de envio

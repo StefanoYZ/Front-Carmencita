@@ -1,7 +1,10 @@
 import React from 'react';
+import { Link } from 'react-router-dom';
+import { getAllowedNavigation } from '../auth/accessControl.js';
 import Badge from '../components/common/Badge.jsx';
 import Card from '../components/common/Card.jsx';
 import DataTable from '../components/tables/DataTable.jsx';
+import { useAuth } from '../context/AuthContext.jsx';
 import { dashboardStats, encomiendasMock } from '../data/mockData.js';
 
 const columns = [
@@ -17,11 +20,22 @@ const columns = [
 ];
 
 function Dashboard() {
+  const { user } = useAuth();
+  const allowedLinks = getAllowedNavigation(user).filter((item) => item.path !== '/admin');
+
   return (
     <div className="space-y-6">
-      <div>
-        <h2 className="page-title">Dashboard</h2>
-        <p className="page-subtitle">Resumen operativo de encomiendas, clientes y carga.</p>
+      <div className="flex flex-col gap-4 lg:flex-row lg:items-start lg:justify-between">
+        <div>
+          <h2 className="page-title">Dashboard</h2>
+          <p className="page-subtitle">
+            Resumen operativo para {user?.full_name || user?.username || 'usuario interno'}.
+          </p>
+        </div>
+        <div className="rounded-lg border border-gray-200 bg-white px-4 py-3 text-sm shadow-sm">
+          <p className="font-semibold text-brand-black">{(user?.roles || []).join(', ') || 'Sin rol asignado'}</p>
+          <p className="mt-1 text-gray-500">{user?.permissions?.length || 0} permisos habilitados</p>
+        </div>
       </div>
 
       <div className="grid gap-4 md:grid-cols-2 xl:grid-cols-4">
@@ -35,6 +49,24 @@ function Dashboard() {
           </Card>
         ))}
       </div>
+
+      <Card>
+        <div className="mb-4">
+          <h3 className="text-lg font-semibold text-brand-black">Modulos disponibles</h3>
+          <p className="mt-1 text-sm text-gray-500">Accesos habilitados para tu rol.</p>
+        </div>
+        <div className="grid gap-3 sm:grid-cols-2 xl:grid-cols-3">
+          {allowedLinks.map((item) => (
+            <Link
+              key={item.path}
+              to={item.path}
+              className="rounded-lg border border-gray-200 bg-white p-4 text-sm font-semibold text-gray-700 transition hover:border-brand-green hover:bg-green-50 hover:text-brand-black"
+            >
+              {item.label}
+            </Link>
+          ))}
+        </div>
+      </Card>
 
       <Card>
         <div className="mb-4 flex items-center justify-between">

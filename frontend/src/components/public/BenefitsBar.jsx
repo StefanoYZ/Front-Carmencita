@@ -1,0 +1,39 @@
+import React from 'react';
+import shieldIcon from '../../assets/icons/confiable.svg';
+import clockIcon from '../../assets/icons/tiempo-rapido.svg';
+import supportIcon from '../../assets/icons/apoyo.svg';
+
+const benefits = [
+  { label: 'Seguro y confiable', icon: shieldIcon },
+  { label: 'Entregas a tiempo', icon: clockIcon },
+  { label: 'Atencion personalizada', icon: supportIcon },
+];
+
+function GreenIcon({ src }) {
+  return (
+    <span
+      className="block h-14 w-14 bg-[#63C132]"
+      style={{
+        WebkitMask: `url(${src}) center / contain no-repeat`,
+        mask: `url(${src}) center / contain no-repeat`,
+      }}
+    />
+  );
+}
+
+function BenefitsBar() {
+  return (
+    <div className="grid gap-2 rounded-md border border-white/10 bg-black/70 p-4 shadow-2xl backdrop-blur md:grid-cols-3">
+      {benefits.map((benefit) => (
+        <div key={benefit.label} className="flex items-center gap-4 rounded-md px-3 py-3">
+          <span className="flex h-16 w-16 shrink-0 items-center justify-center rounded-md bg-white/5">
+            <GreenIcon src={benefit.icon} />
+          </span>
+          <span className="max-w-[145px] text-base font-black leading-tight text-white drop-shadow">{benefit.label}</span>
+        </div>
+      ))}
+    </div>
+  );
+}
+
+export default BenefitsBar;

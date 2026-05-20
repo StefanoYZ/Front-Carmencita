@@ -24,10 +24,10 @@ export const paquetesMock = [
   { id: 'PK-104', descripcion: 'Mercaderia surtida', peso: 31, volumen: '0.25 m3', prioridad: 'Normal' },
 ];
 
-export const ciudadanoMock = {
-  dni: '74185296',
-  nombres: 'Lucia Andrea',
-  apellidos: 'Quispe Salazar',
-  ubigeo: '150101',
-  estado: 'Activo',
-};
+// export const ciudadanoMock = {
+//   dni: '74185296',
+//   nombres: 'Lucia Andrea',
+//   apellidos: 'Quispe Salazar',
+//   ubigeo: '150101',
+//   estado: 'Activo',
+// };

@@ -17,13 +17,13 @@ function PublicHeader() {
 
   return (
     <header className="sticky top-0 z-50 border-b border-gray-100 bg-white shadow-sm">
-      <div className="mx-auto flex min-h-[92px] max-w-[1840px] items-center justify-between gap-5 px-5 sm:px-8 lg:min-h-[118px] lg:px-16">
+      <div className="mx-auto flex min-h-[76px] max-w-7xl items-center justify-between gap-5 px-4 sm:px-6 lg:min-h-[88px] lg:px-8">
         <NavLink to="/" className="flex items-center gap-3" onClick={() => setOpen(false)}>
-          <img src={logo} alt="Carmencita Express" className="h-14 w-auto sm:h-16 lg:h-[82px]" />
+          <img src={logo} alt="Carmencita Express" className="h-12 w-auto sm:h-14 lg:h-16" />
           <span className="sr-only">Carmencita Express Cargo</span>
         </NavLink>
 
-        <nav className="hidden items-center gap-9 text-[17px] font-black text-black xl:flex 2xl:gap-14 2xl:text-2xl">
+        <nav className="hidden items-center gap-7 text-[15px] font-black text-black xl:flex 2xl:gap-9 2xl:text-base">
           {navItems.map((item) => (
             <NavLink
               key={item.label}
@@ -39,16 +39,16 @@ function PublicHeader() {
           ))}
         </nav>
 
-        <div className="hidden items-center gap-6 xl:flex">
-          <a href="tel:044222222" className="flex items-center gap-3 text-base font-black text-[#2F9448] 2xl:text-2xl">
-            <img src={phoneIcon} alt="" className="h-7 w-7 2xl:h-10 2xl:w-10" />
+        <div className="hidden items-center gap-5 xl:flex">
+          <a href="tel:044222222" className="flex items-center gap-2 text-sm font-black text-[#2F9448] 2xl:text-base">
+            <img src={phoneIcon} alt="" className="h-6 w-6" />
             (044)-222222
           </a>
           <NavLink
             to="/registrar-envio"
-            className="inline-flex min-h-16 items-center gap-3 rounded-lg bg-[#2F9448] px-6 py-3 text-base font-black text-white shadow-lg shadow-green-900/10 transition hover:bg-[#356B3F] 2xl:min-h-20 2xl:px-8 2xl:text-2xl"
+            className="inline-flex min-h-12 items-center gap-2 rounded-lg bg-[#2F9448] px-5 py-3 text-sm font-black text-white shadow-lg shadow-green-900/10 transition hover:bg-[#356B3F] 2xl:text-base"
           >
-            <img src={packageIcon} alt="" className="h-8 w-8 brightness-0 invert 2xl:h-10 2xl:w-10" />
+            <img src={packageIcon} alt="" className="h-6 w-6 brightness-0 invert" />
             Registro de envio
           </NavLink>
         </div>

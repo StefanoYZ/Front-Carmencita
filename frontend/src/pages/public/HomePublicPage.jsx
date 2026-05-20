@@ -7,10 +7,10 @@ function HomePublicPage() {
   return (
     <>
       <HeroSection />
-      <section className="bg-white px-5 py-8 sm:px-8 lg:px-16">
-        <div className="mx-auto grid max-w-[1840px] gap-10 min-[1700px]:grid-cols-[minmax(0,1.55fr)_minmax(420px,0.9fr)] min-[1700px]:items-start">
+      <section className="bg-white py-8 lg:py-10">
+        <div className="mx-auto grid max-w-7xl grid-cols-1 items-start gap-8 px-4 sm:px-6 lg:px-8 min-[1400px]:grid-cols-[minmax(0,1.7fr)_minmax(360px,0.9fr)]">
           <PublicQuoteCard />
-          <div id="contacto" className="min-w-0">
+          <div id="contacto" className="min-w-0 w-full">
             <TrackingCard />
           </div>
         </div>

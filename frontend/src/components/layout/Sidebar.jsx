@@ -1,22 +1,13 @@
 import React from 'react';
 import { NavLink } from 'react-router-dom';
+import { getAllowedNavigation } from '../../auth/accessControl.js';
+import { useAuth } from '../../context/AuthContext.jsx';
 import logo from '../../assets/icons/logo.svg';
 
-const links = [
-  { label: 'Dashboard', path: '/admin' },
-  { label: 'Clientes', path: '/admin/clientes' },
-  { label: 'Encomiendas', path: '/admin/encomiendas' },
-  { label: 'Nueva encomienda', path: '/admin/encomiendas/nueva' },
-  { label: 'Cotizaciones', path: '/admin/cotizaciones' },
-  { label: 'Tracking interno', path: '/admin/tracking' },
-  { label: 'SUNAT / Boletas', path: '/admin/sunat/boletas' },
-  { label: 'RENIEC', path: '/admin/reniec' },
-  { label: 'Payments', path: '/admin/payments' },
-  { label: 'Yape', path: '/admin/yape' },
-  { label: 'Optimizacion de carga', path: '/admin/optimizacion-carga' },
-];
-
 function Sidebar() {
+  const { user } = useAuth();
+  const links = getAllowedNavigation(user);
+
   return (
     <aside className="fixed inset-y-0 left-0 z-20 hidden w-72 border-r border-gray-200 bg-white px-4 py-5 lg:block">
       <img src={logo} alt="Carmencita Smart System" className="h-10 w-40" />
@@ -37,6 +28,13 @@ function Sidebar() {
           </NavLink>
         ))}
       </nav>
+
+      {user && (
+        <div className="absolute inset-x-4 bottom-5 rounded-lg border border-gray-200 bg-gray-50 p-3">
+          <p className="truncate text-sm font-semibold text-brand-black">{user.full_name || user.username}</p>
+          <p className="mt-1 truncate text-xs font-medium text-gray-500">{(user.roles || []).join(', ') || 'Sin rol'}</p>
+        </div>
+      )}
     </aside>
   );
 }

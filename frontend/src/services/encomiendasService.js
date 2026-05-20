@@ -5,6 +5,11 @@ export async function createEncomienda(payload) {
   return response.data;
 }
 
+export async function crearPreRegistro(payload) {
+  const response = await apiClient.post('/encomiendas/pre-registro', payload);
+  return response.data;
+}
+
 export async function updateEncomienda(id, payload) {
   const response = await apiClient.put(`/encomiendas/${id}`, payload);
   return response.data;
@@ -30,7 +35,13 @@ export async function getEncomiendaByCodigo(codigo) {
   return response.data;
 }
 
+export const crearEncomienda = createEncomienda;
+export const buscarPorCodigo = getEncomiendaByCodigo;
+
 export const encomiendasService = {
+  crearPreRegistro,
+  crearEncomienda,
+  buscarPorCodigo,
   createEncomienda,
   updateEncomienda,
   deleteEncomienda,

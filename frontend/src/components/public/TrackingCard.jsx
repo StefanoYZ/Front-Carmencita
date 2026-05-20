@@ -65,36 +65,36 @@ function TrackingCard({ initialCode = '' }) {
   };
 
   return (
-    <article className="min-w-0 overflow-hidden rounded-lg border border-gray-200 bg-white shadow-sm">
-      <div className="bg-[#3D7046] p-6 text-white sm:p-8">
-        <h2 className="text-3xl font-black lg:text-4xl">Rastrea tu encomienda</h2>
-        <p className="mt-2 max-w-xl text-base font-semibold leading-6 text-white/90">
+    <article className="w-full min-w-0 overflow-hidden rounded-lg border border-gray-200 bg-white shadow-[0_14px_34px_rgba(31,41,55,0.10)]">
+      <div className="bg-[#3F6845] p-5 text-white sm:p-6">
+        <h2 className="text-2xl font-black sm:text-3xl">Rastrea tu encomienda</h2>
+        <p className="mt-2 max-w-xl text-sm font-semibold leading-6 text-[#E3EAE1] sm:text-base">
           Ingresa tu codigo de envio y conoce el estado actual de tu encomienda.
         </p>
 
-        <form className="mt-6 grid overflow-hidden rounded-md bg-white sm:grid-cols-[1fr_auto]" onSubmit={handleSubmit}>
-          <label className="grid">
+        <form className="mt-5 grid min-w-0 gap-2 rounded-lg bg-white p-2 sm:grid-cols-[minmax(0,1fr)_auto]" onSubmit={handleSubmit}>
+          <label className="grid min-w-0">
             <input
-              className="min-h-14 border-0 px-6 text-lg font-semibold uppercase text-gray-700 outline-none transition placeholder:normal-case placeholder:text-gray-400 focus:ring-2 focus:ring-green-100"
+              className="min-h-12 min-w-0 rounded-md border-0 px-4 text-base font-bold uppercase text-gray-800 outline-none transition placeholder:normal-case placeholder:text-gray-400 focus:ring-2 focus:ring-green-100"
               value={codigo}
               onChange={(event) => setCodigo(event.target.value)}
               placeholder="Ejemplo: D000000001"
             />
           </label>
           <button
-            className="m-1 inline-flex min-h-12 items-center justify-center gap-3 rounded-md border border-white bg-[#3D7046] px-6 text-lg font-black text-white transition hover:bg-[#356B3F] disabled:cursor-not-allowed disabled:opacity-70"
+            className="inline-flex min-h-12 w-full items-center justify-center gap-2 rounded-md bg-[#31934F] px-4 text-sm font-black text-white transition hover:bg-[#2F7D45] disabled:cursor-not-allowed disabled:opacity-70 sm:w-auto"
             type="submit"
             disabled={loading}
           >
-            <img src={searchIcon} alt="" className="h-7 w-7 brightness-0 invert" />
+            <img src={searchIcon} alt="" className="h-5 w-5 brightness-0 invert" />
             {loading ? 'Buscando...' : 'Rastrear'}
           </button>
         </form>
       </div>
 
-      <div className="min-h-[230px] p-6 sm:p-10">
+      <div className="min-h-[220px] p-5 sm:p-6">
         {message && (
-          <div className="mb-7 rounded-md border border-amber-200 bg-amber-50 p-3 text-sm font-semibold text-amber-800">
+          <div className="mb-6 rounded-md border border-amber-200 bg-amber-50 p-3 text-sm font-semibold text-amber-800">
             {message}
           </div>
         )}
@@ -104,19 +104,19 @@ function TrackingCard({ initialCode = '' }) {
         </div>
 
         {result && (
-          <div className="mt-6 grid gap-3 rounded-md border border-gray-100 bg-gray-50 p-4 text-sm sm:grid-cols-2">
+          <div className="mt-6 grid min-w-0 gap-3 rounded-md border border-gray-100 bg-gray-50 p-4 text-sm sm:grid-cols-2">
             <div className="flex gap-3">
               <GreenIcon src={packageIcon} />
-              <div>
+              <div className="min-w-0">
                 <p className="text-gray-500">Codigo</p>
-                <p className="font-black text-[#1F2937]">{formatShipmentCode(result.codigo_encomienda)}</p>
+                <p className="break-words font-black text-[#1F2937]">{formatShipmentCode(result.codigo_encomienda)}</p>
               </div>
             </div>
             <div className="flex gap-3">
               <GreenIcon src={locationIcon} />
-              <div>
+              <div className="min-w-0">
                 <p className="text-gray-500">Ruta</p>
-                <p className="font-black text-[#1F2937]">{result.origen || 'Trujillo'} - {result.destino || 'Angasmarca'}</p>
+                <p className="break-words font-black text-[#1F2937]">{result.origen || 'Trujillo'} - {result.destino || 'Angasmarca'}</p>
               </div>
             </div>
             <div>

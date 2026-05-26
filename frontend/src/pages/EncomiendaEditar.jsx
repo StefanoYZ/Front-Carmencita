@@ -10,7 +10,9 @@ import { getEncomiendaById, updateEncomienda } from '../services/encomiendasServ
 import {
   buildEncomiendaPayload,
   normalizeEncomiendaForForm,
+  sanitizeEncomiendaField,
   validateEncomiendaForm,
+  validateEncomiendaFormFields,
 } from '../utils/encomiendas.js';
 import { formatShipmentCode } from '../utils/formatShipmentCode.js';
 
@@ -22,6 +24,7 @@ function EncomiendaEditar() {
   const [loading, setLoading] = useState('detalle');
   const [error, setError] = useState('');
   const [message, setMessage] = useState('');
+  const [fieldErrors, setFieldErrors] = useState({});
 
   useEffect(() => {
     async function loadEncomienda() {
@@ -42,13 +45,30 @@ function EncomiendaEditar() {
   }, [id]);
 
   const updateField = (event) => {
-    setForm((current) => ({ ...current, [event.target.name]: event.target.value }));
+    const { name, value } = event.target;
+    setForm((current) => {
+      const next = { ...current, [name]: sanitizeEncomiendaField(name, value, current) };
+      if (name.endsWith('_tipo_documento') && value === 'DNI') {
+        const prefix = name.replace('_tipo_documento', '');
+        const documentField = `${prefix}_numero_documento`;
+        next[documentField] = sanitizeEncomiendaField(documentField, next[documentField], next);
+      }
+      return next;
+    });
+    setFieldErrors((current) => {
+      if (!current[name]) return current;
+      const next = { ...current };
+      delete next[name];
+      return next;
+    });
   };
 
   const handleSubmit = async (event) => {
     event.preventDefault();
+    const validationFields = validateEncomiendaFormFields(form, { includeEstado: true });
     const validationErrors = validateEncomiendaForm(form, { includeEstado: true });
     if (validationErrors.length > 0) {
+      setFieldErrors(validationFields);
       setError(validationErrors.join(' '));
       return;
     }
@@ -56,6 +76,7 @@ function EncomiendaEditar() {
     try {
       setLoading('guardar');
       setError('');
+      setFieldErrors({});
       setMessage('');
       const updated = await updateEncomienda(id, buildEncomiendaPayload(form));
       setEncomienda(updated);
@@ -89,6 +110,7 @@ function EncomiendaEditar() {
         <Card>
           <EncomiendaForm
             form={form}
+            errors={fieldErrors}
             onChange={updateField}
             onSubmit={handleSubmit}
             loading={loading === 'guardar'}

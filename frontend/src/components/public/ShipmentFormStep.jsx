@@ -81,6 +81,7 @@ function PersonFields({ prefix, form, errors, onChange, onReniecLookup, reniecSt
           onBlur={() => onReniecLookup(prefix)}
           error={errors[`${prefix}_numero_documento`]}
           inputMode="numeric"
+          maxLength={form[`${prefix}_tipo_documento`] === 'DNI' ? 8 : undefined}
           placeholder={form[`${prefix}_tipo_documento`] === 'DNI' ? '8 digitos' : ''}
         />
         <ReniecMessage status={reniecStatus[prefix]} />
@@ -101,7 +102,8 @@ function PersonFields({ prefix, form, errors, onChange, onReniecLookup, reniecSt
         value={form[`${prefix}_telefono`]}
         onChange={onChange}
         error={errors[`${prefix}_telefono`]}
-        inputMode="tel"
+        inputMode="numeric"
+        maxLength={9}
       />
 
       <Field
@@ -161,9 +163,9 @@ function ShipmentFormStep({ form, errors, reniecStatus, onChange, onReniecLookup
           <Field as="select" label="Tipo de contenido" name="tipo_contenido" value={form.tipo_contenido} onChange={onChange} error={errors.tipo_contenido}>
             <option value="">Seleccionar</option>
             <option value="DOCUMENTOS">Documentos</option>
-            <option value="PAQUETE">Paquete</option>
             <option value="ROPA">Ropa</option>
-            <option value="FRAGIL">Fragil</option>
+            <option value="ELECTRONICOS">Electronicos</option>
+            <option value="ALIMENTOS">Alimentos</option>
             <option value="OTROS">Otros</option>
           </Field>
           <Field as="select" label="Fragilidad" name="fragilidad" value={form.fragilidad} onChange={onChange} error={errors.fragilidad}>
@@ -172,10 +174,10 @@ function ShipmentFormStep({ form, errors, reniecStatus, onChange, onReniecLookup
             <option value="MEDIA">Media</option>
             <option value="ALTA">Alta</option>
           </Field>
-          <Field label="Peso total (kg)" name="peso_kg" type="number" min="0" step="0.1" value={form.peso_kg} onChange={onChange} error={errors.peso_kg} />
-          <Field label="Largo (cm)" name="largo_cm" type="number" min="0" step="0.1" value={form.largo_cm} onChange={onChange} error={errors.largo_cm} />
-          <Field label="Ancho (cm)" name="ancho_cm" type="number" min="0" step="0.1" value={form.ancho_cm} onChange={onChange} error={errors.ancho_cm} />
-          <Field label="Alto (cm)" name="alto_cm" type="number" min="0" step="0.1" value={form.alto_cm} onChange={onChange} error={errors.alto_cm} />
+          <Field label="Peso total (kg)" name="peso_kg" inputMode="decimal" value={form.peso_kg} onChange={onChange} error={errors.peso_kg} />
+          <Field label="Largo (cm)" name="largo_cm" inputMode="decimal" value={form.largo_cm} onChange={onChange} error={errors.largo_cm} />
+          <Field label="Ancho (cm)" name="ancho_cm" inputMode="decimal" value={form.ancho_cm} onChange={onChange} error={errors.ancho_cm} />
+          <Field label="Alto (cm)" name="alto_cm" inputMode="decimal" value={form.alto_cm} onChange={onChange} error={errors.alto_cm} />
           <label className="grid gap-1.5 md:col-span-2 xl:col-span-4">
             <span className="text-sm font-bold text-gray-700">Descripcion</span>
             <textarea

@@ -1,3 +1,12 @@
+import {
+  validateContentType,
+  validateDocumentNumber,
+  validateEmail,
+  validateFragility,
+  validatePhone,
+  validatePositiveNumber,
+} from './shipmentValidation.js';
+
 export const PUBLIC_SHIPMENT_STORAGE_KEY = 'carmencita_public_shipment';
 export const PUBLIC_QUOTE_STORAGE_KEY = 'carmencita_public_quote';
 export const PUBLIC_SUCCESS_STORAGE_KEY = 'carmencita_public_success';
@@ -111,11 +120,13 @@ export function buildPublicShipmentPayload(form) {
     remitente_nombre: String(form.remitente_nombre || '').trim(),
     remitente_direccion: optionalText(form.remitente_direccion),
     remitente_telefono: String(form.remitente_telefono || '').trim(),
+    remitente_correo: optionalText(form.remitente_correo),
     destinatario_tipo_documento: String(form.destinatario_tipo_documento || '').trim().toUpperCase(),
     destinatario_numero_documento: String(form.destinatario_numero_documento || '').trim(),
     destinatario_nombre: String(form.destinatario_nombre || '').trim(),
     destinatario_direccion: optionalText(form.destinatario_direccion),
     destinatario_telefono: String(form.destinatario_telefono || '').trim(),
+    destinatario_correo: optionalText(form.destinatario_correo),
     origen: String(form.origen || '').trim(),
     destino: String(form.destino || '').trim(),
     descripcion: String(form.descripcion || '').trim(),
@@ -146,15 +157,23 @@ export function validatePublicShipmentForm(form) {
     }
   });
 
-  ['peso_kg', 'largo_cm', 'ancho_cm', 'alto_cm'].forEach((field) => {
-    if (!Number.isFinite(Number(form[field])) || Number(form[field]) <= 0) {
-      errors[field] = 'Debe ser mayor a 0.';
-    }
-  });
+  const contentError = validateContentType(form.tipo_contenido);
+  if (contentError) errors.tipo_contenido = contentError;
 
-  if (form.fragilidad && !['BAJA', 'MEDIA', 'ALTA'].includes(String(form.fragilidad).toUpperCase())) {
-    errors.fragilidad = 'La fragilidad debe ser BAJA, MEDIA o ALTA.';
-  }
+  const fragilityError = validateFragility(form.fragilidad);
+  if (fragilityError) errors.fragilidad = fragilityError;
+
+  const numericMessages = {
+    peso_kg: 'El peso debe ser mayor a 0.',
+    largo_cm: 'Las dimensiones deben ser mayores a 0.',
+    ancho_cm: 'Las dimensiones deben ser mayores a 0.',
+    alto_cm: 'Las dimensiones deben ser mayores a 0.',
+  };
+
+  Object.entries(numericMessages).forEach(([field, message]) => {
+    const error = validatePositiveNumber(form[field], message);
+    if (error) errors[field] = error;
+  });
 
   return errors;
 }
@@ -166,19 +185,15 @@ function validatePerson(prefix, form, errors) {
   const email = String(form[`${prefix}_correo`] || '').trim();
 
   if (!docType) errors[`${prefix}_tipo_documento`] = 'Selecciona el tipo de documento.';
-  if (!docNumber) errors[`${prefix}_numero_documento`] = `Ingresa el documento del ${readable}.`;
-  if (docType === 'DNI' && docNumber && !/^\d{8}$/.test(docNumber)) {
-    errors[`${prefix}_numero_documento`] = 'El DNI debe tener 8 digitos.';
-  }
+  const documentError = validateDocumentNumber(docType, docNumber);
+  if (documentError) errors[`${prefix}_numero_documento`] = documentError;
   if (!String(form[`${prefix}_nombre`] || '').trim()) {
     errors[`${prefix}_nombre`] = `Ingresa el nombre del ${readable}.`;
   }
-  if (!String(form[`${prefix}_telefono`] || '').trim()) {
-    errors[`${prefix}_telefono`] = `Ingresa el telefono del ${readable}.`;
-  }
-  if (email && !/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(email)) {
-    errors[`${prefix}_correo`] = 'Ingresa un correo valido.';
-  }
+  const phoneError = validatePhone(form[`${prefix}_telefono`], { required: true });
+  if (phoneError) errors[`${prefix}_telefono`] = phoneError;
+  const emailError = validateEmail(email);
+  if (emailError) errors[`${prefix}_correo`] = emailError;
 }
 
 function normalizeRoute(origin, destination) {

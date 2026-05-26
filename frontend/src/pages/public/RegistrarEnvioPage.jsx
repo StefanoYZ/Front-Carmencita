@@ -4,9 +4,11 @@ import PaymentConfirmationStep from '../../components/public/PaymentConfirmation
 import ShipmentFormStep from '../../components/public/ShipmentFormStep.jsx';
 import StepIndicator from '../../components/public/StepIndicator.jsx';
 import { getApiErrorMessage } from '../../services/apiClient.js';
+import { getClienteByDni } from '../../services/clientes.service.js';
 import { crearEncomienda, crearPreRegistro } from '../../services/encomiendasService.js';
 import { consultarDni } from '../../services/reniecService.js';
-import { extractNombreFromReniecResponse } from '../../utils/reniec.js';
+import { extractNombreFromReniecResponse, normalizeLocalClient } from '../../utils/reniec.js';
+import { sanitizeShipmentField } from '../../utils/shipmentValidation.js';
 import {
   PUBLIC_QUOTE_STORAGE_KEY,
   PUBLIC_SHIPMENT_STORAGE_KEY,
@@ -67,7 +69,17 @@ function RegistrarEnvioPage() {
 
   const updateField = (event) => {
     const { name, value } = event.target;
-    setForm((current) => ({ ...current, [name]: value }));
+    setForm((current) => {
+      const next = { ...current, [name]: sanitizeShipmentField(name, value, current) };
+
+      if (name.endsWith('_tipo_documento') && value === 'DNI') {
+        const prefix = name.replace('_tipo_documento', '');
+        const documentField = `${prefix}_numero_documento`;
+        next[documentField] = sanitizeShipmentField(documentField, next[documentField], next);
+      }
+
+      return next;
+    });
     setErrors((current) => {
       if (!current[name] && !current.general) return current;
       const next = { ...current };
@@ -88,6 +100,24 @@ function RegistrarEnvioPage() {
     });
   };
 
+  const updatePersonFromLocalClient = (role, client) => {
+    setForm((current) => ({
+      ...current,
+      [`${role}_nombre`]: client.nombre || current[`${role}_nombre`],
+      [`${role}_telefono`]: client.telefono || current[`${role}_telefono`],
+      [`${role}_correo`]: client.correo || current[`${role}_correo`],
+      [`${role}_direccion`]: client.direccion || current[`${role}_direccion`],
+    }));
+    setErrors((current) => {
+      const next = { ...current };
+      delete next[`${role}_nombre`];
+      delete next[`${role}_telefono`];
+      delete next[`${role}_correo`];
+      delete next[`${role}_direccion`];
+      return next;
+    });
+  };
+
   const handleReniecLookup = async (role) => {
     const typeField = `${role}_tipo_documento`;
     const documentField = `${role}_numero_documento`;
@@ -98,6 +128,26 @@ function RegistrarEnvioPage() {
     }
 
     try {
+      setReniecStatus((current) => ({
+        ...current,
+        [role]: { tone: 'info', message: 'Buscando cliente...' },
+      }));
+      try {
+        const localClient = normalizeLocalClient(await getClienteByDni(dni));
+        if (localClient.nombre || localClient.telefono || localClient.correo || localClient.direccion) {
+          updatePersonFromLocalClient(role, localClient);
+          setReniecStatus((current) => ({
+            ...current,
+            [role]: { tone: 'success', message: 'Datos autocompletados desde clientes.' },
+          }));
+          return;
+        }
+      } catch (clientError) {
+        if (clientError?.response?.status !== 404) {
+          throw clientError;
+        }
+      }
+
       setReniecStatus((current) => ({
         ...current,
         [role]: { tone: 'info', message: 'Consultando RENIEC...' },

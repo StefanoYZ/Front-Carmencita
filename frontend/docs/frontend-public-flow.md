@@ -166,3 +166,15 @@ npm run dev
 ```
 
 Revisar `/`, `/registrar-envio`, `/tracking`, `/cotizar` y `/admin`.
+# Validaciones de datos
+
+El flujo publico de registro de envio valida los datos antes de avanzar a confirmacion o crear el pre-registro:
+
+- DNI: solo numeros, maximo 8 digitos en el input y exactamente 8 digitos para consultar RENIEC.
+- Telefono: solo numeros y maximo 9 digitos.
+- Correo: formato valido si se ingresa.
+- Peso y dimensiones: solo numeros/decimales mayores a 0.
+- Fragilidad: `BAJA`, `MEDIA` o `ALTA`.
+- Tipo de contenido: requerido antes de continuar.
+
+RENIEC solo se consulta cuando el tipo de documento es `DNI` y el numero tiene exactamente 8 digitos. Si RENIEC falla, el usuario puede ingresar el nombre manualmente.

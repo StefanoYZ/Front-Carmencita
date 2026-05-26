@@ -1,5 +1,6 @@
 import React, { useState } from 'react';
 import { apiBaseURL } from '../../services/apiClient.js';
+import { sanitizeDigits, validatePhone } from '../../utils/shipmentValidation.js';
 
 function getPaymentErrorMessage(data, fallback) {
   if (Array.isArray(data?.detail)) {
@@ -69,6 +70,13 @@ export default function YapePayment({
       setResultado(null);
       setMessage('');
 
+      const phoneError = validatePhone(phoneNumber, { required: true });
+      if (phoneError) {
+        setResultado('error');
+        setMessage(phoneError);
+        return;
+      }
+
       await loadMercadoPagoSDK();
 
       const keyResponse = await fetch(`${apiBaseURL}/payments/public-key`);
@@ -131,8 +139,10 @@ export default function YapePayment({
       <input
         type="text"
         value={phoneNumber}
-        onChange={(event) => setPhoneNumber(event.target.value)}
+        onChange={(event) => setPhoneNumber(sanitizeDigits(event.target.value, 9))}
         placeholder="Ej: Ingresa tu numero Yape"
+        inputMode="numeric"
+        maxLength={9}
         className="mb-4 min-h-11 w-full rounded-md border border-gray-200 px-3 py-2 text-sm outline-none focus:border-purple-500 focus:ring-2 focus:ring-purple-100"
       />
 

@@ -37,3 +37,14 @@ export function extractNombreFromReniecResponse(data) {
 
   return '';
 }
+
+export function normalizeLocalClient(data) {
+  const source = data?.data || data?.result || data?.cliente || data || {};
+
+  return {
+    nombre: String(source.nombre_completo || source.full_name || source.nombre || '').trim(),
+    telefono: String(source.telefono || source.phone || '').trim(),
+    correo: String(source.correo || source.email || '').trim(),
+    direccion: String(source.direccion || source.address || '').trim(),
+  };
+}

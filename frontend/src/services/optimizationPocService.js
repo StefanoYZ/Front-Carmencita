@@ -8,11 +8,6 @@ export const optimizationPocService = {
     return response.data;
   },
 
-  async runFirstFit(payload) {
-    const response = await apiClient.post(`${basePath}/first-fit/run`, payload);
-    return response.data;
-  },
-
   async runMinimaxMaximin(payload) {
     const response = await apiClient.post(`${basePath}/minimax-maximin/run`, payload);
     return response.data;

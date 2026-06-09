@@ -34,16 +34,9 @@ function formatDimensions(item) {
   return `${length} x ${width} x ${height} cm`;
 }
 
-function formatAlgorithm(mode, strategy) {
-  if (mode === 'FIRST_FIT') return 'First Fit 3D';
-  return strategy === 'MAXIMIN' ? 'Maximin' : 'Minimax';
-}
-
 export default function OptimizacionCarga() {
   const [scenario, setScenario] = useState(null);
   const [selectedTruckId, setSelectedTruckId] = useState('CAMION_A');
-  const [algorithmMode, setAlgorithmMode] = useState('FIRST_FIT');
-  const [strategy, setStrategy] = useState('MINIMAX');
   const [status, setStatus] = useState('IDLE');
   const [simulation, setSimulation] = useState(null);
   const [loadedCodes, setLoadedCodes] = useState([]);
@@ -88,11 +81,8 @@ export default function OptimizacionCarga() {
     setLoadedCodes([]);
     setWrongScan(null);
     try {
-      const payload = { truck_id: selectedTruckId, package_limit: 50, allow_rotation: true, strategy };
-      const result =
-        algorithmMode === 'FIRST_FIT'
-          ? await optimizationPocService.runFirstFit(payload)
-          : await optimizationPocService.runMinimaxMaximin(payload);
+      const payload = { truck_id: selectedTruckId, package_limit: 50, allow_rotation: true };
+      const result = await optimizationPocService.runFirstFit(payload);
       setSimulation(result);
       setStatus('ORDERED');
     } catch (runError) {
@@ -151,7 +141,7 @@ export default function OptimizacionCarga() {
             </div>
           </div>
           <div className="grid gap-3 md:grid-cols-4">
-            <HeaderBadge label="Algoritmo" value={formatAlgorithm(algorithmMode, strategy)} />
+            <HeaderBadge label="Algoritmo" value="First Fit 3D" />
             <HeaderBadge label="Camiones disponibles" value={scenario?.trucks?.length || 0} />
             <HeaderBadge label="Camion seleccionado" value={selectedTruck?.nombre || '-'} />
             <HeaderBadge label="Estado" value={STATUS_LABELS[status]} />
@@ -182,26 +172,9 @@ export default function OptimizacionCarga() {
                 </option>
               ))}
             </select>
-            <select
-              className="min-h-11 rounded-md border border-[#d9e7d4] bg-white px-3 text-sm font-bold"
-              value={algorithmMode}
-              onChange={(event) => setAlgorithmMode(event.target.value)}
-              disabled={status === 'ORDERING'}
-            >
-              <option value="FIRST_FIT">First Fit 3D</option>
-              <option value="MINIMAX">Minimax / Maximin</option>
-            </select>
-            {algorithmMode === 'MINIMAX' && (
-              <select
-                className="min-h-11 rounded-md border border-[#d9e7d4] bg-white px-3 text-sm font-bold"
-                value={strategy}
-                onChange={(event) => setStrategy(event.target.value)}
-                disabled={status === 'ORDERING'}
-              >
-                <option value="MINIMAX">MINIMAX</option>
-                <option value="MAXIMIN">MAXIMIN</option>
-              </select>
-            )}
+            <div className="rounded-md border border-[#d9e7d4] bg-[#E4ECE2] px-3 py-3 text-sm font-black text-[#3C5940]">
+              Algoritmo: First Fit 3D
+            </div>
           </div>
 
           <div className="mt-4 max-h-[520px] space-y-2 overflow-y-auto pr-1">

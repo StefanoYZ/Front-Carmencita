@@ -5,6 +5,7 @@ import ShipmentFormStep from '../../components/public/ShipmentFormStep.jsx';
 import StepIndicator from '../../components/public/StepIndicator.jsx';
 import { getApiErrorMessage } from '../../services/apiClient.js';
 import { getClienteByDni } from '../../services/clientes.service.js';
+import { getDestinos } from '../../services/destinosService.js';
 import { crearEncomienda, crearPreRegistro } from '../../services/encomiendasService.js';
 import { consultarDni } from '../../services/reniecService.js';
 import { extractNombreFromReniecResponse, normalizeLocalClient } from '../../utils/reniec.js';
@@ -23,17 +24,30 @@ import {
 } from '../../utils/publicShipment.js';
 
 function getInitialForm(routeQuote) {
+  let initialForm;
+
   if (routeQuote) {
-    return { ...emptyPublicShipmentForm, ...mapQuoteToShipmentForm(routeQuote) };
+    initialForm = { ...emptyPublicShipmentForm, ...mapQuoteToShipmentForm(routeQuote) };
+  } else {
+    const storedForm = readSessionJSON(PUBLIC_SHIPMENT_STORAGE_KEY, null);
+    if (storedForm) {
+      initialForm = { ...emptyPublicShipmentForm, ...storedForm };
+    } else {
+      const storedQuote = readSessionJSON(PUBLIC_QUOTE_STORAGE_KEY, null);
+      initialForm = { ...emptyPublicShipmentForm, ...mapQuoteToShipmentForm(storedQuote) };
+    }
   }
 
-  const storedForm = readSessionJSON(PUBLIC_SHIPMENT_STORAGE_KEY, null);
-  if (storedForm) {
-    return { ...emptyPublicShipmentForm, ...storedForm };
-  }
+  return {
+    ...initialForm,
+    fragilidad: normalizeFragilityForForm(initialForm.fragilidad),
+  };
+}
 
-  const storedQuote = readSessionJSON(PUBLIC_QUOTE_STORAGE_KEY, null);
-  return { ...emptyPublicShipmentForm, ...mapQuoteToShipmentForm(storedQuote) };
+function normalizeFragilityForForm(value) {
+  const fragility = String(value || '').trim().toUpperCase();
+  if (fragility === 'ALTA' || fragility === 'FRAGIL') return 'ALTA';
+  return 'BAJA';
 }
 
 function RegistrarEnvioPage() {
@@ -46,6 +60,7 @@ function RegistrarEnvioPage() {
   const [apiError, setApiError] = useState('');
   const [paymentMethod, setPaymentMethod] = useState('agency');
   const [paymentNotice, setPaymentNotice] = useState('');
+  const [locationOptions, setLocationOptions] = useState([]);
   const [reniecStatus, setReniecStatus] = useState({
     remitente: null,
     destinatario: null,
@@ -65,6 +80,19 @@ function RegistrarEnvioPage() {
       clearSessionKey(PUBLIC_SHIPMENT_STORAGE_KEY);
       clearSessionKey(PUBLIC_QUOTE_STORAGE_KEY);
     };
+  }, []);
+
+  useEffect(() => {
+    async function loadDestinations() {
+      try {
+        const destinos = await getDestinos();
+        setLocationOptions(destinos.map((destino) => destino.nombre || destino.name).filter(Boolean));
+      } catch (error) {
+        setLocationOptions(['Trujillo', 'Shorey', 'Huayatan', 'Santiago de Chuco', 'Chacomas', 'Cachicadan', 'Santa Cruz de Chuca', 'Cochapamba', 'Algallama', 'Villacruz', 'Las Manzanas', 'Angasmarca']);
+      }
+    }
+
+    loadDestinations();
   }, []);
 
   const updateField = (event) => {
@@ -127,27 +155,28 @@ function RegistrarEnvioPage() {
       return;
     }
 
-    try {
-      setReniecStatus((current) => ({
-        ...current,
-        [role]: { tone: 'info', message: 'Buscando cliente...' },
-      }));
-      try {
-        const localClient = normalizeLocalClient(await getClienteByDni(dni));
-        if (localClient.nombre || localClient.telefono || localClient.correo || localClient.direccion) {
-          updatePersonFromLocalClient(role, localClient);
-          setReniecStatus((current) => ({
-            ...current,
-            [role]: { tone: 'success', message: 'Datos autocompletados desde clientes.' },
-          }));
-          return;
-        }
-      } catch (clientError) {
-        if (clientError?.response?.status !== 404) {
-          throw clientError;
-        }
-      }
+    setReniecStatus((current) => ({
+      ...current,
+      [role]: { tone: 'info', message: 'Buscando cliente...' },
+    }));
 
+    let localClientUnavailable = false;
+
+    try {
+      const localClient = normalizeLocalClient(await getClienteByDni(dni));
+      if (localClient.nombre || localClient.telefono || localClient.correo || localClient.direccion) {
+        updatePersonFromLocalClient(role, localClient);
+        setReniecStatus((current) => ({
+          ...current,
+          [role]: { tone: 'success', message: 'Datos autocompletados desde clientes.' },
+        }));
+        return;
+      }
+    } catch (clientError) {
+      localClientUnavailable = clientError?.response?.status !== 404;
+    }
+
+    try {
       setReniecStatus((current) => ({
         ...current,
         [role]: { tone: 'info', message: 'Consultando RENIEC...' },
@@ -158,7 +187,12 @@ function RegistrarEnvioPage() {
       if (!nombre) {
         setReniecStatus((current) => ({
           ...current,
-          [role]: { tone: 'error', message: 'No se pudo consultar RENIEC, ingrese el nombre manualmente.' },
+          [role]: {
+            tone: 'error',
+            message: localClientUnavailable
+              ? 'No se pudo consultar clientes ni RENIEC. Ingrese los datos manualmente.'
+              : 'No se pudo consultar RENIEC. Ingrese el nombre manualmente.',
+          },
         }));
         return;
       }
@@ -171,7 +205,12 @@ function RegistrarEnvioPage() {
     } catch (error) {
       setReniecStatus((current) => ({
         ...current,
-        [role]: { tone: 'error', message: 'No se pudo consultar RENIEC, ingrese el nombre manualmente.' },
+        [role]: {
+          tone: 'error',
+          message: localClientUnavailable
+            ? 'No se pudo consultar clientes ni RENIEC. Ingrese los datos manualmente.'
+            : 'No se pudo consultar RENIEC. Ingrese el nombre manualmente.',
+        },
       }));
     }
   };
@@ -277,19 +316,19 @@ function RegistrarEnvioPage() {
   };
 
   return (
-    <section className="bg-[#F5F5F5] px-4 py-8 sm:px-6 lg:px-8">
+    <section className="bg-[#F8F9FA] px-4 py-8 sm:px-6 lg:px-8">
       <div className="mx-auto max-w-7xl">
-        <div className="mb-6 flex flex-col gap-4 sm:flex-row sm:items-start sm:justify-between">
+        <div className="mb-6 flex flex-col gap-4 rounded-lg border border-[#E4ECE2] bg-white p-5 shadow-[0_14px_32px_rgba(33,37,41,0.07)] sm:flex-row sm:items-start sm:justify-between">
           <div>
-            <Link to="/" className="text-sm font-black text-[#31934F] hover:text-[#3F6845]">
+            <Link to="/" className="text-sm font-black text-[#28A745] hover:text-[#3C5940]">
               Volver
             </Link>
-            <h1 className="mt-3 text-3xl font-black text-[#1F2937] sm:text-4xl">Registro de envio</h1>
-            <p className="mt-2 max-w-2xl text-base leading-7 text-gray-600">
+            <h1 className="mt-3 text-3xl font-black text-[#212529] sm:text-4xl">Registro de envio</h1>
+            <p className="mt-2 max-w-2xl text-base font-semibold leading-7 text-[#6C757D]">
               Completa tus datos para completar tu encomienda.
             </p>
             {hasPrefilledQuote && (
-              <p className="mt-2 rounded-md bg-[#E3EAE1] px-3 py-2 text-sm font-semibold text-[#3F6845]">
+              <p className="mt-3 rounded-md border border-[#A3CF84]/60 bg-[#E4ECE2] px-3 py-2 text-sm font-semibold text-[#3C5940]">
                 Datos de cotizacion precargados desde el cotizador.
               </p>
             )}
@@ -305,6 +344,7 @@ function RegistrarEnvioPage() {
             form={form}
             errors={errors}
             reniecStatus={reniecStatus}
+            locationOptions={locationOptions}
             onChange={updateField}
             onReniecLookup={handleReniecLookup}
             onSubmit={handleContinue}

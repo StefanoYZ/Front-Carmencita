@@ -1,6 +1,6 @@
 import React, { useState } from 'react';
 import { NavLink } from 'react-router-dom';
-import logo from '../../assets/icons/logo.svg';
+import logo from '../../assets/external/logo.png';
 import phoneIcon from '../../assets/icons/telefono.svg';
 import packageIcon from '../../assets/icons/paquete.svg';
 
@@ -17,9 +17,9 @@ function PublicHeader() {
 
   return (
     <header className="sticky top-0 z-50 border-b border-gray-100 bg-white shadow-sm">
-      <div className="mx-auto flex min-h-[76px] max-w-7xl items-center justify-between gap-5 px-4 sm:px-6 lg:min-h-[88px] lg:px-8">
+      <div className="mx-auto flex min-h-[86px] max-w-7xl items-center justify-between gap-5 px-4 sm:px-6 lg:min-h-[104px] lg:px-8">
         <NavLink to="/" className="flex items-center gap-3" onClick={() => setOpen(false)}>
-          <img src={logo} alt="Carmencita Express" className="h-12 w-auto sm:h-14 lg:h-16" />
+          <img src={logo} alt="Carmencita Express" className="h-14 w-auto sm:h-16 lg:h-[72px]" />
           <span className="sr-only">Carmencita Express Cargo</span>
         </NavLink>
 
@@ -29,8 +29,8 @@ function PublicHeader() {
               key={item.label}
               to={item.to}
               className={({ isActive }) =>
-                `relative py-3 transition hover:text-[#2F9448] ${
-                  isActive && item.to === '/' ? 'text-[#2F9448] after:absolute after:inset-x-1 after:bottom-0 after:h-1 after:rounded-full after:bg-[#2F9448]' : ''
+                `relative py-3 transition hover:text-[#28A745] ${
+                  isActive && item.to === '/' ? 'text-[#28A745] after:absolute after:inset-x-1 after:bottom-0 after:h-1 after:rounded-full after:bg-[#28A745]' : ''
                 }`
               }
             >
@@ -40,13 +40,13 @@ function PublicHeader() {
         </nav>
 
         <div className="hidden items-center gap-5 xl:flex">
-          <a href="tel:044222222" className="flex items-center gap-2 text-sm font-black text-[#2F9448] 2xl:text-base">
+          <a href="tel:044222222" className="flex items-center gap-2 text-sm font-black text-[#28A745] 2xl:text-base">
             <img src={phoneIcon} alt="" className="h-6 w-6" />
             (044)-222222
           </a>
           <NavLink
             to="/registrar-envio"
-            className="inline-flex min-h-12 items-center gap-2 rounded-lg bg-[#2F9448] px-5 py-3 text-sm font-black text-white shadow-lg shadow-green-900/10 transition hover:bg-[#356B3F] 2xl:text-base"
+            className="inline-flex min-h-12 items-center gap-2 rounded-lg bg-[#28A745] px-5 py-3 text-sm font-black text-white shadow-lg shadow-black/10 transition hover:bg-[#3C5940] 2xl:text-base"
           >
             <img src={packageIcon} alt="" className="h-6 w-6 brightness-0 invert" />
             Registro de envio
@@ -71,7 +71,7 @@ function PublicHeader() {
         <div className="border-t border-gray-100 bg-white px-4 py-4 shadow-lg xl:hidden">
           <nav className="mx-auto grid max-w-7xl gap-2 text-sm font-semibold text-gray-700">
             {navItems.map((item) => (
-              <NavLink key={item.label} to={item.to} className="rounded-md px-3 py-2 hover:bg-green-50" onClick={() => setOpen(false)}>
+              <NavLink key={item.label} to={item.to} className="rounded-md px-3 py-2 hover:bg-[#F8F9FA]" onClick={() => setOpen(false)}>
                 {item.label}
               </NavLink>
             ))}
@@ -81,7 +81,7 @@ function PublicHeader() {
             </a>
             <NavLink
               to="/registrar-envio"
-              className="mt-2 inline-flex min-h-11 items-center justify-center gap-2 rounded-md bg-[#2F9448] px-4 py-2.5 font-bold text-white"
+              className="mt-2 inline-flex min-h-11 items-center justify-center gap-2 rounded-md bg-[#28A745] px-4 py-2.5 font-bold text-white"
               onClick={() => setOpen(false)}
             >
               <img src={packageIcon} alt="" className="h-5 w-5 brightness-0 invert" />

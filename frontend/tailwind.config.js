@@ -7,6 +7,10 @@ export default {
         brand: {
           green: '#28A745',
           black: '#212529',
+          dark: '#3C5940',
+          surface: '#F8F9FA',
+          gray: '#6C757D',
+          lime: '#A3CF84',
         },
       },
       boxShadow: {

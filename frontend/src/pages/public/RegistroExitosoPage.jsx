@@ -33,14 +33,14 @@ function RegistroExitosoPage() {
       <div className="mx-auto max-w-4xl">
         <div className="rounded-lg border border-gray-200 bg-white p-6 shadow-sm sm:p-8">
           <div className="flex flex-col gap-5 sm:flex-row sm:items-start">
-            <span className="flex h-16 w-16 shrink-0 items-center justify-center rounded-full bg-green-50">
+            <span className="flex h-16 w-16 shrink-0 items-center justify-center rounded-full bg-[#F8F9FA]">
               <img src={checkIcon} alt="" className="h-8 w-8" />
             </span>
             <div className="min-w-0 flex-1">
-              <p className="text-sm font-black uppercase text-[#31934F]">
+              <p className="text-sm font-black uppercase text-[#28A745]">
                 {isPreRegistration ? 'Pre-registro generado' : 'Registro generado'}
               </p>
-              <h1 className="mt-2 text-3xl font-black text-[#1F2937]">
+              <h1 className="mt-2 text-3xl font-black text-[#212529]">
                 {isPreRegistration ? 'Tu pre-registro fue generado correctamente.' : 'Tu envio fue registrado correctamente.'}
               </h1>
               <p className="mt-3 max-w-2xl text-base leading-7 text-gray-600">
@@ -50,15 +50,15 @@ function RegistroExitosoPage() {
               </p>
 
               {code ? (
-                <div className="mt-6 rounded-lg border border-[#31934F]/30 bg-[#E3EAE1] p-5">
-                  <p className="text-sm font-bold uppercase text-[#3F6845]">
+                <div className="mt-6 rounded-lg border border-[#28A745]/30 bg-[#F8F9FA] p-5">
+                  <p className="text-sm font-bold uppercase text-[#3C5940]">
                     {isPreRegistration ? 'Codigo de pre-registro' : 'Codigo de encomienda'}
                   </p>
-                  <p className="mt-2 break-all text-4xl font-black text-[#1F2937]">{code}</p>
-                  <p className="mt-2 text-sm font-semibold text-[#3F6845]">Estado: {estado}</p>
+                  <p className="mt-2 break-all text-4xl font-black text-[#212529]">{code}</p>
+                  <p className="mt-2 text-sm font-semibold text-[#3C5940]">Estado: {estado}</p>
                 </div>
               ) : (
-                <div className="mt-6 rounded-md border border-amber-200 bg-amber-50 p-3 text-sm font-semibold text-amber-800">
+                <div className="mt-6 rounded-md border border-[#A3CF84] bg-[#F8F9FA] p-3 text-sm font-semibold text-[#3C5940]">
                   No hay un codigo cargado en esta sesion. Genera el registro desde el formulario publico.
                 </div>
               )}
@@ -81,7 +81,7 @@ function RegistroExitosoPage() {
           <div className="mt-8 flex flex-col gap-3 sm:flex-row">
             <Link
               to={code ? `/tracking/${code}` : '/tracking'}
-              className="inline-flex min-h-12 items-center justify-center gap-2 rounded-md bg-[#31934F] px-5 text-sm font-black text-white transition hover:bg-[#3F6845]"
+              className="inline-flex min-h-12 items-center justify-center gap-2 rounded-md bg-[#28A745] px-5 text-sm font-black text-white transition hover:bg-[#3C5940]"
             >
               <img src={packageIcon} alt="" className="h-5 w-5 brightness-0 invert" />
               Rastrear codigo
@@ -103,7 +103,7 @@ function SummaryItem({ label, value }) {
   return (
     <div>
       <p className="text-xs font-bold uppercase text-gray-400">{label}</p>
-      <p className="mt-1 text-sm font-black text-[#1F2937]">{value || '-'}</p>
+      <p className="mt-1 text-sm font-black text-[#212529]">{value || '-'}</p>
     </div>
   );
 }

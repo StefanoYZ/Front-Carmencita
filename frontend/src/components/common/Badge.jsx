@@ -1,13 +1,14 @@
 import React from 'react';
 const tones = {
-  green: 'bg-green-50 text-green-700 ring-green-200',
-  gray: 'bg-gray-100 text-gray-700 ring-gray-200',
-  amber: 'bg-amber-50 text-amber-700 ring-amber-200',
+  green: 'bg-brand-lime/35 text-brand-dark ring-brand-lime/70',
+  gray: 'bg-brand-surface text-brand-gray ring-gray-200',
+  amber: 'bg-brand-lime/20 text-brand-dark ring-brand-lime/60',
+  red: 'bg-brand-surface text-brand-black ring-brand-gray/30',
 };
 
 function Badge({ children, tone = 'gray' }) {
   return (
-    <span className={`inline-flex rounded-full px-2.5 py-1 text-xs font-medium ring-1 ${tones[tone]}`}>
+    <span className={`inline-flex rounded-full px-2.5 py-1 text-xs font-bold ring-1 ${tones[tone] || tones.gray}`}>
       {children}
     </span>
   );

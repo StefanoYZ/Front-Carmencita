@@ -165,6 +165,14 @@ function AppRoutes() {
             </ProtectedRoute>
           }
         />
+        <Route
+          path="estiba/optimizacion-poc"
+          element={
+            <ProtectedRoute anyOf={['tracking.update_status', 'encomiendas.read']} roles={['ADMINISTRADOR', 'ESTIBA']}>
+              <OptimizacionCarga />
+            </ProtectedRoute>
+          }
+        />
         <Route path="*" element={<NotFound />} />
       </Route>
 

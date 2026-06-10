@@ -55,19 +55,19 @@ function SunatBoletas() {
 
   const handlePdfMock = () => runAction('pdfMock', async () => {
     const blob = await descargarPdfMock(boleta.pdf_url, boleta.serie, boleta.numero);
-    downloadBlob(blob, `boleta_mock_${boleta.serie}_${boleta.numero}.pdf`);
-    setMessage('PDF mock descargado correctamente.');
+    downloadBlob(blob, `boleta_${boleta.serie}_${boleta.numero}.pdf`);
+    setMessage('PDF descargado correctamente.');
   });
 
   const handlePdfBeta = () => runAction('pdfBeta', async () => {
     const blob = await generarPdfBetaDesdeEncomienda(payload());
-    downloadBlob(blob, `boleta_beta_${formatShipmentCode(boleta?.codigo_encomienda) || encomiendaId}.pdf`);
-    setMessage('PDF beta generado correctamente.');
+    downloadBlob(blob, `boleta_${formatShipmentCode(boleta?.codigo_encomienda) || encomiendaId}.pdf`);
+    setMessage('PDF generado correctamente.');
   });
 
   const handleXmlBeta = () => runAction('xmlBeta', async () => {
     setXmlResponse(await generarXmlBetaDesdeEncomienda(payload()));
-    setMessage('XML beta generado correctamente.');
+    setMessage('XML generado correctamente.');
   });
 
   return (
@@ -96,12 +96,12 @@ function SunatBoletas() {
           </div>
           <div className="flex items-end">
             <Button type="button" variant="secondary" onClick={handlePdfBeta} disabled={!encomiendaId || loading === 'pdfBeta'}>
-              {loading === 'pdfBeta' ? 'Generando...' : 'Generar PDF beta'}
+              {loading === 'pdfBeta' ? 'Generando...' : 'Generar PDF'}
             </Button>
           </div>
           <div className="flex items-end">
             <Button type="button" variant="secondary" onClick={handleXmlBeta} disabled={!encomiendaId || loading === 'xmlBeta'}>
-              {loading === 'xmlBeta' ? 'Generando...' : 'Generar XML beta'}
+              {loading === 'xmlBeta' ? 'Generando...' : 'Generar XML'}
             </Button>
           </div>
         </form>
@@ -120,7 +120,6 @@ function SunatBoletas() {
           </div>
           <dl className="mt-5 grid gap-3 text-sm md:grid-cols-4">
             <div><dt className="text-gray-500">Success</dt><dd className="font-medium text-brand-black">{String(boleta.success)}</dd></div>
-            <div><dt className="text-gray-500">Ambiente</dt><dd className="font-medium text-brand-black">{boleta.ambiente}</dd></div>
             <div><dt className="text-gray-500">Fecha</dt><dd className="font-medium text-brand-black">{boleta.fecha_emision}</dd></div>
             <div><dt className="text-gray-500">Codigo encomienda</dt><dd className="font-medium text-brand-black">{formatShipmentCode(boleta.codigo_encomienda)}</dd></div>
             <div><dt className="text-gray-500">Subtotal</dt><dd className="font-medium text-brand-black">{formatCurrency(boleta.subtotal)}</dd></div>
@@ -137,7 +136,7 @@ function SunatBoletas() {
           {boleta.pdf_url && (
             <div className="mt-5">
               <Button type="button" variant="secondary" onClick={handlePdfMock} disabled={loading === 'pdfMock'}>
-                {loading === 'pdfMock' ? 'Descargando...' : 'Abrir / descargar PDF mock'}
+                {loading === 'pdfMock' ? 'Descargando...' : 'Abrir / descargar PDF'}
               </Button>
             </div>
           )}
@@ -146,7 +145,7 @@ function SunatBoletas() {
 
       {xmlResponse && (
         <Card>
-          <h3 className="text-lg font-semibold text-brand-black">Respuesta XML beta</h3>
+          <h3 className="text-lg font-semibold text-brand-black">Respuesta XML</h3>
           <pre className="mt-4 max-h-96 overflow-auto rounded-md bg-gray-50 p-3 text-xs text-gray-700">
             {typeof xmlResponse === 'string' ? xmlResponse : JSON.stringify(xmlResponse, null, 2)}
           </pre>

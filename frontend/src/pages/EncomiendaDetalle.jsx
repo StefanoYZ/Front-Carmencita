@@ -89,8 +89,8 @@ function EncomiendaDetalle() {
 
   const handlePdfMock = () => runAction('pdfMock', async () => {
     const blob = await descargarPdfMock(boleta.pdf_url, boleta.serie, boleta.numero);
-    downloadBlob(blob, `boleta_mock_${boleta.serie}_${boleta.numero}.pdf`);
-    setMessage('PDF mock descargado correctamente.');
+    downloadBlob(blob, `boleta_${boleta.serie}_${boleta.numero}.pdf`);
+    setMessage('PDF descargado correctamente.');
   });
 
   const handlePdfBeta = () => runAction('pdfBeta', async () => {
@@ -99,8 +99,8 @@ function EncomiendaDetalle() {
       return;
     }
     const blob = await generarPdfBetaDesdeEncomienda({ encomienda_id: Number(id), confirmar_pago: true });
-    downloadBlob(blob, `boleta_beta_${formatShipmentCode(encomienda?.codigo_encomienda) || id}.pdf`);
-    setMessage('PDF beta generado correctamente.');
+    downloadBlob(blob, `boleta_${formatShipmentCode(encomienda?.codigo_encomienda) || id}.pdf`);
+    setMessage('PDF generado correctamente.');
   });
 
   const handleXmlBeta = () => runAction('xmlBeta', async () => {
@@ -142,10 +142,10 @@ function EncomiendaDetalle() {
                 {loading === 'anular' ? 'Anulando...' : 'Anular'}
               </Button>
               <Button variant="secondary" onClick={handlePdfBeta} disabled={encomienda.estado === 'ANULADA' || loading === 'pdfBeta'}>
-                {loading === 'pdfBeta' ? 'Generando...' : 'Generar PDF beta'}
+                {loading === 'pdfBeta' ? 'Generando...' : 'Generar PDF'}
               </Button>
               <Button variant="secondary" onClick={handleXmlBeta} disabled={encomienda.estado === 'ANULADA' || loading === 'xmlBeta'}>
-                {loading === 'xmlBeta' ? 'Generando...' : 'Generar XML beta'}
+                {loading === 'xmlBeta' ? 'Generando...' : 'Generar XML'}
               </Button>
             </div>
           </Card>
@@ -153,8 +153,8 @@ function EncomiendaDetalle() {
       )}
 
       {cotizacion && (
-        <Card className="border-green-200 bg-green-50">
-          <p className="text-sm text-green-700">Cotizacion</p>
+        <Card className="border-brand-lime bg-brand-lime/20">
+          <p className="text-sm font-bold text-brand-dark">Cotizacion</p>
           <h3 className="mt-1 text-xl font-semibold text-brand-black">{formatShipmentCode(cotizacion.codigo_encomienda)}</h3>
           <dl className="mt-4 grid gap-3 text-sm md:grid-cols-4">
             <div><dt className="text-gray-500">Subtotal</dt><dd className="font-medium">{formatCurrency(cotizacion.subtotal)}</dd></div>
@@ -175,20 +175,19 @@ function EncomiendaDetalle() {
             <Badge tone="green">{boleta.estado}</Badge>
           </div>
           <dl className="mt-5 grid gap-3 text-sm md:grid-cols-4">
-            <div><dt className="text-gray-500">Ambiente</dt><dd className="font-medium">{boleta.ambiente}</dd></div>
             <div><dt className="text-gray-500">Hash</dt><dd className="font-medium">{boleta.hash || '-'}</dd></div>
             <div><dt className="text-gray-500">CDR code</dt><dd className="font-medium">{boleta.cdr_code || '-'}</dd></div>
             <div><dt className="text-gray-500">Total</dt><dd className="font-medium">{formatCurrency(boleta.total)}</dd></div>
           </dl>
           {boleta.cdr_description && <Alert tone="info">{boleta.cdr_description}</Alert>}
           {boleta.cdr_notes?.length > 0 && <Alert tone="warning">{boleta.cdr_notes.join(' ')}</Alert>}
-          {boleta.pdf_url && <div className="mt-4"><Button variant="secondary" onClick={handlePdfMock} disabled={loading === 'pdfMock'}>Ver PDF mock</Button></div>}
+          {boleta.pdf_url && <div className="mt-4"><Button variant="secondary" onClick={handlePdfMock} disabled={loading === 'pdfMock'}>Ver PDF</Button></div>}
         </Card>
       )}
 
       {xmlResponse && (
         <Card>
-          <h3 className="text-lg font-semibold text-brand-black">Respuesta XML beta</h3>
+          <h3 className="text-lg font-semibold text-brand-black">Respuesta XML</h3>
           <pre className="mt-4 max-h-96 overflow-auto rounded-md bg-gray-50 p-3 text-xs text-gray-700">
             {typeof xmlResponse === 'string' ? xmlResponse : JSON.stringify(xmlResponse, null, 2)}
           </pre>

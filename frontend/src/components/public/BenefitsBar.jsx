@@ -22,13 +22,13 @@ function GreenIcon({ src }) {
 
 function BenefitsBar() {
   return (
-    <div className="grid gap-2 rounded-md border border-white/10 bg-black/70 p-4 shadow-2xl backdrop-blur md:grid-cols-3">
+    <div className="grid gap-2 rounded-lg border border-white/10 bg-[rgba(33,37,41,0.78)] p-3 shadow-2xl backdrop-blur-md md:grid-cols-3">
       {benefits.map((benefit) => (
-        <div key={benefit.label} className="flex items-center gap-4 rounded-md px-3 py-3">
-          <span className="flex h-16 w-16 shrink-0 items-center justify-center rounded-md bg-white/5">
+        <div key={benefit.label} className="flex items-center gap-4 rounded-md px-3 py-3 transition hover:bg-white/5">
+          <span className="flex h-16 w-16 shrink-0 items-center justify-center rounded-md bg-white/[0.08] ring-1 ring-white/10">
             <GreenIcon src={benefit.icon} />
           </span>
-          <span className="max-w-[145px] text-base font-black leading-tight text-white drop-shadow">{benefit.label}</span>
+          <span className="max-w-[150px] text-base font-black leading-tight text-white drop-shadow">{benefit.label}</span>
         </div>
       ))}
     </div>

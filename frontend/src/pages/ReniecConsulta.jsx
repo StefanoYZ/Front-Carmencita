@@ -55,7 +55,7 @@ function ReniecConsulta() {
         </form>
 
         {error && (
-          <p className="mt-3 text-sm text-red-600">
+          <p className="mt-3 text-sm font-semibold text-brand-dark">
             {error}
           </p>
         )}

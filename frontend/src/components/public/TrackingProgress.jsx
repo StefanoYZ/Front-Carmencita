@@ -41,7 +41,7 @@ function TrackingProgress({ estado }) {
 
   if (normalized === 'ANULADA') {
     return (
-      <div className="rounded-md border border-red-200 bg-red-50 p-4 text-sm font-semibold text-red-700">
+      <div className="rounded-md border border-[#3C5940]/40 bg-white p-4 text-sm font-semibold text-[#212529]">
         Esta encomienda fue anulada.
       </div>
     );
@@ -51,15 +51,15 @@ function TrackingProgress({ estado }) {
 
   return (
     <div className="relative mx-auto grid max-w-3xl grid-cols-2 gap-x-3 gap-y-6 sm:grid-cols-4">
-      <div className="absolute left-[12%] right-[12%] top-8 hidden h-1 bg-[#2F9448]/55 sm:block" />
+      <div className="absolute left-[12%] right-[12%] top-8 hidden h-1 bg-[#28A745]/55 sm:block" />
       {steps.map((step, index) => {
         const completed = activeIndex >= index;
         return (
           <div key={step.key} className="relative z-10 flex flex-col items-center text-center">
-            <span className={`flex h-14 w-14 items-center justify-center rounded-full border-[3px] sm:h-16 sm:w-16 ${completed ? 'border-[#2F9448] bg-[#2F9448]' : 'border-[#2F9448]/35 bg-white'}`}>
+            <span className={`flex h-14 w-14 items-center justify-center rounded-full border-[3px] sm:h-16 sm:w-16 ${completed ? 'border-[#28A745] bg-[#28A745]' : 'border-[#28A745]/35 bg-white'}`}>
               <GreenIcon src={step.icon} active={completed} />
             </span>
-            <span className="mt-2 text-[11px] font-black leading-tight text-[#1F2937] sm:text-xs">{step.label}</span>
+            <span className="mt-2 text-[11px] font-black leading-tight text-[#212529] sm:text-xs">{step.label}</span>
           </div>
         );
       })}

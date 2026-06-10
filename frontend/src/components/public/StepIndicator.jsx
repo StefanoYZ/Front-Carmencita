@@ -18,17 +18,17 @@ function StepIndicator({ currentStep = 1 }) {
               <div className="flex min-w-0 items-center gap-3">
                 <span
                   className={`flex h-10 w-10 shrink-0 items-center justify-center rounded-full text-sm font-black ${
-                    active || done ? 'bg-[#31934F] text-white' : 'bg-[#E3EAE1] text-[#3F6845]'
+                    active || done ? 'bg-[#28A745] text-white' : 'bg-[#F8F9FA] text-[#3C5940]'
                   }`}
                 >
                   {step.number}
                 </span>
                 <div className="min-w-0">
                   <p className="text-xs font-bold uppercase text-gray-400">Paso {step.number}</p>
-                  <p className={`break-words text-sm font-black ${active ? 'text-[#31934F]' : 'text-[#1F2937]'}`}>{step.label}</p>
+                  <p className={`break-words text-sm font-black ${active ? 'text-[#28A745]' : 'text-[#212529]'}`}>{step.label}</p>
                 </div>
               </div>
-              {index === 0 && <div className="hidden h-0.5 w-20 rounded-full bg-[#E3EAE1] sm:block" />}
+              {index === 0 && <div className="hidden h-0.5 w-20 rounded-full bg-[#F8F9FA] sm:block" />}
             </React.Fragment>
           );
         })}

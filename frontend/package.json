@@ -10,12 +10,16 @@
     "lint": "eslint ."
   },
   "dependencies": {
+    "@react-three/drei": "^9.122.0",
+    "@react-three/fiber": "^8.17.10",
     "@vitejs/plugin-react": "^4.3.4",
     "axios": "^1.7.9",
-    "vite": "^6.0.5",
+    "lucide-react": "^0.468.0",
     "react": "^18.3.1",
     "react-dom": "^18.3.1",
-    "react-router-dom": "^7.1.1"
+    "react-router-dom": "^7.1.1",
+    "three": "^0.160.1",
+    "vite": "^6.0.5"
   },
   "devDependencies": {
     "autoprefixer": "^10.4.20",

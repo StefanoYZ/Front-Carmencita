@@ -14,27 +14,6 @@ function OptimizacionCarga() {
   const [loading, setLoading] = useState(false);
   const [loadingCompare, setLoadingCompare] = useState(false);
 
-  const destinationPriority = {
-    SHOREY: 1,
-    HUAYCATAN: 2,
-    'SANTIAGO DE CHUCO': 3,
-    CHACOMAS: 4,
-    CACHICADAN: 5,
-    'SANTA CRUZ': 6,
-    COCHAPAMPA: 7,
-    UGALLAMA: 8,
-    VILLACRUZ: 9,
-    'LAS MANZANAS': 10,
-    ANGASMARCA: 11,
-    'TAMBO PAMPAMARCA ALTA': 12,
-    PSICOCHACA: 13,
-    'SANTA CLARA DE TULPO': 14,
-    'LA YEGUADA': 15,
-    MOLLEBAMBA: 16,
-    COCHAMARCA: 17,
-    OROCULLAY: 18,
-  };
-
   const reasonLabels = {
     NO_SPACE: 'Sin espacio',
     WEIGHT_LIMIT: 'Exceso de peso',
@@ -60,9 +39,13 @@ function OptimizacionCarga() {
   const handleOptimize = async () => {
     try {
       setLoading(true);
-      const { sample, result } = await optimizacionService.optimizarCarga(algorithm);
+
+      const { sample, result } =
+        await optimizacionService.optimizarCarga(algorithm);
+
       setEscenario(sample);
       setResultado(result);
+      setComparacion(null);
     } catch (error) {
       console.error('Error al optimizar carga:', error);
       alert('Error al optimizar la carga. Revisa si existe un escenario guardado en Swagger.');
@@ -74,7 +57,10 @@ function OptimizacionCarga() {
   const handleCompare = async () => {
     try {
       setLoadingCompare(true);
-      const { sample, comparison } = await optimizacionService.compararAlgoritmos();
+
+      const { sample, comparison } =
+        await optimizacionService.compararAlgoritmos();
+
       setEscenario(sample);
       setComparacion(comparison);
     } catch (error) {
@@ -85,31 +71,13 @@ function OptimizacionCarga() {
     }
   };
 
-  const getUnloadingOrder = (pkg) => {
-    if (!resultado?.placed_packages) return '-';
-
-    return (
-      resultado.placed_packages
-        .slice()
-        .sort((a, b) => {
-          const priorityA = destinationPriority[a.destination] || 99;
-          const priorityB = destinationPriority[b.destination] || 99;
-
-          if (priorityA !== priorityB) return priorityA - priorityB;
-
-          return a.z - b.z;
-        })
-        .findIndex((item) => item.id === pkg.id) + 1
-    );
-  };
-
   return (
     <div className="space-y-6">
       <div className="flex flex-col gap-3 sm:flex-row sm:items-center sm:justify-between">
         <div>
           <h2 className="page-title">Optimización de carga</h2>
           <p className="page-subtitle">
-            Simulación 3D con Worst Fit, BFD3D y Backtracking Logístico 3D.
+            Simulación 3D con Worst Fit, BFD3D y Backtracking Logístico.
           </p>
         </div>
 
@@ -141,8 +109,10 @@ function OptimizacionCarga() {
           </h3>
 
           <p className="mt-1 text-sm text-gray-500">
-            Ruta: {escenario.route} | Camión: {escenario.truck?.width} ×{' '}
-            {escenario.truck?.height} × {escenario.truck?.length}
+            Ruta: {escenario.route} | Origen:{' '}
+            {escenario.origin_agency || 'TRUJILLO'} | Camión:{' '}
+            {escenario.truck?.width} × {escenario.truck?.height} ×{' '}
+            {escenario.truck?.length}
           </p>
 
           <div className="mt-3 overflow-x-auto">
@@ -203,18 +173,31 @@ function OptimizacionCarga() {
             <div className="mt-4">
               <OptimizationMetrics result={resultado} />
             </div>
+
+            {resultado.controlled_rotation_applied && (
+              <div className="mt-4 rounded-lg border border-green-200 bg-white p-3 text-sm text-gray-600">
+                <p className="font-medium text-brand-black">
+                  Estrategia logística aplicada
+                </p>
+                <p className="mt-1">
+                  El algoritmo organiza la carga por destino, aprovecha el espacio
+                  disponible y aplica rotaciones controladas según fragilidad y
+                  tipo de contenido, respetando peso, estiba y estabilidad.
+                </p>
+              </div>
+            )}
           </Card>
 
           <Card>
-            <div className="mb-3 flex flex-col gap-1 sm:flex-row sm:items-center sm:justify-between">
-              <div>
-                <h3 className="font-semibold text-brand-black">
-                  Visualización 3D de carga
-                </h3>
-                <p className="text-sm text-gray-500">
-                  Colores: rojo = alta fragilidad, amarillo = media, verde = baja.
-                </p>
-              </div>
+            <div className="mb-3">
+              <h3 className="font-semibold text-brand-black">
+                Visualización 3D de carga
+              </h3>
+
+              <p className="text-sm text-gray-500">
+                Colores: rojo = alta fragilidad, amarillo = media, verde = baja.
+                ↺ indica rotación permitida por el algoritmo.
+              </p>
             </div>
 
             <Truck3D
@@ -234,15 +217,16 @@ function OptimizacionCarga() {
                 <thead>
                   <tr className="bg-white">
                     <th className="border px-3 py-2">Orden carga</th>
-                    <th className="border px-3 py-2">Orden descarga</th>
                     <th className="border px-3 py-2">ID</th>
                     <th className="border px-3 py-2">Destino</th>
                     <th className="border px-3 py-2">Fragilidad</th>
                     <th className="border px-3 py-2">X</th>
                     <th className="border px-3 py-2">Y</th>
                     <th className="border px-3 py-2">Z</th>
-                    <th className="border px-3 py-2">Dimensiones colocadas</th>
-                    <th className="border px-3 py-2">Rotación aplicada</th>
+                    <th className="border px-3 py-2">Dimensiones</th>
+                    <th className="border px-3 py-2">Rotación</th>
+                    <th className="border px-3 py-2">Política rotación</th>
+                    <th className="border px-3 py-2">Soporte</th>
                   </tr>
                 </thead>
 
@@ -252,22 +236,32 @@ function OptimizacionCarga() {
                       <td className="border px-3 py-2 text-center font-medium">
                         {index + 1}
                       </td>
-                      <td className="border px-3 py-2 text-center font-medium">
-                        {getUnloadingOrder(pkg)}
-                      </td>
+
                       <td className="border px-3 py-2">{pkg.id}</td>
                       <td className="border px-3 py-2">{pkg.destination}</td>
                       <td className="border px-3 py-2">{pkg.fragility}</td>
                       <td className="border px-3 py-2">{pkg.x}</td>
                       <td className="border px-3 py-2">{pkg.y}</td>
                       <td className="border px-3 py-2">{pkg.z}</td>
+
                       <td className="border px-3 py-2">
                         {pkg.width} × {pkg.height} × {pkg.length}
                       </td>
+
                       <td className="border px-3 py-2">
                         {pkg.rotated
-                          ? `${pkg.original_width}×${pkg.original_height}×${pkg.original_length} → ${pkg.width}×${pkg.height}×${pkg.length}`
+                          ? `↺ ${pkg.original_width}×${pkg.original_height}×${pkg.original_length} → ${pkg.width}×${pkg.height}×${pkg.length}`
                           : 'Sin rotación'}
+                      </td>
+
+                      <td className="border px-3 py-2">
+                        {pkg.rotation_policy || 'N/A'}
+                      </td>
+
+                      <td className="border px-3 py-2">
+                        {pkg.support_ratio !== undefined
+                          ? `${Math.round(pkg.support_ratio * 100)}%`
+                          : 'N/A'}
                       </td>
                     </tr>
                   ))}
@@ -283,7 +277,8 @@ function OptimizacionCarga() {
               </h3>
 
               <p className="mt-1 text-sm text-gray-500">
-                Lista de paquetes que no pudieron cargarse y el motivo reportado por el algoritmo.
+                Lista de paquetes que no pudieron cargarse y el motivo
+                reportado por el algoritmo.
               </p>
 
               <div className="mt-3 overflow-x-auto">
@@ -302,11 +297,13 @@ function OptimizacionCarga() {
                         <td className="border px-3 py-2 font-medium">
                           {pkg.id}
                         </td>
+
                         <td className="border px-3 py-2">
                           {reasonLabels[pkg.reason_code] ||
                             pkg.reason_code ||
                             'Desconocido'}
                         </td>
+
                         <td className="border px-3 py-2">
                           {pkg.reason || 'No se especificó el motivo'}
                         </td>

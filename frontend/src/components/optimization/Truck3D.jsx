@@ -48,59 +48,6 @@ function TruckFrame({ truck, scale }) {
   );
 }
 
-function ZoneMarkers({ truck, scale }) {
-  const width = truck.width * scale;
-  const height = truck.height * scale;
-  const length = truck.length * scale;
-  const zoneLength = length / 3;
-
-  const zones = [
-    {
-      label: 'ZONA LEJANA',
-      color: '#3b82f6',
-      z: zoneLength / 2,
-    },
-    {
-      label: 'ZONA MEDIA',
-      color: '#f59e0b',
-      z: zoneLength + zoneLength / 2,
-    },
-    {
-      label: 'ZONA CERCANA',
-      color: '#22c55e',
-      z: zoneLength * 2 + zoneLength / 2,
-    },
-  ];
-
-  return (
-    <group>
-      {zones.map((zone) => (
-        <group key={zone.label}>
-          <mesh position={[width / 2, height / 2, zone.z]}>
-            <boxGeometry args={[width, height, zoneLength]} />
-            <meshStandardMaterial
-              color={zone.color}
-              transparent
-              opacity={0.05}
-              depthWrite={false}
-            />
-            <Edges color={zone.color} />
-          </mesh>
-
-          <Text
-            position={[width + 0.35, height + 0.08, zone.z]}
-            fontSize={0.16}
-            color={zone.color}
-            anchorX="left"
-          >
-            {zone.label}
-          </Text>
-        </group>
-      ))}
-    </group>
-  );
-}
-
 function Truck3D({ truck, packages = [], animate = true }) {
   const scale = 0.01;
 
@@ -250,7 +197,6 @@ function Truck3D({ truck, packages = [], animate = true }) {
           )}
 
           <group position={[0, 1.25, 0.005]}>
-            <ZoneMarkers truck={truck} scale={scale} />
             <TruckFrame truck={truck} scale={scale} />
 
             {visiblePackages.map((pkg) => (

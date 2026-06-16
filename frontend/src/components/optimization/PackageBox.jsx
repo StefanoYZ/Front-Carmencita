@@ -9,6 +9,13 @@ function getColorByFragility(fragility) {
   return '#22c55e';
 }
 
+function getZoneAdjustment(pkg) {
+  if (pkg.inside_destination_zone) return 'Zona ideal';
+  if (pkg.zone_distance_level === 1) return 'Zona vecina';
+  if (pkg.zone_distance_level === 2) return 'Otra zona';
+  return 'N/A';
+}
+
 function PackageBox({ pkg, scale }) {
   const [hovered, setHovered] = useState(false);
 
@@ -77,36 +84,41 @@ function PackageBox({ pkg, scale }) {
             position[2],
           ]}
         >
-          <div className="w-64 rounded-lg border bg-white p-3 text-xs shadow-lg">
+          <div className="w-72 rounded-lg border bg-white p-3 text-xs shadow-lg">
             <p className="font-bold text-gray-900">{pkg.id}</p>
 
-            <p>
-              <b>Destino:</b> {pkg.destination}
-            </p>
-            <p>
-              <b>Fragilidad:</b> {pkg.fragility}
-            </p>
-            <p>
-              <b>Peso:</b> {pkg.weight} kg
-            </p>
+            <p><b>Destino:</b> {pkg.destination}</p>
+            <p><b>Fragilidad:</b> {pkg.fragility}</p>
+            <p><b>Peso:</b> {pkg.weight} kg</p>
 
             <div className="mt-2 border-t pt-2">
               <p className="font-semibold text-gray-900">
                 {pkg.rotated ? '↺ Rotado' : 'Sin rotación'}
               </p>
 
-              <p>
-                <b>Original:</b> {originalDimensions}
-              </p>
-              <p>
-                <b>Final:</b> {finalDimensions}
+              <p><b>Original:</b> {originalDimensions}</p>
+              <p><b>Final:</b> {finalDimensions}</p>
+              <p className="mt-1"><b>Apoyar en base:</b> {baseSupport}</p>
+              <p><b>Altura:</b> {finalHeight}</p>
+            </div>
+
+            <div className="mt-2 border-t pt-2">
+              <p className="font-semibold text-gray-900">
+                Zona logística
               </p>
 
-              <p className="mt-1">
-                <b>Apoyar en base:</b> {baseSupport}
-              </p>
               <p>
-                <b>Altura:</b> {finalHeight}
+                <b>Zona ideal:</b>{' '}
+                {pkg.destination_zone?.label || 'N/A'}
+              </p>
+
+              <p>
+                <b>Zona usada:</b>{' '}
+                {pkg.candidate_zone?.label || 'N/A'}
+              </p>
+
+              <p>
+                <b>Ajuste:</b> {getZoneAdjustment(pkg)}
               </p>
             </div>
           </div>

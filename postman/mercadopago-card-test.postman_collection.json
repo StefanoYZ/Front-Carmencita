@@ -1,0 +1,150 @@
+{
+  "info": {
+    "name": "Carmencita - Prueba pago tarjeta Mercado Pago",
+    "_postman_id": "ec0b96fd-7db4-4d41-b346-7ac29bfb40f6",
+    "description": "Coleccion de diagnostico para probar el flujo de tarjeta. En la app real el token lo genera Mercado Pago Brick internamente. En Postman se genera manualmente porque no existe el Brick visual.",
+    "schema": "https://schema.getpostman.com/json/collection/v2.1.0/collection.json"
+  },
+  "variable": [
+    {
+      "key": "api_base_url",
+      "value": "http://127.0.0.1:8000/api/v1"
+    },
+    {
+      "key": "mercadopago_public_key",
+      "value": ""
+    },
+    {
+      "key": "card_token",
+      "value": ""
+    }
+  ],
+  "item": [
+    {
+      "name": "1. Obtener Public Key desde backend",
+      "request": {
+        "method": "GET",
+        "header": [],
+        "url": {
+          "raw": "{{api_base_url}}/payments/public-key",
+          "host": [
+            "{{api_base_url}}"
+          ],
+          "path": [
+            "payments",
+            "public-key"
+          ]
+        }
+      },
+      "event": [
+        {
+          "listen": "test",
+          "script": {
+            "exec": [
+              "pm.test('Public Key recibida', function () {",
+              "  pm.response.to.have.status(200);",
+              "  const json = pm.response.json();",
+              "  pm.expect(json.publicKey).to.be.a('string').and.not.empty;",
+              "  pm.collectionVariables.set('mercadopago_public_key', json.publicKey);",
+              "});"
+            ],
+            "type": "text/javascript"
+          }
+        }
+      ]
+    },
+    {
+      "name": "2. Generar token de tarjeta de prueba - solo diagnostico Postman",
+      "request": {
+        "method": "POST",
+        "header": [
+          {
+            "key": "Content-Type",
+            "value": "application/json"
+          }
+        ],
+        "body": {
+          "mode": "raw",
+          "raw": "{\n  \"card_number\": \"5031755734530604\",\n  \"expiration_month\": 11,\n  \"expiration_year\": 2030,\n  \"security_code\": \"123\",\n  \"cardholder\": {\n    \"name\": \"APRO\",\n    \"identification\": {\n      \"type\": \"DNI\",\n      \"number\": \"12345678\"\n    }\n  }\n}"
+        },
+        "url": {
+          "raw": "https://api.mercadopago.com/v1/card_tokens?public_key={{mercadopago_public_key}}",
+          "protocol": "https",
+          "host": [
+            "api",
+            "mercadopago",
+            "com"
+          ],
+          "path": [
+            "v1",
+            "card_tokens"
+          ],
+          "query": [
+            {
+              "key": "public_key",
+              "value": "{{mercadopago_public_key}}"
+            }
+          ]
+        }
+      },
+      "event": [
+        {
+          "listen": "test",
+          "script": {
+            "exec": [
+              "pm.test('Token de tarjeta generado', function () {",
+              "  pm.response.to.have.status(201);",
+              "  const json = pm.response.json();",
+              "  pm.expect(json.id).to.be.a('string').and.not.empty;",
+              "  pm.collectionVariables.set('card_token', json.id);",
+              "});"
+            ],
+            "type": "text/javascript"
+          }
+        }
+      ]
+    },
+    {
+      "name": "3. Procesar pago con backend",
+      "request": {
+        "method": "POST",
+        "header": [
+          {
+            "key": "Content-Type",
+            "value": "application/json"
+          }
+        ],
+        "body": {
+          "mode": "raw",
+          "raw": "{\n  \"transaction_amount\": 10,\n  \"token\": \"{{card_token}}\",\n  \"description\": \"Pago encomienda prueba Postman\",\n  \"installments\": 1,\n  \"payment_method_id\": \"master\",\n  \"issuer_id\": null\n}"
+        },
+        "url": {
+          "raw": "{{api_base_url}}/payments/process-payment",
+          "host": [
+            "{{api_base_url}}"
+          ],
+          "path": [
+            "payments",
+            "process-payment"
+          ]
+        }
+      },
+      "event": [
+        {
+          "listen": "test",
+          "script": {
+            "exec": [
+              "pm.test('Pago aprobado por backend', function () {",
+              "  pm.response.to.have.status(200);",
+              "  const json = pm.response.json();",
+              "  pm.expect(json.status).to.be.oneOf([200, 201]);",
+              "  pm.expect(json.response.status).to.eql('approved');",
+              "});"
+            ],
+            "type": "text/javascript"
+          }
+        }
+      ]
+    }
+  ]
+}

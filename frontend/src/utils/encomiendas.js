@@ -29,7 +29,7 @@ export const emptyEncomiendaForm = {
   largo_cm: '',
   ancho_cm: '',
   alto_cm: '',
-  fragilidad: 'MEDIA',
+  fragilidad: 'BAJA',
 };
 
 export const ESTADOS_ENCOMIENDA = [
@@ -114,7 +114,7 @@ export function normalizeEncomiendaForForm(encomienda) {
     largo_cm: encomienda.largo_cm || '',
     ancho_cm: encomienda.ancho_cm || '',
     alto_cm: encomienda.alto_cm || '',
-    fragilidad: encomienda.fragilidad || 'MEDIA',
+    fragilidad: normalizeFragilityForForm(encomienda.fragilidad),
     estado: encomienda.estado || 'REGISTRADA',
   };
 }
@@ -186,4 +186,9 @@ export function validateEncomiendaFormFields(form, { includeEstado = false } = {
 function optionalText(value) {
   const normalized = String(value || '').trim();
   return normalized || null;
+}
+
+function normalizeFragilityForForm(value) {
+  const fragility = String(value || '').trim().toUpperCase();
+  return fragility === 'ALTA' ? 'ALTA' : 'BAJA';
 }

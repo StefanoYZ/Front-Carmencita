@@ -1,6 +1,8 @@
 import React, { Suspense, useEffect, useMemo, useRef } from 'react';
-import { Canvas, useThree } from '@react-three/fiber';
-import { Edges, Html, OrbitControls, PerspectiveCamera } from '@react-three/drei';
+import { Canvas, useFrame, useThree } from '@react-three/fiber';
+import { Html, OrbitControls, PerspectiveCamera } from '@react-three/drei';
+import TruckModel from './truck/TruckModel.jsx';
+import { CARGO_LIFT } from './truck/TruckCargoBox.jsx';
 
 const SCALE = 0.012;
 const packageColors = [
@@ -24,24 +26,30 @@ function colorForPackage(placement) {
 }
 
 function PackageBox({ placement, loaded, expected }) {
+  const meshRef = useRef(null);
   const width = placement.width * SCALE;
   const height = placement.height * SCALE;
   const depth = placement.depth * SCALE;
   const truckOffset = placement.truckOffset;
   const position = [
     (placement.x + placement.width / 2 - truckOffset.x) * SCALE,
-    (placement.y + placement.height / 2) * SCALE,
+    (placement.y + placement.height / 2) * SCALE + CARGO_LIFT,
     (placement.z + placement.depth / 2 - truckOffset.z) * SCALE,
   ];
   const color = colorForPackage(placement);
   const opacity = expected ? 1 : loaded ? 0.9 : 0.82;
 
+  useFrame((state) => {
+    if (!expected || !meshRef.current) return;
+    const pulse = 1 + Math.sin(state.clock.elapsedTime * 4) * 0.012;
+    meshRef.current.scale.setScalar(pulse);
+  });
+
   return (
     <group>
-      <mesh position={position} castShadow receiveShadow>
+      <mesh ref={meshRef} position={position} castShadow receiveShadow>
         <boxGeometry args={[width, height, depth]} />
         <meshStandardMaterial color={color} transparent opacity={opacity} roughness={0.45} metalness={0.08} emissive={expected ? '#A3CF84' : '#000000'} emissiveIntensity={expected ? 0.18 : 0} />
-        <Edges color={expected ? '#212529' : '#ffffff'} threshold={15} />
       </mesh>
       {expected && (
         <Html position={[position[0], position[1] + height / 2 + 0.035, position[2]]} center distanceFactor={8} occlude>
@@ -50,24 +58,6 @@ function PackageBox({ placement, loaded, expected }) {
           </span>
         </Html>
       )}
-    </group>
-  );
-}
-
-function TruckWireframe({ truck }) {
-  const width = truck.ancho_cm * SCALE;
-  const height = truck.alto_cm * SCALE;
-  const depth = truck.largo_cm * SCALE;
-  return (
-    <group position={[0, height / 2, 0]}>
-      <mesh>
-        <boxGeometry args={[width, height, depth]} />
-        <meshBasicMaterial color="#3C5940" transparent opacity={0.06} />
-        <Edges color="#3C5940" threshold={12} />
-      </mesh>
-      <Html position={[-width / 2, -height / 2 - 0.15, -depth / 2]} center distanceFactor={8}>
-        <span className="rounded bg-white/90 px-2 py-1 text-xs font-bold text-[#3C5940]">Puerta Z=0</span>
-      </Html>
     </group>
   );
 }
@@ -88,7 +78,7 @@ function CameraRig({ scene, viewMode }) {
     }
   }, [camera, scene, viewMode]);
 
-  return <OrbitControls ref={controlsRef} target={scene.target} enablePan enableZoom enableRotate minDistance={2.5} maxDistance={14} />;
+  return <OrbitControls ref={controlsRef} target={scene.target} enablePan enableZoom enableRotate minDistance={2.5} maxDistance={16} />;
 }
 
 export default function PackingScene3D({ truck, placements = [], loadedCodes = [], expectedCode, viewMode = 'isometric', className = 'h-[520px]' }) {
@@ -97,23 +87,34 @@ export default function PackingScene3D({ truck, placements = [], loadedCodes = [
     const width = truck.ancho_cm * SCALE;
     const height = truck.alto_cm * SCALE;
     const depth = truck.largo_cm * SCALE;
-    const maxDimension = Math.max(width, height, depth);
-    const defaultTarget = [0, height * 0.38, 0];
+    const visualCabDepth = Math.max(depth * 0.24, 1.55);
+    const visualCabGap = 0.34;
+    const visualDepth = depth + visualCabDepth + visualCabGap;
+    const maxDimension = Math.max(width, height, visualDepth);
+    const defaultTarget = [0, height * 0.4, visualCabDepth * 0.42];
     const cameraByMode = {
       isometric: {
-        cameraPosition: [maxDimension * 0.65, Math.max(height * 1.35, 2.6), maxDimension * 0.8],
+        cameraPosition: [maxDimension * 1.42, Math.max(height * 2.05, 4.6), maxDimension * 1.88],
         cameraUp: [0, 1, 0],
         target: defaultTarget,
       },
       top: {
-        cameraPosition: [0, Math.max(maxDimension * 1.2, 7), 0.01],
+        cameraPosition: [0, Math.max(maxDimension * 1.2, 7), visualCabDepth * 0.16],
         cameraUp: [0, 0, -1],
         target: defaultTarget,
       },
       front: {
-        cameraPosition: [0, Math.max(height * 0.46, 1.45), -(depth / 2 + Math.max(width * 0.8, 1.8))],
+        cameraPosition: [
+          0,
+          Math.max(height * 0.48, 1.55),
+          -(depth / 2 + visualCabDepth + Math.max(width * 0.72, 1.8)),
+        ],
         cameraUp: [0, 1, 0],
-        target: [0, Math.max(height * 0.42, 1.25), depth * 0.12],
+        target: [
+          0,
+          Math.max(height * 0.38, 1.15),
+          -depth / 2,
+        ],
       },
     };
     const cameraConfig = cameraByMode[viewMode] || cameraByMode.isometric;
@@ -146,12 +147,12 @@ export default function PackingScene3D({ truck, placements = [], loadedCodes = [
     <div className={`relative overflow-hidden rounded-lg border border-[#d9e7d4] bg-gradient-to-b from-white to-[#F8F9FA] ${className}`}>
       <Canvas shadows>
         <Suspense fallback={null}>
-          <PerspectiveCamera makeDefault position={scene.cameraPosition} fov={45} />
-          <ambientLight intensity={0.85} />
-          <directionalLight position={[4, 7, 5]} intensity={1.2} castShadow />
-          <directionalLight position={[-4, 3, -5]} intensity={0.35} />
-          <gridHelper args={[Math.max(scene.depth, scene.width) * 1.35, 24, '#cbd5cf', '#edf2ef']} position={[0, 0, 0]} />
-          <TruckWireframe truck={truck} />
+          <PerspectiveCamera makeDefault position={scene.cameraPosition} fov={55} />
+          <ambientLight intensity={0.65} />
+          <directionalLight position={[8, 12, 10]} intensity={1.2} castShadow />
+          <directionalLight position={[-6, 5, -4]} intensity={0.35} />
+          <gridHelper args={[Math.max(scene.depth, scene.width) * 1.35, 24, '#cbd5cf', '#edf2ef']} position={[0, -0.02, 0]} />
+          <TruckModel truck={truck} scale={SCALE} />
           {renderPlacements.map((placement) => (
             <PackageBox
               key={placement.codigo}

@@ -1,6 +1,6 @@
 import React, { useState } from 'react';
 import { apiBaseURL } from '../../services/apiClient.js';
-import { sanitizeDigits, validatePhone } from '../../utils/shipmentValidation.js';
+import { sanitizeDigits } from '../../utils/shipmentValidation.js';
 
 function getPaymentErrorMessage(data, fallback) {
   if (Array.isArray(data?.detail)) {
@@ -28,6 +28,14 @@ async function readPaymentResponse(response, fallback) {
   return data;
 }
 
+function validateYapePhone(value) {
+  const phone = String(value || '').trim();
+  if (!phone) return 'El celular asociado a Yape es obligatorio.';
+  if (!/^\d+$/.test(phone)) return 'El celular solo debe contener numeros.';
+  if (phone.length !== 9) return 'El celular asociado a Yape debe tener 9 digitos.';
+  return '';
+}
+
 export default function YapePayment({
   amount = 100,
   email = 'test@test.com',
@@ -41,6 +49,7 @@ export default function YapePayment({
   const [loading, setLoading] = useState(false);
   const [resultado, setResultado] = useState(null);
   const [message, setMessage] = useState('');
+  const phoneError = phoneNumber ? validateYapePhone(phoneNumber) : '';
 
   const loadMercadoPagoSDK = () => {
     return new Promise((resolve, reject) => {
@@ -70,10 +79,10 @@ export default function YapePayment({
       setResultado(null);
       setMessage('');
 
-      const phoneError = validatePhone(phoneNumber, { required: true });
-      if (phoneError) {
+      const nextPhoneError = validateYapePhone(phoneNumber);
+      if (nextPhoneError) {
         setResultado('error');
-        setMessage(phoneError);
+        setMessage(nextPhoneError);
         return;
       }
 
@@ -133,9 +142,9 @@ export default function YapePayment({
 
   return (
     <div className="min-h-[328px] rounded-md bg-white">
-      <h2 className="mb-4 text-xl font-black text-purple-700">Pagar con Yape</h2>
+      <h2 className="mb-4 text-xl font-black text-brand-dark">Pagar con Yape</h2>
 
-      <label className="mb-2 block text-sm font-bold text-gray-700">Celular asociado a Yape</label>
+      <label className="mb-2 block text-sm font-bold text-brand-black">Celular asociado a Yape</label>
       <input
         type="text"
         value={phoneNumber}
@@ -143,27 +152,32 @@ export default function YapePayment({
         placeholder="Ej: Ingresa tu numero Yape"
         inputMode="numeric"
         maxLength={9}
-        className="mb-4 min-h-11 w-full rounded-md border border-gray-200 px-3 py-2 text-sm outline-none focus:border-purple-500 focus:ring-2 focus:ring-purple-100"
+        className={`min-h-11 w-full rounded-md border px-3 py-2 text-sm text-brand-black outline-none transition hover:border-brand-lime focus:border-brand-green focus:ring-2 focus:ring-brand-lime/50 ${
+          phoneError ? 'border-red-300 bg-red-50/40' : 'border-gray-200'
+        }`}
       />
+      <p className={`mb-4 mt-1 min-h-4 text-xs font-semibold ${phoneError ? 'text-red-600' : 'text-transparent'}`}>
+        {phoneError || ''}
+      </p>
 
-      <label className="mb-2 block text-sm font-bold text-gray-700">Codigo de aprobacion</label>
+      <label className="mb-2 block text-sm font-bold text-brand-black">Codigo de aprobacion</label>
       <input
         type="text"
         value={otp}
         onChange={(event) => setOtp(event.target.value)}
         placeholder="Ej: 123456"
-        className="mb-4 min-h-11 w-full rounded-md border border-gray-200 px-3 py-2 text-sm outline-none focus:border-purple-500 focus:ring-2 focus:ring-purple-100"
+        className="mb-4 min-h-11 w-full rounded-md border border-gray-200 px-3 py-2 text-sm text-brand-black outline-none transition hover:border-brand-lime focus:border-brand-green focus:ring-2 focus:ring-brand-lime/50"
       />
 
-      <p className="mb-4 text-sm leading-6 text-gray-600">
+      <p className="mb-4 text-sm leading-6 text-brand-gray">
         Abre tu app Yape, genera tu codigo de aprobacion e ingresalo aqui.
       </p>
 
       <button
         type="button"
         onClick={handleYapePayment}
-        disabled={loading || !phoneNumber || !otp}
-        className="min-h-11 w-full rounded-md bg-purple-600 px-4 py-2 text-sm font-black text-white hover:bg-purple-700 disabled:cursor-not-allowed disabled:opacity-60"
+        disabled={loading || !phoneNumber || Boolean(phoneError) || !otp}
+        className="min-h-11 w-full rounded-md bg-brand-green px-4 py-2 text-sm font-black text-white transition hover:bg-brand-dark disabled:cursor-not-allowed disabled:opacity-60"
       >
         {loading ? 'Procesando...' : 'Pagar con Yape'}
       </button>
@@ -172,10 +186,10 @@ export default function YapePayment({
         <div
           className={`mt-4 rounded-md p-4 text-center font-semibold ${
             resultado === 'approved'
-              ? 'bg-green-100 text-green-700'
+              ? 'bg-brand-lime/25 text-brand-dark'
               : resultado === 'pending'
-                ? 'bg-amber-100 text-amber-800'
-                : 'bg-red-100 text-red-700'
+                ? 'bg-brand-surface text-brand-dark'
+                : 'bg-white text-brand-black ring-1 ring-brand-dark/30'
           }`}
         >
           {message}

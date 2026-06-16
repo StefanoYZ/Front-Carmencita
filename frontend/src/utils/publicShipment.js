@@ -32,7 +32,7 @@ export const emptyPublicShipmentForm = {
   largo_cm: '',
   ancho_cm: '',
   alto_cm: '',
-  fragilidad: 'MEDIA',
+  fragilidad: 'BAJA',
 };
 
 export function readSessionJSON(key, fallback = null) {
@@ -71,7 +71,7 @@ export function quoteEstimateFromForm(form) {
   const baseRate = normalizeRoute(form.origen, form.destino) === 'TRUJILLO_ANGASMARCA' ? 10 : 12;
   const weightCost = weight * 2;
   const volumeCost = (volume / 1000000) * 20;
-  const fragilitySurcharge = fragility === 'ALTA' ? 10 : fragility === 'MEDIA' ? 5 : 0;
+  const fragilitySurcharge = fragility === 'ALTA' ? 10 : 0;
   const subtotal = roundMoney(baseRate + weightCost + volumeCost + fragilitySurcharge);
   const igv = roundMoney(subtotal * 0.18);
   const total = roundMoney(subtotal + igv);
@@ -87,8 +87,8 @@ export function quoteEstimateFromForm(form) {
 
 export function quoteEstimateFromPublicQuote(form) {
   const mapped = {
-    origen: 'Trujillo',
-    destino: 'Angasmarca',
+    origen: form.origen || 'Trujillo',
+    destino: form.destino || 'Angasmarca',
     peso_kg: form.peso,
     largo_cm: form.largo,
     ancho_cm: form.ancho,
@@ -109,7 +109,7 @@ export function mapQuoteToShipmentForm(quote) {
     largo_cm: quote.largo || '',
     ancho_cm: quote.ancho || '',
     alto_cm: quote.alto || '',
-    fragilidad: quote.fragilidad === 'Fragil' ? 'ALTA' : quote.fragilidad === 'No fragil' ? 'BAJA' : 'MEDIA',
+    fragilidad: quote.fragilidad === 'Fragil' ? 'ALTA' : 'BAJA',
   };
 }
 

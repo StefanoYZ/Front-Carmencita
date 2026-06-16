@@ -9,7 +9,7 @@ import locationIcon from '../../assets/icons/pin-de-ubicacion.svg';
 function GreenIcon({ src }) {
   return (
     <span
-      className="mt-0.5 block h-5 w-5 shrink-0 bg-[#2F9448]"
+      className="mt-0.5 block h-5 w-5 shrink-0 bg-[#28A745]"
       style={{
         WebkitMask: `url(${src}) center / contain no-repeat`,
         mask: `url(${src}) center / contain no-repeat`,
@@ -66,23 +66,23 @@ function TrackingCard({ initialCode = '' }) {
 
   return (
     <article className="w-full min-w-0 overflow-hidden rounded-lg border border-gray-200 bg-white shadow-[0_14px_34px_rgba(31,41,55,0.10)]">
-      <div className="bg-[#3F6845] p-5 text-white sm:p-6">
+      <div className="bg-[#3C5940] p-5 text-white sm:p-6">
         <h2 className="text-2xl font-black sm:text-3xl">Rastrea tu encomienda</h2>
-        <p className="mt-2 max-w-xl text-sm font-semibold leading-6 text-[#E3EAE1] sm:text-base">
+        <p className="mt-2 max-w-xl text-sm font-semibold leading-6 text-[#F8F9FA] sm:text-base">
           Ingresa tu codigo de envio y conoce el estado actual de tu encomienda.
         </p>
 
         <form className="mt-5 grid min-w-0 gap-2 rounded-lg bg-white p-2 sm:grid-cols-[minmax(0,1fr)_auto]" onSubmit={handleSubmit}>
           <label className="grid min-w-0">
             <input
-              className="min-h-12 min-w-0 rounded-md border-0 px-4 text-base font-bold uppercase text-gray-800 outline-none transition placeholder:normal-case placeholder:text-gray-400 focus:ring-2 focus:ring-green-100"
+              className="min-h-12 min-w-0 rounded-md border-0 px-4 text-base font-bold uppercase text-gray-800 outline-none transition placeholder:normal-case placeholder:text-gray-400 focus:ring-2 focus:ring-[#A3CF84]"
               value={codigo}
               onChange={(event) => setCodigo(event.target.value)}
               placeholder="Ejemplo: D000000001"
             />
           </label>
           <button
-            className="inline-flex min-h-12 w-full items-center justify-center gap-2 rounded-md bg-[#31934F] px-4 text-sm font-black text-white transition hover:bg-[#2F7D45] disabled:cursor-not-allowed disabled:opacity-70 sm:w-auto"
+            className="inline-flex min-h-12 w-full items-center justify-center gap-2 rounded-md bg-[#28A745] px-4 text-sm font-black text-white transition hover:bg-[#3C5940] disabled:cursor-not-allowed disabled:opacity-70 sm:w-auto"
             type="submit"
             disabled={loading}
           >
@@ -94,7 +94,7 @@ function TrackingCard({ initialCode = '' }) {
 
       <div className="min-h-[220px] p-5 sm:p-6">
         {message && (
-          <div className="mb-6 rounded-md border border-amber-200 bg-amber-50 p-3 text-sm font-semibold text-amber-800">
+          <div className="mb-6 rounded-md border border-[#A3CF84] bg-[#F8F9FA] p-3 text-sm font-semibold text-[#3C5940]">
             {message}
           </div>
         )}
@@ -109,23 +109,23 @@ function TrackingCard({ initialCode = '' }) {
               <GreenIcon src={packageIcon} />
               <div className="min-w-0">
                 <p className="text-gray-500">Codigo</p>
-                <p className="break-words font-black text-[#1F2937]">{formatShipmentCode(result.codigo_encomienda)}</p>
+                <p className="break-words font-black text-[#212529]">{formatShipmentCode(result.codigo_encomienda)}</p>
               </div>
             </div>
             <div className="flex gap-3">
               <GreenIcon src={locationIcon} />
               <div className="min-w-0">
                 <p className="text-gray-500">Ruta</p>
-                <p className="break-words font-black text-[#1F2937]">{result.origen || 'Trujillo'} - {result.destino || 'Angasmarca'}</p>
+                <p className="break-words font-black text-[#212529]">{result.origen || 'Trujillo'} - {result.destino || 'Angasmarca'}</p>
               </div>
             </div>
             <div>
               <p className="text-gray-500">Estado actual</p>
-              <p className="font-black text-[#356B3F]">{result.estado || 'Sin estado'}</p>
+              <p className="font-black text-[#3C5940]">{result.estado || 'Sin estado'}</p>
             </div>
             <div>
               <p className="text-gray-500">Destinatario</p>
-              <p className="font-black text-[#1F2937]">{result.destinatario_nombre || '-'}</p>
+              <p className="font-black text-[#212529]">{result.destinatario_nombre || '-'}</p>
             </div>
           </div>
         )}

@@ -5,6 +5,30 @@ export const OPTIMIZATION_ALGORITHMS = {
     endpoint: '/first-fit/run',
     payload: {},
   },
+  BEST_FIT_3D: {
+    id: 'BEST_FIT_3D',
+    label: 'Best Fit 3D',
+    endpoint: '/best-fit/run',
+    payload: {},
+  },
+  WORST_FIT: {
+    id: 'WORST_FIT',
+    label: 'Worst Fit',
+    endpoint: '/worst-fit/run',
+    payload: {},
+  },
+  BEST_FIT_DECREASING_3D: {
+    id: 'BEST_FIT_DECREASING_3D',
+    label: 'Best Fit Decreasing 3D',
+    endpoint: '/best-fit-decreasing/run',
+    payload: {},
+  },
+  BACKTRACKING_LOGISTIC: {
+    id: 'BACKTRACKING_LOGISTIC',
+    label: 'Backtracking 3D',
+    endpoint: '/backtracking/run',
+    payload: { package_limit: 8 },
+  },
   MINIMAX: {
     id: 'MINIMAX',
     label: 'Minimax',

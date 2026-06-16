@@ -124,6 +124,11 @@ export default function OptimizacionCarga() {
     setError('');
   };
 
+  const handleAlgorithmChange = (event) => {
+    setAlgorithmId(event.target.value);
+    resetSimulation();
+  };
+
   const goToPreviousPlacement = () => {
     if (!simulation) return;
     setPlacementCursor((current) => Math.max(1, current - 1));
@@ -216,9 +221,14 @@ export default function OptimizacionCarga() {
             <select
               className="min-h-11 rounded-md border border-[#d9e7d4] bg-white px-3 text-sm font-bold"
               value={algorithmId}
-              onChange={(event) => setAlgorithmId(event.target.value)}
+              onChange={handleAlgorithmChange}
               disabled={status === 'ORDERING'}
             >
+              <option value={OPTIMIZATION_ALGORITHMS.FIRST_FIT_3D.id}>First Fit 3D</option>
+              <option value={OPTIMIZATION_ALGORITHMS.BEST_FIT_3D.id}>Best Fit 3D</option>
+              <option value={OPTIMIZATION_ALGORITHMS.WORST_FIT.id}>Worst Fit</option>
+              <option value={OPTIMIZATION_ALGORITHMS.BEST_FIT_DECREASING_3D.id}>Best Fit Decreasing 3D</option>
+              <option value={OPTIMIZATION_ALGORITHMS.BACKTRACKING_LOGISTIC.id}>Backtracking 3D</option>
               <option value={OPTIMIZATION_ALGORITHMS.MINIMAX.id}>MINIMAX</option>
               <option value={OPTIMIZATION_ALGORITHMS.MAXIMIN.id}>MAXIMIN</option>
             </select>

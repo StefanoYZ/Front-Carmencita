@@ -22,6 +22,22 @@ export const optimizationPocService = {
     return this.runAlgorithm(payload, 'FIRST_FIT_3D');
   },
 
+  async runBestFit(payload) {
+    return this.runAlgorithm(payload, 'BEST_FIT_3D');
+  },
+
+  async runWorstFit(payload) {
+    return this.runAlgorithm(payload, 'WORST_FIT');
+  },
+
+  async runBestFitDecreasing(payload) {
+    return this.runAlgorithm(payload, 'BEST_FIT_DECREASING_3D');
+  },
+
+  async runBacktracking(payload) {
+    return this.runAlgorithm(payload, 'BACKTRACKING_LOGISTIC');
+  },
+
   async runMinimaxMaximin(payload) {
     return this.runAlgorithm(payload, payload?.strategy === 'MAXIMIN' ? 'MAXIMIN' : 'MINIMAX');
   },

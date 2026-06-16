@@ -19,6 +19,7 @@ import PackingScene3D from '../components/optimization-poc/PackingScene3D.jsx';
 import MetricCard from '../components/optimization-poc/MetricCard.jsx';
 import { getApiErrorMessage } from '../services/apiClient.js';
 import { optimizationPocService } from '../services/optimizationPocService.js';
+import { getOptimizationAlgorithm, OPTIMIZATION_ALGORITHMS } from '../config/optimizationPocAlgorithms.js';
 
 const STATUS_LABELS = {
   IDLE: 'Sin ordenar',
@@ -44,6 +45,9 @@ function formatDimensions(item) {
 
 export default function OptimizacionCarga() {
   const [scenario, setScenario] = useState(null);
+  const defaultAlgorithm = useMemo(() => getOptimizationAlgorithm(), []);
+  const [algorithmId, setAlgorithmId] = useState(defaultAlgorithm.id);
+  const activeAlgorithm = useMemo(() => getOptimizationAlgorithm(algorithmId), [algorithmId]);
   const [selectedTruckId, setSelectedTruckId] = useState('CAMION_A');
   const [viewMode, setViewMode] = useState('isometric');
   const [status, setStatus] = useState('IDLE');
@@ -98,7 +102,7 @@ export default function OptimizacionCarga() {
     setPlacementCursor(0);
     try {
       const payload = { truck_id: selectedTruckId, package_limit: 50, allow_rotation: true };
-      const result = await optimizationPocService.runFirstFit(payload);
+      const result = await optimizationPocService.runAlgorithm(payload, activeAlgorithm.id);
       if (!result?.placements?.length) {
         setError('El algoritmo no devolvio coordenadas para renderizar.');
         setStatus('ERROR');
@@ -118,6 +122,11 @@ export default function OptimizacionCarga() {
     setPlacementCursor(0);
     setStatus('IDLE');
     setError('');
+  };
+
+  const handleAlgorithmChange = (event) => {
+    setAlgorithmId(event.target.value);
+    resetSimulation();
   };
 
   const goToPreviousPlacement = () => {
@@ -178,7 +187,7 @@ export default function OptimizacionCarga() {
             </div>
           </div>
           <div className="grid gap-3 md:grid-cols-4">
-            <HeaderBadge label="Algoritmo" value="First Fit 3D" />
+            <HeaderBadge label="Algoritmo" value={activeAlgorithm.label} />
             <HeaderBadge label="Camiones disponibles" value={scenario?.trucks?.length || 0} />
             <HeaderBadge label="Camion seleccionado" value={selectedTruck?.nombre || '-'} />
             <HeaderBadge label="Estado" value={STATUS_LABELS[status]} />
@@ -209,9 +218,20 @@ export default function OptimizacionCarga() {
                 </option>
               ))}
             </select>
-            <div className="rounded-md border border-[#d9e7d4] bg-[#E4ECE2] px-3 py-3 text-sm font-black text-[#3C5940]">
-              Algoritmo: First Fit 3D
-            </div>
+            <select
+              className="min-h-11 rounded-md border border-[#d9e7d4] bg-white px-3 text-sm font-bold"
+              value={algorithmId}
+              onChange={handleAlgorithmChange}
+              disabled={status === 'ORDERING'}
+            >
+              <option value={OPTIMIZATION_ALGORITHMS.FIRST_FIT_3D.id}>First Fit 3D</option>
+              <option value={OPTIMIZATION_ALGORITHMS.BEST_FIT_3D.id}>Best Fit 3D</option>
+              <option value={OPTIMIZATION_ALGORITHMS.WORST_FIT.id}>Worst Fit</option>
+              <option value={OPTIMIZATION_ALGORITHMS.BEST_FIT_DECREASING_3D.id}>Best Fit Decreasing 3D</option>
+              <option value={OPTIMIZATION_ALGORITHMS.BACKTRACKING_LOGISTIC.id}>Backtracking 3D</option>
+              <option value={OPTIMIZATION_ALGORITHMS.MINIMAX.id}>MINIMAX</option>
+              <option value={OPTIMIZATION_ALGORITHMS.MAXIMIN.id}>MAXIMIN</option>
+            </select>
           </div>
 
           <div className="mt-4 max-h-[520px] space-y-2 overflow-y-auto pr-1">
@@ -283,7 +303,7 @@ export default function OptimizacionCarga() {
             </button>
           </div>
           <p className="mt-3 rounded-lg bg-[#E4ECE2] p-3 text-sm font-semibold text-[#3C5940]">
-            Las coordenadas X/Y/Z vienen del backend. Renderizados: {renderedPlacements.length} de {orderedPlacements.length} paquetes con First Fit 3D.
+            Las coordenadas X/Y/Z vienen del backend. Renderizados: {renderedPlacements.length} de {orderedPlacements.length} paquetes con {activeAlgorithm.label}.
           </p>
         </section>
 

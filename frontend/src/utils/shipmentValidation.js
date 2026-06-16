@@ -1,5 +1,5 @@
 const EMAIL_PATTERN = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
-const VALID_FRAGILITY_VALUES = ['BAJA', 'MEDIA', 'ALTA'];
+const VALID_FRAGILITY_VALUES = ['BAJA', 'ALTA'];
 
 export function sanitizeDigits(value, maxLength) {
   return String(value || '').replace(/\D/g, '').slice(0, maxLength);
@@ -50,6 +50,8 @@ export function validatePhone(value, { required = false } = {}) {
   if (!phone) return required ? 'El celular debe tener 9 digitos.' : '';
   if (!/^\d+$/.test(phone)) return 'El celular solo debe contener numeros.';
   if (phone.length !== 9) return 'El celular debe tener 9 digitos.';
+  if (!phone.startsWith('9')) return 'El celular debe comenzar con 9.';
+  if (/^(\d)\1{8}$/.test(phone)) return 'El celular no puede repetir el mismo numero 9 veces.';
   return '';
 }
 
@@ -69,7 +71,7 @@ export function validatePositiveNumber(value, message = 'Debe ser mayor a 0.') {
 export function validateFragility(value) {
   const fragility = String(value || '').trim().toUpperCase();
   if (!fragility) return 'Seleccione una fragilidad.';
-  return VALID_FRAGILITY_VALUES.includes(fragility) ? '' : 'La fragilidad debe ser BAJA, MEDIA o ALTA.';
+  return VALID_FRAGILITY_VALUES.includes(fragility) ? '' : 'Seleccione Fragil o No fragil.';
 }
 
 export function validateContentType(value) {

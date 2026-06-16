@@ -61,12 +61,13 @@ function PaymentConfirmationStep({
   ];
 
   const shipmentItems = [
-    { label: 'Ruta', value: `${form.origen} - ${form.destino}` },
-    { label: 'Contenido', value: form.tipo_contenido },
-    { label: 'Fragilidad', value: form.fragilidad },
-    { label: 'Peso', value: `${form.peso_kg} kg` },
-    { label: 'Medidas', value: `${form.largo_cm} x ${form.ancho_cm} x ${form.alto_cm} cm` },
+    { label: 'Origen', value: form.origen },
+    { label: 'Destino', value: form.destino },
     { label: 'Descripcion', value: form.descripcion },
+    { label: 'Fragilidad', value: formatFragility(form.fragilidad) },
+    { label: 'Peso', value: `${form.peso_kg} kg` },
+    { label: 'Dimensiones', value: `${form.largo_cm} x ${form.ancho_cm} x ${form.alto_cm} cm` },
+    { label: 'Contenido', value: form.tipo_contenido },
   ];
 
   return (
@@ -80,21 +81,21 @@ function PaymentConfirmationStep({
       </div>
 
       <aside className="min-w-0 space-y-5 2xl:sticky 2xl:top-28 2xl:self-start">
-        <section className="rounded-lg border border-gray-200 bg-white p-5 shadow-sm">
-          <h3 className="text-lg font-black text-[#1F2937]">Detalle de pago</h3>
+        <section className="rounded-lg border border-[#E4ECE2] bg-white p-5 shadow-[0_14px_32px_rgba(33,37,41,0.07)]">
+          <h3 className="text-lg font-black text-[#212529]">Detalle de pago</h3>
           <div className="mt-4 space-y-3 text-sm">
             <PaymentLine label="Tarifa" value={formatCurrency(quote.subtotal - quote.fragilitySurcharge)} />
             <PaymentLine label="Fragilidad" value={formatCurrency(quote.fragilitySurcharge)} />
             <PaymentLine label="IGV" value={formatCurrency(quote.igv)} />
           </div>
-          <div className="mt-5 rounded-md bg-[#3F6845] p-4 text-white">
-            <p className="text-sm font-bold text-[#E3EAE1]">Total a pagar</p>
+          <div className="mt-5 rounded-md bg-[#3C5940] p-4 text-white shadow-[0_12px_24px_rgba(60,89,64,0.16)]">
+            <p className="text-sm font-bold text-[#F8F9FA]">Total a pagar</p>
             <p className="mt-1 break-words text-3xl font-black">{formatCurrency(quote.total)}</p>
           </div>
         </section>
 
-        <section className="rounded-lg border border-gray-200 bg-white p-5 shadow-sm">
-          <h3 className="text-lg font-black text-[#1F2937]">Metodo de pago</h3>
+        <section className="rounded-lg border border-[#E4ECE2] bg-white p-5 shadow-[0_14px_32px_rgba(33,37,41,0.07)]">
+          <h3 className="text-lg font-black text-[#212529]">Metodo de pago</h3>
           <div className="mt-4 grid gap-3">
             {paymentMethods.map((method) => (
               <PaymentMethodCard
@@ -110,16 +111,16 @@ function PaymentConfirmationStep({
           </div>
         </section>
 
-        <section className="min-h-[360px] rounded-lg border border-gray-200 bg-white p-4 shadow-sm">
+        <section className="min-h-[360px] rounded-lg border border-[#E4ECE2] bg-white p-4 shadow-[0_14px_32px_rgba(33,37,41,0.07)]">
           {paymentMethod === 'agency' && (
-            <div className="flex min-h-[328px] flex-col justify-between rounded-md bg-[#F5F5F5] p-4">
+            <div className="flex min-h-[328px] flex-col justify-between rounded-md border border-[#A3CF84]/50 bg-[#E4ECE2] p-4">
               <div>
-                <h4 className="text-base font-black text-[#1F2937]">Pago en agencia</h4>
-                <p className="mt-2 text-sm font-semibold leading-6 text-gray-600">
+                <h4 className="text-base font-black text-[#212529]">Pago en agencia</h4>
+                <p className="mt-2 text-sm font-semibold leading-6 text-[#6C757D]">
                   Generaremos un codigo para que completes el pago y la atencion en agencia.
                 </p>
               </div>
-              <p className="rounded-md bg-[#E3EAE1] p-3 text-sm font-bold text-[#3F6845]">
+              <p className="rounded-md bg-white p-3 text-sm font-bold text-[#3C5940] shadow-sm">
                 El envio quedara como pre-registro hasta que sea formalizado.
               </p>
             </div>
@@ -149,18 +150,18 @@ function PaymentConfirmationStep({
           )}
         </section>
 
-        {paymentNotice && <div className="rounded-md border border-amber-200 bg-amber-50 p-3 text-sm font-semibold text-amber-800">{paymentNotice}</div>}
-        {error && <div className="rounded-md border border-red-200 bg-red-50 p-3 text-sm font-semibold text-red-700">{error}</div>}
+        {paymentNotice && <div className="rounded-md border border-amber-300 bg-amber-50 p-3 text-sm font-semibold text-amber-800">{paymentNotice}</div>}
+        {error && <div className="rounded-md border border-red-300 bg-red-50 p-3 text-sm font-semibold text-red-700">{error}</div>}
 
-        <div className="rounded-lg border border-gray-200 bg-white p-4 shadow-sm">
+        <div className="rounded-lg border border-[#E4ECE2] bg-white p-4 shadow-[0_14px_32px_rgba(33,37,41,0.07)]">
           <div className="mb-4 flex items-center justify-between gap-4">
             <span className="text-sm font-bold text-gray-500">Total</span>
-            <span className="break-words text-right text-2xl font-black text-[#31934F]">{formatCurrency(quote.total)}</span>
+            <span className="break-words text-right text-2xl font-black text-[#28A745]">{formatCurrency(quote.total)}</span>
           </div>
           <div className="grid gap-3 sm:grid-cols-2 xl:grid-cols-1">
             <button
               type="button"
-              className="min-h-12 rounded-md border border-gray-300 px-5 text-sm font-black text-gray-700 transition hover:bg-gray-50"
+              className="min-h-12 rounded-md border border-[#A3CF84]/70 bg-white px-5 text-sm font-black text-[#3C5940] transition hover:border-[#28A745] hover:bg-[#F8F9FA]"
               onClick={onBack}
               disabled={loading}
             >
@@ -169,14 +170,14 @@ function PaymentConfirmationStep({
             {paymentMethod === 'agency' ? (
               <button
                 type="button"
-                className="min-h-12 rounded-md bg-[#31934F] px-5 text-sm font-black text-white shadow-sm transition hover:bg-[#3F6845] disabled:cursor-not-allowed disabled:opacity-70"
+                className="min-h-12 rounded-md bg-[#28A745] px-5 text-sm font-black text-white shadow-[0_12px_24px_rgba(40,167,69,0.24)] transition hover:-translate-y-0.5 hover:bg-[#3C5940] disabled:translate-y-0 disabled:cursor-not-allowed disabled:opacity-70"
                 onClick={onConfirmAgency}
                 disabled={loading}
               >
                 {loading ? 'Procesando...' : 'Crear pre-registro'}
               </button>
             ) : (
-              <div className="rounded-md bg-[#E3EAE1] px-4 py-3 text-center text-sm font-bold text-[#3F6845]">
+              <div className="rounded-md bg-[#E4ECE2] px-4 py-3 text-center text-sm font-bold text-[#3C5940]">
                 Completa el pago en el panel superior.
               </div>
             )}
@@ -191,9 +192,13 @@ function PaymentLine({ label, value }) {
   return (
     <div className="flex items-center justify-between gap-4 border-b border-gray-100 pb-2">
       <span className="font-semibold text-gray-600">{label}</span>
-      <span className="font-black text-[#1F2937]">{value}</span>
+      <span className="font-black text-[#212529]">{value}</span>
     </div>
   );
 }
 
 export default PaymentConfirmationStep;
+
+function formatFragility(value) {
+  return String(value || '').trim().toUpperCase() === 'ALTA' ? 'Fragil' : 'No fragil';
+}

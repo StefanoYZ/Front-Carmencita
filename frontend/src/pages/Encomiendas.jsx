@@ -121,15 +121,15 @@ function Encomiendas() {
 
       if (result.pdf_url) {
         const pdf = await descargarPdfMock(result.pdf_url, result.serie, result.numero);
-        downloadBlob(pdf, `boleta_mock_${result.serie}_${result.numero}_${formattedCode}.pdf`);
-        setMessage(`Boleta mock ${result.serie}-${result.numero} emitida y PDF descargado para ${formattedCode}.`);
+        downloadBlob(pdf, `boleta_${result.serie}_${result.numero}_${formattedCode}.pdf`);
+        setMessage(`Boleta ${result.serie}-${result.numero} emitida y PDF descargado para ${formattedCode}.`);
         return;
       }
 
       if (result.ambiente === 'beta') {
         const pdf = await generarPdfBetaDesdeEncomienda({ encomienda_id: row.id, confirmar_pago: true });
-        downloadBlob(pdf, `boleta_beta_${formattedCode}.pdf`);
-        setMessage(`Boleta beta ${result.serie}-${result.numero} emitida y PDF descargado para ${formattedCode}.`);
+        downloadBlob(pdf, `boleta_${formattedCode}.pdf`);
+        setMessage(`Boleta ${result.serie}-${result.numero} emitida y PDF descargado para ${formattedCode}.`);
         return;
       }
 
@@ -174,8 +174,16 @@ function Encomiendas() {
     { header: 'Descripcion', accessor: 'descripcion' },
     { header: 'Peso', accessor: 'peso_kg', cell: (row) => `${row.peso_kg} kg` },
     { header: 'Dimensiones', accessor: 'dimensiones', cell: getDimensions },
-    { header: 'Fragilidad', accessor: 'fragilidad', cell: (row) => <Badge tone="gray">{row.fragilidad}</Badge> },
-    { header: 'Estado', accessor: 'estado', cell: (row) => <Badge tone="amber">{row.estado || 'SIN ESTADO'}</Badge> },
+    { header: 'Fragilidad', accessor: 'fragilidad', cell: (row) => <Badge tone="gray">{formatFragility(row.fragilidad)}</Badge> },
+    {
+      header: 'Estado',
+      accessor: 'estado',
+      cell: (row) => (
+        <Badge tone={row.estado === 'ENTREGADA' ? 'green' : row.estado === 'ANULADA' ? 'gray' : 'amber'}>
+          {row.estado || 'SIN ESTADO'}
+        </Badge>
+      ),
+    },
     { header: 'Fecha', accessor: 'fecha_creacion', cell: (row) => row.fecha_creacion || row.created_at || '-' },
     {
       header: 'Acciones',
@@ -223,19 +231,22 @@ function Encomiendas() {
       {message && <Alert tone="success">{message}</Alert>}
       {error && <Alert tone="error">{error}</Alert>}
 
-      <Card>
+      <Card className="overflow-hidden">
         <div className="mb-4 flex flex-col gap-2 sm:flex-row sm:items-center sm:justify-between">
-          <h3 className="text-lg font-semibold text-brand-black">Listado de encomiendas</h3>
+          <div>
+            <h3 className="text-lg font-black text-brand-black">Listado de encomiendas</h3>
+            <p className="mt-1 text-sm text-brand-gray">Filtra por fecha, estado o datos principales.</p>
+          </div>
           <Button variant="secondary" onClick={loadRows} disabled={loading}>
             {loading ? 'Actualizando...' : 'Actualizar'}
           </Button>
         </div>
 
-        <div className="mb-4 grid gap-3 md:grid-cols-[1fr_180px_180px_auto] md:items-end">
+        <div className="mb-5 grid gap-3 rounded-lg border border-gray-200 bg-brand-surface p-4 md:grid-cols-[1fr_180px_180px_auto] md:items-end">
           <label className="block">
-            <span className="mb-1.5 block text-sm font-medium text-gray-700">Buscar en lista</span>
+            <span className="mb-1.5 block text-sm font-medium text-brand-black">Buscar en lista</span>
             <input
-              className="min-h-10 w-full rounded-md border border-gray-200 bg-white px-3 py-2 text-sm outline-none focus:border-brand-green focus:ring-2 focus:ring-green-100"
+              className="min-h-10 w-full rounded-md border border-gray-200 bg-white px-3 py-2 text-sm text-brand-black outline-none transition hover:border-brand-lime focus:border-brand-green focus:ring-2 focus:ring-brand-lime/50"
               name="texto"
               value={filters.texto}
               onChange={updateFilter}
@@ -243,9 +254,9 @@ function Encomiendas() {
             />
           </label>
           <label className="block">
-            <span className="mb-1.5 block text-sm font-medium text-gray-700">Dia</span>
+            <span className="mb-1.5 block text-sm font-medium text-brand-black">Dia</span>
             <input
-              className="min-h-10 w-full rounded-md border border-gray-200 bg-white px-3 py-2 text-sm outline-none focus:border-brand-green focus:ring-2 focus:ring-green-100"
+              className="min-h-10 w-full rounded-md border border-gray-200 bg-white px-3 py-2 text-sm text-brand-black outline-none transition hover:border-brand-lime focus:border-brand-green focus:ring-2 focus:ring-brand-lime/50"
               name="fecha"
               type="date"
               value={filters.fecha}
@@ -253,9 +264,9 @@ function Encomiendas() {
             />
           </label>
           <label className="block">
-            <span className="mb-1.5 block text-sm font-medium text-gray-700">Estado</span>
+            <span className="mb-1.5 block text-sm font-medium text-brand-black">Estado</span>
             <select
-              className="min-h-10 w-full rounded-md border border-gray-200 bg-white px-3 py-2 text-sm outline-none focus:border-brand-green focus:ring-2 focus:ring-green-100"
+              className="min-h-10 w-full rounded-md border border-gray-200 bg-white px-3 py-2 text-sm text-brand-black outline-none transition hover:border-brand-lime focus:border-brand-green focus:ring-2 focus:ring-brand-lime/50"
               name="estado"
               value={filters.estado}
               onChange={updateFilter}
@@ -280,3 +291,7 @@ function Encomiendas() {
 }
 
 export default Encomiendas;
+
+function formatFragility(value) {
+  return String(value || '').trim().toUpperCase() === 'ALTA' ? 'Fragil' : 'No fragil';
+}

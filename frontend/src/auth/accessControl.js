@@ -16,42 +16,21 @@ export const adminNavigationItems = [
     anyOf: ['encomiendas.read'],
   },
   {
-    label: 'Nueva encomienda',
-    path: '/admin/encomiendas/nueva',
+    label: 'Destinos',
+    path: '/admin/destinos',
     anyOf: ['encomiendas.write'],
+    roles: ['ADMINISTRADOR', 'SECRETARIA'],
+  },
+  {
+    label: 'Usuarios internos',
+    path: '/admin/usuarios',
+    anyOf: ['users.read'],
+    roles: ['ADMINISTRADOR'],
   },
   {
     label: 'Cotizaciones',
     path: '/admin/cotizaciones',
     anyOf: ['cotizaciones.read', 'cotizaciones.calculate'],
-  },
-  {
-    label: 'Tracking interno',
-    path: '/admin/tracking',
-    anyOf: ['tracking.read'],
-  },
-  {
-    label: 'SUNAT / Boletas',
-    path: '/admin/sunat/boletas',
-    anyOf: ['sunat.read', 'sunat.emit', 'sunat.download_pdf'],
-  },
-  {
-    label: 'RENIEC',
-    path: '/admin/reniec',
-    anyOf: ['encomiendas.write'],
-    roles: ['ADMINISTRADOR', 'SECRETARIA'],
-  },
-  {
-    label: 'Payments',
-    path: '/admin/payments',
-    anyOf: [],
-    roles: ['ADMINISTRADOR'],
-  },
-  {
-    label: 'Yape',
-    path: '/admin/yape',
-    anyOf: [],
-    roles: ['ADMINISTRADOR'],
   },
   {
     label: 'Optimizacion de carga',

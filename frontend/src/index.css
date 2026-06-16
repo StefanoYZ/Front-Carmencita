@@ -14,6 +14,9 @@ body {
   margin: 0;
   min-width: 320px;
   min-height: 100vh;
+  background:
+    linear-gradient(180deg, rgba(247, 250, 248, 0.96), rgba(241, 245, 243, 0.98)),
+    #f5f7f8;
 }
 
 button,
@@ -25,10 +28,10 @@ textarea {
 
 @layer components {
   .page-title {
-    @apply text-2xl font-semibold text-brand-black;
+    @apply text-3xl font-black tracking-tight text-brand-black;
   }
 
   .page-subtitle {
-    @apply mt-1 text-sm text-gray-500;
+    @apply mt-2 max-w-3xl text-sm leading-6 text-brand-gray;
   }
 }

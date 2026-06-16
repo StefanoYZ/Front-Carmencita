@@ -29,7 +29,7 @@ export function getApiErrorMessage(error, fallback = 'No se pudo completar la op
   }
 
   if (rawText.includes('sunat_env') || rawText.includes('beta')) {
-    return detail || 'SUNAT_ENV no permite esta operacion beta.';
+    return detail || 'La configuracion SUNAT no permite esta operacion.';
   }
 
   if (status === 404) {

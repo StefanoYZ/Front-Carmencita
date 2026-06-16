@@ -6,6 +6,7 @@ import PublicLayout from '../layouts/PublicLayout.jsx';
 import Clientes from '../pages/Clientes.jsx';
 import Cotizacion from '../pages/Cotizacion.jsx';
 import Dashboard from '../pages/Dashboard.jsx';
+import Destinos from '../pages/Destinos.jsx';
 import EncomiendaBuscar from '../pages/EncomiendaBuscar.jsx';
 import EncomiendaDetalle from '../pages/EncomiendaDetalle.jsx';
 import EncomiendaEditar from '../pages/EncomiendaEditar.jsx';
@@ -22,6 +23,7 @@ import LoginPage from '../pages/LoginPage.jsx';
 import RegistrarEnvioPage from '../pages/public/RegistrarEnvioPage.jsx';
 import RegistroExitosoPage from '../pages/public/RegistroExitosoPage.jsx';
 import TrackingPublicPage from '../pages/public/TrackingPublicPage.jsx';
+import UsuariosInternos from '../pages/UsuariosInternos.jsx';
 
 function LegacyRedirect({ to }) {
   const location = useLocation();
@@ -72,6 +74,22 @@ function AppRoutes() {
           element={
             <ProtectedRoute anyOf={['encomiendas.read']}>
               <Encomiendas />
+            </ProtectedRoute>
+          }
+        />
+        <Route
+          path="destinos"
+          element={
+            <ProtectedRoute anyOf={['encomiendas.write']} roles={['ADMINISTRADOR', 'SECRETARIA']}>
+              <Destinos />
+            </ProtectedRoute>
+          }
+        />
+        <Route
+          path="usuarios"
+          element={
+            <ProtectedRoute anyOf={['users.read']} roles={['ADMINISTRADOR']}>
+              <UsuariosInternos />
             </ProtectedRoute>
           }
         />
@@ -177,7 +195,9 @@ function AppRoutes() {
       </Route>
 
       <Route path="/clientes" element={<LegacyRedirect to="/admin/clientes" />} />
+      <Route path="/usuarios" element={<LegacyRedirect to="/admin/usuarios" />} />
       <Route path="/encomiendas" element={<LegacyRedirect to="/admin/encomiendas" />} />
+      <Route path="/destinos" element={<LegacyRedirect to="/admin/destinos" />} />
       <Route path="/encomiendas/nueva" element={<LegacyRedirect to="/admin/encomiendas/nueva" />} />
       <Route path="/encomiendas/buscar" element={<LegacyRedirect to="/admin/encomiendas/buscar" />} />
       <Route path="/encomiendas/:id/editar" element={<LegacyEncomiendaRedirect suffix="/editar" />} />

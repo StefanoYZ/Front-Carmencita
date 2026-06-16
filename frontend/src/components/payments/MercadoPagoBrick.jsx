@@ -29,8 +29,6 @@ async function readPaymentResponse(response, fallback) {
 
 export default function MercadoPagoBrick({
   amount = 100,
-  payerEmail = 'test@test.com',
-  payerName = 'Cliente',
   onApproved,
   onPending,
   onRejected,
@@ -112,8 +110,8 @@ export default function MercadoPagoBrick({
           initialization: {
             amount: Number(amount),
             payer: {
-              email: payerEmail,
-              firstName: payerName,
+              email: 'test@test.com',
+              firstName: 'APRO',
               lastName: '',
             },
           },
@@ -199,7 +197,7 @@ export default function MercadoPagoBrick({
         container.innerHTML = '';
       }
     };
-  }, [amount, containerId, payerEmail, payerName]);
+  }, [amount, containerId]);
 
   return (
     <div className="min-h-[328px] rounded-md bg-white">

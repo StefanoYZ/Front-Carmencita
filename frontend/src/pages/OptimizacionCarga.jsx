@@ -2,21 +2,24 @@ import React, { useEffect, useMemo, useState } from 'react';
 import {
   AlertTriangle,
   Box,
+  ChevronLeft,
+  ChevronRight,
   CheckCircle2,
   Clock,
   Download,
   Flag,
+  Maximize2,
   PackageCheck,
   PackageOpen,
-  QrCode,
   RefreshCw,
-  ScanLine,
   Truck,
+  X,
 } from 'lucide-react';
 import PackingScene3D from '../components/optimization-poc/PackingScene3D.jsx';
 import MetricCard from '../components/optimization-poc/MetricCard.jsx';
 import { getApiErrorMessage } from '../services/apiClient.js';
 import { optimizationPocService } from '../services/optimizationPocService.js';
+import { getOptimizationAlgorithm, OPTIMIZATION_ALGORITHMS } from '../config/optimizationPocAlgorithms.js';
 
 const STATUS_LABELS = {
   IDLE: 'Sin ordenar',
@@ -27,6 +30,12 @@ const STATUS_LABELS = {
   ERROR: 'Error',
 };
 
+const VIEW_MODES = [
+  { id: 'isometric', label: 'Isometrica' },
+  { id: 'top', label: 'Superior' },
+  { id: 'front', label: 'Frontal' },
+];
+
 function formatDimensions(item) {
   const length = item.largo_cm ?? item.depth;
   const width = item.ancho_cm ?? item.width;
@@ -34,19 +43,18 @@ function formatDimensions(item) {
   return `${length} x ${width} x ${height} cm`;
 }
 
-function formatAlgorithm(strategy) {
-  return strategy === 'MAXIMIN' ? 'Maximin' : 'Minimax';
-}
-
 export default function OptimizacionCarga() {
   const [scenario, setScenario] = useState(null);
+  const defaultAlgorithm = useMemo(() => getOptimizationAlgorithm(), []);
+  const [algorithmId, setAlgorithmId] = useState(defaultAlgorithm.id);
+  const activeAlgorithm = useMemo(() => getOptimizationAlgorithm(algorithmId), [algorithmId]);
   const [selectedTruckId, setSelectedTruckId] = useState('CAMION_A');
-  const [strategy, setStrategy] = useState('MINIMAX');
+  const [viewMode, setViewMode] = useState('isometric');
   const [status, setStatus] = useState('IDLE');
   const [simulation, setSimulation] = useState(null);
-  const [loadedCodes, setLoadedCodes] = useState([]);
+  const [placementCursor, setPlacementCursor] = useState(0);
+  const [isSceneExpanded, setIsSceneExpanded] = useState(false);
   const [error, setError] = useState('');
-  const [wrongScan, setWrongScan] = useState(null);
 
   useEffect(() => {
     let mounted = true;
@@ -76,19 +84,32 @@ export default function OptimizacionCarga() {
     [simulation],
   );
 
-  const expectedPackage = orderedPlacements.find((item) => !loadedCodes.includes(item.codigo));
-  const pendingCount = Math.max((simulation?.metrics?.placed_count || 0) - loadedCodes.length, 0);
+  const renderedPlacements = useMemo(
+    () => orderedPlacements.slice(0, placementCursor),
+    [orderedPlacements, placementCursor],
+  );
+  const loadedCodes = useMemo(
+    () => renderedPlacements.slice(0, Math.max(renderedPlacements.length - 1, 0)).map((item) => item.codigo),
+    [renderedPlacements],
+  );
+  const currentPlacement = renderedPlacements.at(-1) || null;
+  const pendingCount = Math.max((simulation?.metrics?.placed_count || 0) - placementCursor, 0);
 
   const runSimulation = async () => {
     if (!selectedTruckId || status === 'ORDERING') return;
     setStatus('ORDERING');
     setError('');
-    setLoadedCodes([]);
-    setWrongScan(null);
+    setPlacementCursor(0);
     try {
-      const payload = { truck_id: selectedTruckId, package_limit: 50, allow_rotation: true, strategy };
-      const result = await optimizationPocService.runMinimaxMaximin(payload);
+      const payload = { truck_id: selectedTruckId, package_limit: 50, allow_rotation: true };
+      const result = await optimizationPocService.runAlgorithm(payload, activeAlgorithm.id);
+      if (!result?.placements?.length) {
+        setError('El algoritmo no devolvio coordenadas para renderizar.');
+        setStatus('ERROR');
+        return;
+      }
       setSimulation(result);
+      setPlacementCursor(1);
       setStatus('ORDERED');
     } catch (runError) {
       setError(getApiErrorMessage(runError, 'No se pudo ejecutar la simulacion PoC.'));
@@ -98,25 +119,24 @@ export default function OptimizacionCarga() {
 
   const resetSimulation = () => {
     setSimulation(null);
-    setLoadedCodes([]);
-    setWrongScan(null);
+    setPlacementCursor(0);
     setStatus('IDLE');
     setError('');
   };
 
-  const simulateQrCorrect = () => {
-    if (!expectedPackage) return;
-    setLoadedCodes((current) => {
-      const next = [...current, expectedPackage.codigo];
-      setStatus(next.length >= orderedPlacements.length ? 'COMPLETED' : 'LOADING');
-      return next;
-    });
+  const goToPreviousPlacement = () => {
+    if (!simulation) return;
+    setPlacementCursor((current) => Math.max(1, current - 1));
+    setStatus('LOADING');
   };
 
-  const simulateQrIncorrect = () => {
-    if (!expectedPackage || orderedPlacements.length < 2) return;
-    const scanned = orderedPlacements.find((item) => item.codigo !== expectedPackage.codigo) || orderedPlacements[0];
-    setWrongScan({ expected: expectedPackage, scanned });
+  const goToNextPlacement = () => {
+    if (!simulation) return;
+    setPlacementCursor((current) => {
+      const next = Math.min(orderedPlacements.length, current + 1);
+      setStatus(next >= orderedPlacements.length ? 'COMPLETED' : 'LOADING');
+      return next;
+    });
   };
 
   const downloadResult = () => {
@@ -130,7 +150,23 @@ export default function OptimizacionCarga() {
     URL.revokeObjectURL(url);
   };
 
-  const visiblePackages = simulation ? simulation.ordered_packages : scenario?.packages || [];
+  const visiblePackages = useMemo(() => {
+    const sourcePackages = simulation ? simulation.ordered_packages : scenario?.packages || [];
+    if (!simulation) return sourcePackages;
+    const loadedSet = new Set(loadedCodes);
+    return sourcePackages.filter((item) => !loadedSet.has(item.codigo));
+  }, [loadedCodes, scenario?.packages, simulation]);
+
+  useEffect(() => {
+    if (!isSceneExpanded) return undefined;
+    const handleKeyDown = (event) => {
+      if (event.key === 'Escape') {
+        setIsSceneExpanded(false);
+      }
+    };
+    window.addEventListener('keydown', handleKeyDown);
+    return () => window.removeEventListener('keydown', handleKeyDown);
+  }, [isSceneExpanded]);
 
   return (
     <div className="min-h-screen rounded-xl bg-[#F8F9FA] text-[#212529]">
@@ -146,7 +182,7 @@ export default function OptimizacionCarga() {
             </div>
           </div>
           <div className="grid gap-3 md:grid-cols-4">
-            <HeaderBadge label="Algoritmo" value={formatAlgorithm(strategy)} />
+            <HeaderBadge label="Algoritmo" value={activeAlgorithm.label} />
             <HeaderBadge label="Camiones disponibles" value={scenario?.trucks?.length || 0} />
             <HeaderBadge label="Camion seleccionado" value={selectedTruck?.nombre || '-'} />
             <HeaderBadge label="Estado" value={STATUS_LABELS[status]} />
@@ -179,12 +215,12 @@ export default function OptimizacionCarga() {
             </select>
             <select
               className="min-h-11 rounded-md border border-[#d9e7d4] bg-white px-3 text-sm font-bold"
-              value={strategy}
-              onChange={(event) => setStrategy(event.target.value)}
+              value={algorithmId}
+              onChange={(event) => setAlgorithmId(event.target.value)}
               disabled={status === 'ORDERING'}
             >
-              <option value="MINIMAX">MINIMAX</option>
-              <option value="MAXIMIN">MAXIMIN</option>
+              <option value={OPTIMIZATION_ALGORITHMS.MINIMAX.id}>MINIMAX</option>
+              <option value={OPTIMIZATION_ALGORITHMS.MAXIMIN.id}>MAXIMIN</option>
             </select>
           </div>
 
@@ -193,7 +229,7 @@ export default function OptimizacionCarga() {
               const placement = orderedPlacements.find((placed) => placed.package_id === item.id);
               const code = item.codigo;
               const loaded = loadedCodes.includes(code);
-              const expected = expectedPackage?.codigo === code;
+              const expected = currentPlacement?.codigo === code;
               return (
                 <div
                   key={code}
@@ -215,7 +251,7 @@ export default function OptimizacionCarga() {
                     <span className="rounded-full bg-white px-2 py-1 text-xs font-black text-[#3C5940]">{item.fragilidad}</span>
                   </div>
                   <p className="mt-2 text-xs text-[#6C757D]">
-                    Orden entrega {item.orden_entrega} · {formatDimensions(item)} · {item.peso_kg} kg
+                    Orden entrega {item.orden_entrega} - {formatDimensions(item)} - {item.peso_kg} kg
                   </p>
                 </div>
               );
@@ -230,20 +266,72 @@ export default function OptimizacionCarga() {
               Diagrama de orden y acomodo
             </h2>
             <div className="flex flex-wrap gap-2">
-              <button className="rounded-md bg-[#28A745] px-3 py-2 text-xs font-black text-white">Isometrica</button>
-              <button className="rounded-md border border-[#d9e7d4] px-3 py-2 text-xs font-black text-[#3C5940]">Superior</button>
-              <button className="rounded-md border border-[#d9e7d4] px-3 py-2 text-xs font-black text-[#3C5940]">Frontal</button>
+              {VIEW_MODES.map((mode) => (
+                <button
+                  key={mode.id}
+                  type="button"
+                  className={`rounded-md px-3 py-2 text-xs font-black transition ${
+                    viewMode === mode.id ? 'bg-[#28A745] text-white' : 'border border-[#d9e7d4] bg-white text-[#3C5940]'
+                  }`}
+                  onClick={() => setViewMode(mode.id)}
+                >
+                  {mode.label}
+                </button>
+              ))}
             </div>
           </div>
-          <div className="mt-4">
-            <PackingScene3D truck={selectedTruck} placements={orderedPlacements} loadedCodes={loadedCodes} expectedCode={expectedPackage?.codigo} />
+          <div className="relative mt-4">
+            <PackingScene3D truck={selectedTruck} placements={renderedPlacements} loadedCodes={loadedCodes} expectedCode={currentPlacement?.codigo} viewMode={viewMode} />
+            <button
+              type="button"
+              className="absolute right-4 top-4 z-10 flex h-10 w-10 items-center justify-center rounded-md border border-[#d9e7d4] bg-white/95 text-[#3C5940] shadow-sm transition hover:border-[#28A745] hover:text-[#28A745]"
+              onClick={() => setIsSceneExpanded(true)}
+              aria-label="Ampliar render 3D"
+              title="Ampliar render 3D"
+            >
+              <Maximize2 className="h-5 w-5" />
+            </button>
           </div>
           <p className="mt-3 rounded-lg bg-[#E4ECE2] p-3 text-sm font-semibold text-[#3C5940]">
-            Las coordenadas X/Y/Z vienen del backend. La escena solo representa el resultado calculado por la PoC.
+            Las coordenadas X/Y/Z vienen del backend. Renderizados: {renderedPlacements.length} de {orderedPlacements.length} paquetes con {activeAlgorithm.label}.
           </p>
         </section>
 
         <aside className="space-y-5">
+          <section className="rounded-xl border border-[#E4ECE2] bg-white p-5 shadow-soft">
+            <h2 className="mb-4 flex items-center gap-2 text-lg font-black">
+              <PackageCheck className="h-5 w-5 text-[#28A745]" />
+              Avance de acomodo
+            </h2>
+            <div className="rounded-lg border border-[#A3CF84] bg-[#F8F9FA] p-4">
+              <p className="text-xs font-black uppercase tracking-[0.14em] text-[#6C757D]">Paquete actual</p>
+              <p className="mt-2 text-2xl font-black text-[#212529]">{currentPlacement?.codigo || '-'}</p>
+              <div className="mt-3 grid grid-cols-2 gap-3 text-xs font-bold text-[#3C5940]">
+                <span className="rounded bg-white px-2 py-2">Secuencia: {currentPlacement?.loading_sequence || '-'}</span>
+                <span className="rounded bg-white px-2 py-2">Pendientes: {pendingCount}</span>
+              </div>
+              <p className="mt-3 text-sm font-semibold text-[#6C757D]">{currentPlacement?.destination || 'Ejecuta Ordenar para iniciar el acomodo.'}</p>
+            </div>
+            <div className="mt-4 grid grid-cols-2 gap-3">
+              <button
+                className="flex min-h-11 items-center justify-center gap-2 rounded-md border border-[#A3CF84] bg-white px-4 text-sm font-black text-[#3C5940] disabled:cursor-not-allowed disabled:opacity-50"
+                onClick={goToPreviousPlacement}
+                disabled={!simulation || placementCursor <= 1}
+              >
+                <ChevronLeft className="h-4 w-4" />
+                Anterior
+              </button>
+              <button
+                className="flex min-h-11 items-center justify-center gap-2 rounded-md bg-[#28A745] px-4 text-sm font-black text-white disabled:cursor-not-allowed disabled:opacity-50"
+                onClick={goToNextPlacement}
+                disabled={!simulation || placementCursor >= orderedPlacements.length}
+              >
+                Siguiente
+                <ChevronRight className="h-4 w-4" />
+              </button>
+            </div>
+          </section>
+
           <section className="rounded-xl border border-[#E4ECE2] bg-white p-5 shadow-soft">
             <h2 className="mb-4 flex items-center gap-2 text-lg font-black">
               <Flag className="h-5 w-5 text-[#28A745]" />
@@ -252,7 +340,7 @@ export default function OptimizacionCarga() {
             <div className="grid gap-3 sm:grid-cols-2 xl:grid-cols-1 2xl:grid-cols-2">
               <MetricCard icon={Clock} label="Ejecucion" value={`${simulation?.metrics?.execution_ms || 0} ms`} />
               <MetricCard icon={Box} label="Uso volumetrico" value={`${simulation?.metrics?.utilization_percent || 0}%`} accent />
-              <MetricCard icon={PackageCheck} label="Colocados" value={`${loadedCodes.length} / ${simulation?.metrics?.placed_count || 0}`} />
+              <MetricCard icon={PackageCheck} label="Colocados" value={`${placementCursor} / ${simulation?.metrics?.placed_count || 0}`} />
               <MetricCard icon={AlertTriangle} label="No acomodados" value={simulation?.metrics?.unplaced_count || 0} />
               <MetricCard icon={Truck} label="Peso total" value={`${simulation?.metrics?.total_weight_kg || 0} kg`} />
               <MetricCard icon={CheckCircle2} label="Violaciones" value={(simulation?.metrics?.overlap_violations || 0) + (simulation?.metrics?.boundary_violations || 0)} />
@@ -266,26 +354,6 @@ export default function OptimizacionCarga() {
               <Download className="h-4 w-4" />
               Descargar JSON
             </button>
-          </section>
-
-          <section className="rounded-xl border border-[#E4ECE2] bg-white p-5 shadow-soft">
-            <h2 className="mb-4 flex items-center gap-2 text-lg font-black">
-              <QrCode className="h-5 w-5 text-[#28A745]" />
-              Simulacion QR
-            </h2>
-            <div className="rounded-lg border border-dashed border-[#A3CF84] bg-[#F8F9FA] p-4 text-center">
-              <ScanLine className="mx-auto h-12 w-12 text-[#3C5940]" />
-              <p className="mt-2 text-sm font-bold">Esperado: {expectedPackage?.codigo || '-'}</p>
-              <p className="text-xs text-[#6C757D]">Pendientes: {pendingCount}</p>
-            </div>
-            <div className="mt-4 grid gap-3">
-              <button className="min-h-11 rounded-md bg-[#28A745] px-4 text-sm font-black text-white disabled:opacity-50" onClick={simulateQrCorrect} disabled={!expectedPackage}>
-                Simular QR correcto
-              </button>
-              <button className="min-h-11 rounded-md border border-red-300 bg-red-50 px-4 text-sm font-black text-red-700 disabled:opacity-50" onClick={simulateQrIncorrect} disabled={!expectedPackage}>
-                Simular QR incorrecto
-              </button>
-            </div>
           </section>
 
           <section className="rounded-xl border border-[#E4ECE2] bg-[#E4ECE2] p-5">
@@ -306,30 +374,71 @@ export default function OptimizacionCarga() {
         </div>
       </footer>
 
-      {wrongScan && (
-        <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/50 p-4">
-          <div className="w-full max-w-md rounded-xl bg-white p-6 shadow-2xl">
-            <div className="flex items-start gap-3">
-              <AlertTriangle className="h-8 w-8 text-red-600" />
+      {isSceneExpanded && (
+        <div className="fixed inset-0 z-50 bg-[#212529]/80 p-4 backdrop-blur-sm">
+          <div className="mx-auto flex h-full max-w-7xl flex-col rounded-xl border border-[#E4ECE2] bg-white p-4 shadow-2xl">
+            <div className="flex flex-col gap-3 border-b border-[#E4ECE2] pb-4 md:flex-row md:items-center md:justify-between">
               <div>
-                <h3 className="text-xl font-black text-[#212529]">Paquete fuera de orden</h3>
-                <p className="mt-2 text-sm text-[#6C757D]">El paquete escaneado no corresponde al orden calculado por el algoritmo.</p>
+                <p className="text-xs font-black uppercase tracking-[0.18em] text-[#28A745]">Vista ampliada</p>
+                <h2 className="text-xl font-black text-[#212529]">Diagrama de orden y acomodo</h2>
+              </div>
+              <div className="flex flex-wrap items-center gap-2">
+                {VIEW_MODES.map((mode) => (
+                  <button
+                    key={mode.id}
+                    type="button"
+                    className={`rounded-md px-3 py-2 text-xs font-black transition ${
+                      viewMode === mode.id ? 'bg-[#28A745] text-white' : 'border border-[#d9e7d4] bg-white text-[#3C5940]'
+                    }`}
+                    onClick={() => setViewMode(mode.id)}
+                  >
+                    {mode.label}
+                  </button>
+                ))}
+                <button
+                  type="button"
+                  className="flex h-10 w-10 items-center justify-center rounded-md border border-[#d9e7d4] bg-white text-[#3C5940] transition hover:border-red-300 hover:text-red-600"
+                  onClick={() => setIsSceneExpanded(false)}
+                  aria-label="Cerrar vista ampliada"
+                  title="Cerrar"
+                >
+                  <X className="h-5 w-5" />
+                </button>
               </div>
             </div>
-            <div className="mt-5 rounded-lg bg-[#F8F9FA] p-4 text-sm">
-              <p>
-                <strong>Esperado:</strong> {wrongScan.expected.codigo}
-              </p>
-              <p>
-                <strong>Escaneado:</strong> {wrongScan.scanned.codigo}
-              </p>
-              <p>
-                <strong>Destino:</strong> {wrongScan.expected.destination}
-              </p>
+
+            <div className="min-h-0 flex-1 py-4">
+              <PackingScene3D
+                truck={selectedTruck}
+                placements={renderedPlacements}
+                loadedCodes={loadedCodes}
+                expectedCode={currentPlacement?.codigo}
+                viewMode={viewMode}
+                className="h-full min-h-[420px]"
+              />
             </div>
-            <button className="mt-5 min-h-11 w-full rounded-md bg-[#28A745] px-4 text-sm font-black text-white" onClick={() => setWrongScan(null)}>
-              Cerrar y continuar
-            </button>
+
+            <div className="grid gap-3 border-t border-[#E4ECE2] pt-4 md:grid-cols-[1fr_auto_1fr] md:items-center">
+              <button
+                className="flex min-h-12 items-center justify-center gap-2 rounded-md border border-[#A3CF84] bg-white px-5 text-sm font-black text-[#3C5940] disabled:cursor-not-allowed disabled:opacity-50"
+                onClick={goToPreviousPlacement}
+                disabled={!simulation || placementCursor <= 1}
+              >
+                <ChevronLeft className="h-4 w-4" />
+                Anterior
+              </button>
+              <div className="rounded-lg bg-[#E4ECE2] px-4 py-3 text-center text-sm font-black text-[#3C5940]">
+                {currentPlacement?.codigo || '-'} · {placementCursor} / {orderedPlacements.length || 0}
+              </div>
+              <button
+                className="flex min-h-12 items-center justify-center gap-2 rounded-md bg-[#28A745] px-5 text-sm font-black text-white disabled:cursor-not-allowed disabled:opacity-50"
+                onClick={goToNextPlacement}
+                disabled={!simulation || placementCursor >= orderedPlacements.length}
+              >
+                Siguiente
+                <ChevronRight className="h-4 w-4" />
+              </button>
+            </div>
           </div>
         </div>
       )}

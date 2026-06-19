@@ -61,7 +61,7 @@ function EncomiendaForm({ form, errors = {}, onChange, onSubmit, loading = false
         const destinos = await getDestinos();
         setLocationOptions(destinos.map((destino) => destino.nombre || destino.name).filter(Boolean));
       } catch (error) {
-        setLocationOptions(['Trujillo', 'Shorey', 'Huayatan', 'Santiago de Chuco', 'Chacomas', 'Cachicadan', 'Santa Cruz de Chuca', 'Cochapamba', 'Algallama', 'Villacruz', 'Las Manzanas', 'Angasmarca']);
+        setLocationOptions(['Trujillo', 'Shorey', 'Huaycatan', 'Santiago de Chuco', 'Chacomas', 'Cachicadan', 'Santa Cruz', 'Cochapampa', 'Ugallama', 'Villacruz', 'Las Manzanas', 'Angasmarca', 'Tambo Pampamarca Alta', 'Psicochaca', 'Santa Clara de Tulpo', 'La Yeguada', 'Mollebamba', 'Cochamarca', 'Orocullay']);
       }
     }
 
@@ -231,8 +231,9 @@ function EncomiendaForm({ form, errors = {}, onChange, onSubmit, loading = false
               onChange={onChange}
               className="min-h-10 w-full rounded-md border border-gray-200 bg-white px-3 py-2 text-sm text-brand-black outline-none transition hover:border-brand-lime focus:border-brand-green focus:ring-2 focus:ring-brand-lime/50"
             >
-              <option value="BAJA">No fragil</option>
-              <option value="ALTA">Fragil</option>
+              <option value="BAJA">Baja</option>
+              <option value="MEDIA">Media</option>
+              <option value="ALTA">Alta</option>
             </select>
             {errors.fragilidad && <span className="mt-1 block text-xs font-semibold text-brand-dark">{errors.fragilidad}</span>}
           </label>

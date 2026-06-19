@@ -15,12 +15,12 @@ function HeroSection() {
       <div className="pointer-events-none absolute inset-x-0 bottom-0 h-20 bg-gradient-to-t from-[#212529]/35 to-transparent" />
 
       <div className="relative mx-auto flex min-h-[560px] max-w-7xl flex-col justify-center px-4 py-12 sm:px-6 lg:min-h-[600px] lg:px-8">
-        <div className="max-w-[600px]">
+        <div className="public-hero-content max-w-[600px]">
           <h1 className="text-[36px] font-black leading-[1.12] text-white drop-shadow-sm sm:text-6xl lg:text-[58px] xl:text-[62px]">
             Enviamos lo que te importa
             <span className="mt-3 block text-[#A3CF84]">seguro y a tiempo</span>
           </h1>
-          <div className="mt-9 h-1.5 w-24 rounded-full bg-[#A3CF84] sm:h-2 sm:w-28" />
+          <div className="public-hero-accent mt-9 h-1.5 w-24 rounded-full bg-[#A3CF84] sm:h-2 sm:w-28" />
           <p className="mt-6 max-w-xl text-base font-semibold leading-7 text-white/90 sm:text-lg">
             Conectamos Trujillo con Angasmarca y mas destinos, brindamos un servicio confiable, rapido y eficiente para tus encomiendas.
           </p>
@@ -33,7 +33,7 @@ function HeroSection() {
           </Link>
         </div>
 
-        <div id="servicios" className="mt-12 w-full max-w-[760px] pl-0 sm:mt-14 lg:ml-6">
+        <div className="mt-12 w-full max-w-[760px] pl-0 sm:mt-14 lg:ml-6">
           <BenefitsBar />
         </div>
       </div>

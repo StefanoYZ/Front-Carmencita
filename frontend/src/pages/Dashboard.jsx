@@ -33,7 +33,7 @@ function sortShipmentsByRecent(items) {
 
 function Dashboard() {
   const { user } = useAuth();
-  const allowedLinks = getAllowedNavigation(user).filter((item) => item.path !== '/admin');
+  const allowedLinks = getAllowedNavigation(user).filter((item) => item.path !== '/admin/dashboard');
   const [shipments, setShipments] = useState([]);
   const [loadingShipments, setLoadingShipments] = useState(true);
   const [shipmentsError, setShipmentsError] = useState('');

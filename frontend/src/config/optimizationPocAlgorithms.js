@@ -27,7 +27,7 @@ export const OPTIMIZATION_ALGORITHMS = {
     id: 'BACKTRACKING_LOGISTIC',
     label: 'Backtracking 3D',
     endpoint: '/backtracking/run',
-    payload: { package_limit: 8 },
+    payload: {},
   },
   MINIMAX: {
     id: 'MINIMAX',

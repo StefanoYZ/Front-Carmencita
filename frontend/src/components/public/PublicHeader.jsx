@@ -1,5 +1,6 @@
 import React, { useState } from 'react';
-import { NavLink } from 'react-router-dom';
+import { NavLink, useLocation } from 'react-router-dom';
+import { LogIn } from 'lucide-react';
 import logo from '../../assets/external/logo.png';
 import phoneIcon from '../../assets/icons/telefono.svg';
 import packageIcon from '../../assets/icons/paquete.svg';
@@ -14,6 +15,13 @@ const navItems = [
 
 function PublicHeader() {
   const [open, setOpen] = useState(false);
+  const location = useLocation();
+
+  const isActiveItem = (item) => {
+    if (location.pathname !== '/') return false;
+    if (item.to === '/') return !location.hash;
+    return item.to === `/${location.hash}`;
+  };
 
   return (
     <header className="sticky top-0 z-50 border-b border-gray-100 bg-white shadow-sm">
@@ -28,11 +36,14 @@ function PublicHeader() {
             <NavLink
               key={item.label}
               to={item.to}
-              className={({ isActive }) =>
+              className={() =>
                 `relative py-3 transition hover:text-[#28A745] ${
-                  isActive && item.to === '/' ? 'text-[#28A745] after:absolute after:inset-x-1 after:bottom-0 after:h-1 after:rounded-full after:bg-[#28A745]' : ''
+                  isActiveItem(item)
+                    ? 'text-[#28A745] after:absolute after:inset-x-1 after:bottom-0 after:h-1 after:rounded-full after:bg-[#28A745]'
+                    : ''
                 }`
               }
+              aria-current={isActiveItem(item) ? 'page' : undefined}
             >
               {item.label}
             </NavLink>
@@ -50,6 +61,13 @@ function PublicHeader() {
           >
             <img src={packageIcon} alt="" className="h-6 w-6 brightness-0 invert" />
             Registro de envio
+          </NavLink>
+          <NavLink
+            to="/login"
+            className="inline-flex min-h-12 items-center gap-2 rounded-lg border border-[#3C5940] bg-white px-4 py-3 text-sm font-black text-[#3C5940] transition hover:bg-[#E4ECE2]"
+          >
+            <LogIn size={19} />
+            Acceso interno
           </NavLink>
         </div>
 
@@ -71,7 +89,17 @@ function PublicHeader() {
         <div className="border-t border-gray-100 bg-white px-4 py-4 shadow-lg xl:hidden">
           <nav className="mx-auto grid max-w-7xl gap-2 text-sm font-semibold text-gray-700">
             {navItems.map((item) => (
-              <NavLink key={item.label} to={item.to} className="rounded-md px-3 py-2 hover:bg-[#F8F9FA]" onClick={() => setOpen(false)}>
+              <NavLink
+                key={item.label}
+                to={item.to}
+                className={`rounded-md border-l-4 px-3 py-2 transition ${
+                  isActiveItem(item)
+                    ? 'border-[#28A745] bg-[#E4ECE2] font-black text-[#28A745]'
+                    : 'border-transparent hover:bg-[#F8F9FA]'
+                }`}
+                aria-current={isActiveItem(item) ? 'page' : undefined}
+                onClick={() => setOpen(false)}
+              >
                 {item.label}
               </NavLink>
             ))}
@@ -86,6 +114,14 @@ function PublicHeader() {
             >
               <img src={packageIcon} alt="" className="h-5 w-5 brightness-0 invert" />
               Registro de envio
+            </NavLink>
+            <NavLink
+              to="/login"
+              className="inline-flex min-h-11 items-center justify-center gap-2 rounded-md border border-[#3C5940] bg-white px-4 py-2.5 font-bold text-[#3C5940]"
+              onClick={() => setOpen(false)}
+            >
+              <LogIn size={18} />
+              Acceso interno
             </NavLink>
           </nav>
         </div>

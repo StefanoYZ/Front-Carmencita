@@ -190,5 +190,5 @@ function optionalText(value) {
 
 function normalizeFragilityForForm(value) {
   const fragility = String(value || '').trim().toUpperCase();
-  return fragility === 'ALTA' ? 'ALTA' : 'BAJA';
+  return ['BAJA', 'MEDIA', 'ALTA'].includes(fragility) ? fragility : 'BAJA';
 }

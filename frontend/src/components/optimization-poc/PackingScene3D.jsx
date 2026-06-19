@@ -1,6 +1,6 @@
-import React, { Suspense, useEffect, useMemo, useRef } from 'react';
+import React, { Suspense, useEffect, useMemo, useRef, useState } from 'react';
 import { Canvas, useFrame, useThree } from '@react-three/fiber';
-import { Html, OrbitControls, PerspectiveCamera } from '@react-three/drei';
+import { Edges, Html, OrbitControls, PerspectiveCamera } from '@react-three/drei';
 import TruckModel from './truck/TruckModel.jsx';
 import { CARGO_LIFT } from './truck/TruckCargoBox.jsx';
 
@@ -25,8 +25,9 @@ function colorForPackage(placement) {
   return packageColors[index % packageColors.length];
 }
 
-function PackageBox({ placement, loaded, expected }) {
+function PackageBox({ placement, loaded, expected, selected, onSelect }) {
   const meshRef = useRef(null);
+  const [hovered, setHovered] = useState(false);
   const width = placement.width * SCALE;
   const height = placement.height * SCALE;
   const depth = placement.depth * SCALE;
@@ -34,10 +35,11 @@ function PackageBox({ placement, loaded, expected }) {
   const position = [
     (placement.x + placement.width / 2 - truckOffset.x) * SCALE,
     (placement.y + placement.height / 2) * SCALE + CARGO_LIFT,
-    (placement.z + placement.depth / 2 - truckOffset.z) * SCALE,
+    (truckOffset.z - (placement.z + placement.depth / 2)) * SCALE,
   ];
-  const color = colorForPackage(placement);
-  const opacity = expected ? 1 : loaded ? 0.9 : 0.82;
+  const color = selected ? '#FACC15' : colorForPackage(placement);
+  const opacity = selected || hovered || expected ? 1 : loaded ? 0.9 : 0.82;
+  const isRotated = placement.orientation && placement.orientation !== 'LWH';
 
   useFrame((state) => {
     if (!expected || !meshRef.current) return;
@@ -45,12 +47,73 @@ function PackageBox({ placement, loaded, expected }) {
     meshRef.current.scale.setScalar(pulse);
   });
 
+  useEffect(() => {
+    if (!hovered) return undefined;
+    const previousCursor = document.body.style.cursor;
+    document.body.style.cursor = 'pointer';
+    return () => {
+      document.body.style.cursor = previousCursor;
+    };
+  }, [hovered]);
+
   return (
     <group>
-      <mesh ref={meshRef} position={position} castShadow receiveShadow>
+      <mesh
+        ref={meshRef}
+        position={position}
+        castShadow
+        receiveShadow
+        onPointerOver={(event) => {
+          event.stopPropagation();
+          setHovered(true);
+        }}
+        onPointerMove={(event) => {
+          event.stopPropagation();
+          setHovered(true);
+        }}
+        onPointerOut={(event) => {
+          event.stopPropagation();
+          setHovered(false);
+        }}
+        onClick={(event) => {
+          event.stopPropagation();
+          onSelect(placement.codigo);
+        }}
+      >
         <boxGeometry args={[width, height, depth]} />
-        <meshStandardMaterial color={color} transparent opacity={opacity} roughness={0.45} metalness={0.08} emissive={expected ? '#A3CF84' : '#000000'} emissiveIntensity={expected ? 0.18 : 0} />
+        <meshStandardMaterial
+          color={color}
+          transparent
+          opacity={opacity}
+          roughness={0.45}
+          metalness={0.08}
+          emissive={selected ? '#F59E0B' : expected ? '#A3CF84' : '#000000'}
+          emissiveIntensity={selected ? 0.28 : expected ? 0.18 : 0}
+        />
+        {selected && <Edges color="#CA8A04" threshold={8} />}
       </mesh>
+      {selected && (
+        <Html position={[position[0], position[1] + height / 2 + 0.18, position[2]]} center distanceFactor={8} zIndexRange={[100, 0]}>
+          <div className="pointer-events-none w-64 rounded-lg border border-[#A3CF84] bg-white p-3 text-xs text-[#212529] shadow-xl ring-1 ring-[#E4ECE2]">
+            <div className="flex items-start justify-between gap-3">
+              <div>
+                <p className="font-black">{placement.codigo}</p>
+                <p className="mt-0.5 font-semibold text-[#3C5940]">{placement.descripcion}</p>
+              </div>
+              <span className="rounded-full bg-[#E4ECE2] px-2 py-1 text-[10px] font-black text-[#3C5940]">
+                {placement.fragility}
+              </span>
+            </div>
+            <div className="mt-2 grid gap-1 border-t border-[#E4ECE2] pt-2">
+              <p><b>Destino:</b> {placement.destination}</p>
+              <p><b>Peso:</b> {placement.peso_kg} kg</p>
+              <p><b>Dimensiones:</b> {placement.depth} x {placement.width} x {placement.height} cm</p>
+              <p><b>Posicion:</b> X {placement.x}, Y {placement.y}, Z {placement.z}</p>
+              <p><b>Rotacion:</b> {isRotated ? placement.orientation : 'Sin rotacion'}</p>
+            </div>
+          </div>
+        </Html>
+      )}
       {expected && (
         <Html position={[position[0], position[1] + height / 2 + 0.035, position[2]]} center distanceFactor={8} occlude>
           <span className="pointer-events-none rounded bg-[#E4ECE2] px-1.5 py-0.5 text-[10px] font-black text-[#212529] shadow-sm ring-2 ring-[#212529]">
@@ -82,6 +145,7 @@ function CameraRig({ scene, viewMode }) {
 }
 
 export default function PackingScene3D({ truck, placements = [], loadedCodes = [], expectedCode, viewMode = 'isometric', className = 'h-[520px]' }) {
+  const [selectedPackageCode, setSelectedPackageCode] = useState(null);
   const scene = useMemo(() => {
     if (!truck) return null;
     const width = truck.ancho_cm * SCALE;
@@ -139,13 +203,23 @@ export default function PackingScene3D({ truck, placements = [], loadedCodes = [
     }));
   }, [placements, scene]);
 
+  useEffect(() => {
+    if (!selectedPackageCode) return;
+    const exists = placements.some((placement) => placement.codigo === selectedPackageCode);
+    if (!exists) setSelectedPackageCode(null);
+  }, [placements, selectedPackageCode]);
+
+  const handleSelectPackage = (code) => {
+    setSelectedPackageCode((current) => (current === code ? null : code));
+  };
+
   if (!truck) {
     return <div className="flex h-full items-center justify-center text-sm font-semibold text-[#6C757D]">Selecciona un camion.</div>;
   }
 
   return (
     <div className={`relative overflow-hidden rounded-lg border border-[#d9e7d4] bg-gradient-to-b from-white to-[#F8F9FA] ${className}`}>
-      <Canvas shadows>
+      <Canvas shadows onPointerMissed={() => setSelectedPackageCode(null)}>
         <Suspense fallback={null}>
           <PerspectiveCamera makeDefault position={scene.cameraPosition} fov={55} />
           <ambientLight intensity={0.65} />
@@ -159,6 +233,8 @@ export default function PackingScene3D({ truck, placements = [], loadedCodes = [
               placement={placement}
               loaded={loadedCodes.includes(placement.codigo)}
               expected={expectedCode === placement.codigo}
+              selected={selectedPackageCode === placement.codigo}
+              onSelect={handleSelectPackage}
             />
           ))}
           <CameraRig scene={scene} viewMode={viewMode} />

@@ -1,8 +1,9 @@
 export const adminNavigationItems = [
   {
     label: 'Dashboard',
-    path: '/admin',
+    path: '/admin/dashboard',
     anyOf: [],
+    roles: ['ADMINISTRADOR', 'SECRETARIA'],
   },
   {
     label: 'Clientes',
@@ -26,17 +27,6 @@ export const adminNavigationItems = [
     path: '/admin/usuarios',
     anyOf: ['users.read'],
     roles: ['ADMINISTRADOR'],
-  },
-  {
-    label: 'Cotizaciones',
-    path: '/admin/cotizaciones',
-    anyOf: ['cotizaciones.read', 'cotizaciones.calculate'],
-  },
-  {
-    label: 'Optimizacion de carga',
-    path: '/admin/optimizacion-carga',
-    anyOf: ['tracking.update_status', 'encomiendas.read'],
-    roles: ['ADMINISTRADOR', 'ESTIBA'],
   },
 ];
 
@@ -81,12 +71,12 @@ export function getAllowedNavigation(user) {
 }
 
 export function getRoleHomePath(user) {
-  if (hasRole(user, ['ADMINISTRADOR'])) return '/admin';
+  if (hasRole(user, ['ESTIBA']) && hasAnyPermission(user, ['optimization.read'])) {
+    return '/admin/optimizacion-carga';
+  }
+  if (hasRole(user, ['ADMINISTRADOR'])) return '/admin/dashboard';
   if (hasRole(user, ['SECRETARIA']) && canAccess(user, { anyOf: ['encomiendas.write'] })) {
     return '/admin/encomiendas/nueva';
   }
-  if (hasRole(user, ['ESTIBA']) && canAccess(user, { anyOf: ['tracking.read'] })) {
-    return '/admin/tracking';
-  }
-  return getAllowedNavigation(user)[0]?.path || '/admin';
+  return getAllowedNavigation(user)[0]?.path || '/login';
 }

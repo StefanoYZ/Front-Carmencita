@@ -24,8 +24,8 @@ export const emptyPublicShipmentForm = {
   destinatario_direccion: '',
   destinatario_telefono: '',
   destinatario_correo: '',
-  origen: 'Trujillo',
-  destino: 'Angasmarca',
+  origen: '',
+  destino: '',
   descripcion: '',
   tipo_contenido: '',
   peso_kg: '',
@@ -71,7 +71,7 @@ export function quoteEstimateFromForm(form) {
   const baseRate = normalizeRoute(form.origen, form.destino) === 'TRUJILLO_ANGASMARCA' ? 10 : 12;
   const weightCost = weight * 2;
   const volumeCost = (volume / 1000000) * 20;
-  const fragilitySurcharge = fragility === 'ALTA' ? 10 : 0;
+  const fragilitySurcharge = fragility === 'ALTA' ? 10 : fragility === 'MEDIA' ? 5 : 0;
   const subtotal = roundMoney(baseRate + weightCost + volumeCost + fragilitySurcharge);
   const igv = roundMoney(subtotal * 0.18);
   const total = roundMoney(subtotal + igv);
@@ -93,7 +93,7 @@ export function quoteEstimateFromPublicQuote(form) {
     largo_cm: form.largo,
     ancho_cm: form.ancho,
     alto_cm: form.alto,
-    fragilidad: form.fragilidad === 'Fragil' ? 'ALTA' : 'BAJA',
+    fragilidad: normalizeFragilityValue(form.fragilidad),
   };
   return quoteEstimateFromForm(mapped);
 }
@@ -109,7 +109,7 @@ export function mapQuoteToShipmentForm(quote) {
     largo_cm: quote.largo || '',
     ancho_cm: quote.ancho || '',
     alto_cm: quote.alto || '',
-    fragilidad: quote.fragilidad === 'Fragil' ? 'ALTA' : 'BAJA',
+    fragilidad: normalizeFragilityValue(quote.fragilidad),
   };
 }
 
@@ -209,4 +209,11 @@ function optionalText(value) {
 
 function roundMoney(value) {
   return Number(Number(value || 0).toFixed(2));
+}
+
+function normalizeFragilityValue(value) {
+  const fragility = String(value || '').trim().toUpperCase();
+  if (fragility === 'FRAGIL') return 'ALTA';
+  if (fragility === 'NO FRAGIL') return 'BAJA';
+  return ['BAJA', 'MEDIA', 'ALTA'].includes(fragility) ? fragility : 'BAJA';
 }

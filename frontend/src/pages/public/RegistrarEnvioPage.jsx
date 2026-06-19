@@ -10,6 +10,7 @@ import { crearEncomienda, crearPreRegistro } from '../../services/encomiendasSer
 import { consultarDni } from '../../services/reniecService.js';
 import { extractNombreFromReniecResponse, normalizeLocalClient } from '../../utils/reniec.js';
 import { sanitizeShipmentField } from '../../utils/shipmentValidation.js';
+import { DEFAULT_LOCATION_NAMES } from '../../utils/locationHierarchy.js';
 import {
   PUBLIC_QUOTE_STORAGE_KEY,
   PUBLIC_SHIPMENT_STORAGE_KEY,
@@ -47,6 +48,7 @@ function getInitialForm(routeQuote) {
 function normalizeFragilityForForm(value) {
   const fragility = String(value || '').trim().toUpperCase();
   if (fragility === 'ALTA' || fragility === 'FRAGIL') return 'ALTA';
+  if (fragility === 'MEDIA') return 'MEDIA';
   return 'BAJA';
 }
 
@@ -88,7 +90,7 @@ function RegistrarEnvioPage() {
         const destinos = await getDestinos();
         setLocationOptions(destinos.map((destino) => destino.nombre || destino.name).filter(Boolean));
       } catch (error) {
-        setLocationOptions(['Trujillo', 'Shorey', 'Huayatan', 'Santiago de Chuco', 'Chacomas', 'Cachicadan', 'Santa Cruz de Chuca', 'Cochapamba', 'Algallama', 'Villacruz', 'Las Manzanas', 'Angasmarca']);
+        setLocationOptions(DEFAULT_LOCATION_NAMES);
       }
     }
 

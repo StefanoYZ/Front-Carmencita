@@ -35,6 +35,13 @@ export async function getEncomiendaByCodigo(codigo) {
   return response.data;
 }
 
+export async function getEtiquetaPdf(id) {
+  const response = await apiClient.get(`/encomiendas/${id}/etiqueta/pdf`, {
+    responseType: 'blob',
+  });
+  return response.data;
+}
+
 export const crearEncomienda = createEncomienda;
 export const buscarPorCodigo = getEncomiendaByCodigo;
 
@@ -48,4 +55,5 @@ export const encomiendasService = {
   getEncomiendas,
   getEncomiendaById,
   getEncomiendaByCodigo,
+  getEtiquetaPdf,
 };

@@ -1,5 +1,5 @@
 const EMAIL_PATTERN = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
-const VALID_FRAGILITY_VALUES = ['BAJA', 'ALTA'];
+const VALID_FRAGILITY_VALUES = ['BAJA', 'MEDIA', 'ALTA'];
 
 export function sanitizeDigits(value, maxLength) {
   return String(value || '').replace(/\D/g, '').slice(0, maxLength);
@@ -71,7 +71,7 @@ export function validatePositiveNumber(value, message = 'Debe ser mayor a 0.') {
 export function validateFragility(value) {
   const fragility = String(value || '').trim().toUpperCase();
   if (!fragility) return 'Seleccione una fragilidad.';
-  return VALID_FRAGILITY_VALUES.includes(fragility) ? '' : 'Seleccione Fragil o No fragil.';
+  return VALID_FRAGILITY_VALUES.includes(fragility) ? '' : 'Seleccione fragilidad baja, media o alta.';
 }
 
 export function validateContentType(value) {

@@ -1,9 +1,14 @@
-import React from 'react';
+import React, { useEffect, useMemo, useState } from 'react';
 import packageIcon from '../../assets/icons/paquete.svg';
 import userIcon from '../../assets/icons/cuenta.svg';
+import {
+  LOCATION_PROVINCES,
+  getLocationOptionsByProvince,
+  getProvinceForLocation,
+} from '../../utils/locationHierarchy.js';
 
 const inputClass =
-  'min-h-11 w-full rounded-md border border-[#A3CF84] bg-white px-3 py-2 text-sm font-semibold text-[#212529] shadow-sm outline-none transition placeholder:text-[#6C757D]/70 hover:border-[#28A745] focus:border-[#28A745] focus:ring-2 focus:ring-[#A3CF84]';
+  'h-11 w-full rounded-md border border-[#A3CF84] bg-white px-3 py-0 text-sm font-semibold text-[#212529] shadow-sm outline-none transition placeholder:text-[#6C757D]/70 hover:border-[#28A745] focus:border-[#28A745] focus:ring-2 focus:ring-[#A3CF84]';
 
 function FieldError({ children }) {
   return (
@@ -32,7 +37,7 @@ function Field({ label, name, value, onChange, error, type = 'text', as = 'input
   }
 
   return (
-    <label className="grid gap-1.5">
+    <label className="grid self-start content-start gap-1.5">
       <span className="text-sm font-black text-[#3C5940]">{label}</span>
       <Control {...controlProps}>
         {children}
@@ -139,24 +144,57 @@ function PersonFields({ prefix, form, errors, onChange, onReniecLookup, reniecSt
 }
 
 function LocationField({ label, name, value, onChange, error, options }) {
+  const [province, setProvince] = useState(() => (value ? getProvinceForLocation(value) : ''));
+  const districtOptions = useMemo(
+    () => getLocationOptionsByProvince(options, province),
+    [options, province],
+  );
+
+  useEffect(() => {
+    if (value) {
+      setProvince(getProvinceForLocation(value));
+    }
+  }, [value]);
+
+  const handleProvinceChange = (event) => {
+    const nextProvince = event.target.value;
+    const nextOptions = getLocationOptionsByProvince(options, nextProvince);
+    setProvince(nextProvince);
+    onChange({
+      target: {
+        name,
+        value: nextOptions[0]?.value || '',
+      },
+    });
+  };
+
   return (
-    <label className="grid gap-1.5">
-      <span className="text-sm font-black text-[#3C5940]">{label}</span>
-      <select
-        className={inputClass}
-        name={name}
-        value={value}
-        onChange={onChange}
-      >
-        <option value="">Seleccionar</option>
-        {options.map((option) => (
-          <option key={option} value={option}>
-            {option}
-          </option>
-        ))}
-      </select>
+    <fieldset className="grid min-w-0 self-start content-start gap-3">
+      <legend className="text-sm font-black text-[#3C5940]">{label}</legend>
+      <label className="grid gap-1.5">
+        <span className="text-xs font-bold text-[#6C757D]">Provincia</span>
+        <select className={inputClass} value={province} onChange={handleProvinceChange}>
+          <option value="">Seleccionar provincia</option>
+          {LOCATION_PROVINCES.map((provinceOption) => (
+            <option key={provinceOption} value={provinceOption}>{provinceOption}</option>
+          ))}
+        </select>
+      </label>
+      {province && (
+        <label className="public-progressive-field grid gap-1.5">
+          <span className="text-xs font-bold text-[#6C757D]">Distrito</span>
+          <select className={inputClass} name={name} value={value} onChange={onChange}>
+            <option value="">Seleccionar distrito</option>
+            {districtOptions.map((option) => (
+              <option key={option.value} value={option.value}>
+                {option.label}
+              </option>
+            ))}
+          </select>
+        </label>
+      )}
       <FieldError>{error}</FieldError>
-    </label>
+    </fieldset>
   );
 }
 
@@ -191,7 +229,7 @@ function ShipmentFormStep({ form, errors, reniecStatus, locationOptions = [], on
 
       <section className="min-w-0 rounded-lg border border-[#A3CF84] bg-[#E4ECE2] p-5 shadow-[0_18px_42px_rgba(60,89,64,0.16)] ring-1 ring-white/70 sm:p-6">
         <SectionTitle icon={packageIcon} title="Datos de la encomienda" />
-        <div className="grid min-w-0 gap-4 md:grid-cols-2 xl:grid-cols-4">
+        <div className="grid min-w-0 items-start gap-4 md:grid-cols-2 xl:grid-cols-4">
           <LocationField label="Origen" name="origen" value={form.origen} onChange={onChange} error={errors.origen} options={locationOptions} />
           <LocationField label="Destino" name="destino" value={form.destino} onChange={onChange} error={errors.destino} options={locationOptions} />
           <Field as="select" label="Tipo de contenido" name="tipo_contenido" value={form.tipo_contenido} onChange={onChange} error={errors.tipo_contenido}>
@@ -204,8 +242,9 @@ function ShipmentFormStep({ form, errors, reniecStatus, locationOptions = [], on
           </Field>
           <Field as="select" label="Fragilidad" name="fragilidad" value={form.fragilidad} onChange={onChange} error={errors.fragilidad}>
             <option value="">Seleccionar</option>
-            <option value="BAJA">No fragil</option>
-            <option value="ALTA">Fragil</option>
+            <option value="BAJA">Baja</option>
+            <option value="MEDIA">Media</option>
+            <option value="ALTA">Alta</option>
           </Field>
           <Field label="Peso total (kg)" name="peso_kg" inputMode="decimal" value={form.peso_kg} onChange={onChange} error={errors.peso_kg} />
           <Field label="Largo (cm)" name="largo_cm" inputMode="decimal" value={form.largo_cm} onChange={onChange} error={errors.largo_cm} />

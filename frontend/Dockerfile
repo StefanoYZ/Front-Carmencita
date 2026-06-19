@@ -4,6 +4,7 @@ WORKDIR /app
 
 COPY package*.json ./
 RUN npm ci
+RUN npm install --no-save @rollup/rollup-linux-x64-musl
 
 COPY . .
 

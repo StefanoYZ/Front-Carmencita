@@ -9,7 +9,7 @@ function TruckCargoBox({ width, height, depth }) {
     <group position={[0, CARGO_LIFT, 0]}>
       {/* Contenedor transparente principal */}
       <group position={[0, height / 2, 0]}>
-        <mesh receiveShadow>
+        <mesh receiveShadow raycast={() => null}>
           <boxGeometry args={[width, height, depth]} />
 
           <meshStandardMaterial
@@ -43,7 +43,7 @@ function TruckCargoBox({ width, height, depth }) {
       </mesh>
 
       {/* Estructura superior */}
-      <mesh position={[0, height + 0.04, 0]}>
+      <mesh position={[0, height + 0.04, 0]} raycast={() => null}>
         <boxGeometry
           args={[
             width + 0.08,
@@ -68,6 +68,7 @@ function TruckCargoBox({ width, height, depth }) {
           height / 2,
           depth / 2 + 0.02,
         ]}
+        raycast={() => null}
       >
         <boxGeometry args={[0.07, height, 0.08]} />
 
@@ -85,6 +86,7 @@ function TruckCargoBox({ width, height, depth }) {
           height / 2,
           depth / 2 + 0.02,
         ]}
+        raycast={() => null}
       >
         <boxGeometry args={[0.07, height, 0.08]} />
 
@@ -102,6 +104,7 @@ function TruckCargoBox({ width, height, depth }) {
           height + 0.04,
           depth / 2 + 0.025,
         ]}
+        raycast={() => null}
       >
         <boxGeometry
           args={[
@@ -125,6 +128,7 @@ function TruckCargoBox({ width, height, depth }) {
           height * 0.52,
           -depth / 2 - 0.03,
         ]}
+        raycast={() => null}
       >
         <boxGeometry
           args={[
@@ -151,6 +155,7 @@ function TruckCargoBox({ width, height, depth }) {
           0.04,
           -depth / 2 - 0.12,
         ]}
+        raycast={() => null}
       >
         <boxGeometry
           args={[

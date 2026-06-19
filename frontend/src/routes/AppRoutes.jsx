@@ -1,10 +1,12 @@
 import React from 'react';
-import { Navigate, Route, Routes, useLocation, useParams } from 'react-router-dom';
+import { Navigate, Outlet, Route, Routes, useLocation, useParams } from 'react-router-dom';
+import { getRoleHomePath } from '../auth/accessControl.js';
 import ProtectedRoute from '../components/auth/ProtectedRoute.jsx';
+import { useAuth } from '../context/AuthContext.jsx';
 import AdminLayout from '../layouts/AdminLayout.jsx';
 import PublicLayout from '../layouts/PublicLayout.jsx';
+import StowageLayout from '../layouts/StowageLayout.jsx';
 import Clientes from '../pages/Clientes.jsx';
-import Cotizacion from '../pages/Cotizacion.jsx';
 import Dashboard from '../pages/Dashboard.jsx';
 import Destinos from '../pages/Destinos.jsx';
 import EncomiendaBuscar from '../pages/EncomiendaBuscar.jsx';
@@ -37,6 +39,11 @@ function LegacyEncomiendaRedirect({ suffix = '' }) {
   return <Navigate to={`${target}${location.search}`} replace />;
 }
 
+function RoleEntryRedirect() {
+  const { user } = useAuth();
+  return <Navigate to={getRoleHomePath(user)} replace />;
+}
+
 function AppRoutes() {
   return (
     <Routes>
@@ -56,142 +63,122 @@ function AppRoutes() {
         path="/admin"
         element={
           <ProtectedRoute>
-            <AdminLayout />
+            <Outlet />
           </ProtectedRoute>
         }
       >
-        <Route index element={<Dashboard />} />
+        <Route index element={<RoleEntryRedirect />} />
+
         <Route
-          path="clientes"
           element={
-            <ProtectedRoute anyOf={['encomiendas.write', 'users.read']} roles={['ADMINISTRADOR', 'SECRETARIA']}>
-              <Clientes />
+            <ProtectedRoute roles={['ADMINISTRADOR', 'SECRETARIA']} strict>
+              <AdminLayout />
             </ProtectedRoute>
           }
-        />
+        >
+          <Route path="dashboard" element={<Dashboard />} />
+          <Route
+            path="clientes"
+            element={
+              <ProtectedRoute anyOf={['encomiendas.write', 'users.read']} roles={['ADMINISTRADOR', 'SECRETARIA']}>
+                <Clientes />
+              </ProtectedRoute>
+            }
+          />
+          <Route
+            path="encomiendas"
+            element={
+              <ProtectedRoute anyOf={['encomiendas.read']}>
+                <Encomiendas />
+              </ProtectedRoute>
+            }
+          />
+          <Route
+            path="destinos"
+            element={
+              <ProtectedRoute anyOf={['encomiendas.write']} roles={['ADMINISTRADOR', 'SECRETARIA']}>
+                <Destinos />
+              </ProtectedRoute>
+            }
+          />
+          <Route
+            path="usuarios"
+            element={
+              <ProtectedRoute anyOf={['users.read']} roles={['ADMINISTRADOR']}>
+                <UsuariosInternos />
+              </ProtectedRoute>
+            }
+          />
+          <Route
+            path="encomiendas/nueva"
+            element={
+              <ProtectedRoute anyOf={['encomiendas.write']}>
+                <EncomiendaNueva />
+              </ProtectedRoute>
+            }
+          />
+          <Route
+            path="encomiendas/buscar"
+            element={
+              <ProtectedRoute anyOf={['encomiendas.read']}>
+                <EncomiendaBuscar />
+              </ProtectedRoute>
+            }
+          />
+          <Route
+            path="encomiendas/:id/editar"
+            element={
+              <ProtectedRoute anyOf={['encomiendas.update']}>
+                <EncomiendaEditar />
+              </ProtectedRoute>
+            }
+          />
+          <Route
+            path="encomiendas/:id"
+            element={
+              <ProtectedRoute anyOf={['encomiendas.read']}>
+                <EncomiendaDetalle />
+              </ProtectedRoute>
+            }
+          />
+          <Route
+            path="tracking"
+            element={
+              <ProtectedRoute anyOf={['tracking.read']}>
+                <Tracking />
+              </ProtectedRoute>
+            }
+          />
+          <Route path="sunat" element={<LegacyRedirect to="/admin/sunat/boletas" />} />
+          <Route
+            path="sunat/boletas"
+            element={
+              <ProtectedRoute anyOf={['sunat.read', 'sunat.emit', 'sunat.download_pdf']}>
+                <SunatBoletas />
+              </ProtectedRoute>
+            }
+          />
+          <Route
+            path="reniec"
+            element={
+              <ProtectedRoute anyOf={['encomiendas.write']} roles={['ADMINISTRADOR', 'SECRETARIA']}>
+                <ReniecConsulta />
+              </ProtectedRoute>
+            }
+          />
+        </Route>
+
         <Route
-          path="encomiendas"
           element={
-            <ProtectedRoute anyOf={['encomiendas.read']}>
-              <Encomiendas />
+            <ProtectedRoute roles={['ESTIBA']} anyOf={['optimization.read']} strict>
+              <StowageLayout />
             </ProtectedRoute>
           }
-        />
-        <Route
-          path="destinos"
-          element={
-            <ProtectedRoute anyOf={['encomiendas.write']} roles={['ADMINISTRADOR', 'SECRETARIA']}>
-              <Destinos />
-            </ProtectedRoute>
-          }
-        />
-        <Route
-          path="usuarios"
-          element={
-            <ProtectedRoute anyOf={['users.read']} roles={['ADMINISTRADOR']}>
-              <UsuariosInternos />
-            </ProtectedRoute>
-          }
-        />
-        <Route
-          path="encomiendas/nueva"
-          element={
-            <ProtectedRoute anyOf={['encomiendas.write']}>
-              <EncomiendaNueva />
-            </ProtectedRoute>
-          }
-        />
-        <Route
-          path="encomiendas/buscar"
-          element={
-            <ProtectedRoute anyOf={['encomiendas.read']}>
-              <EncomiendaBuscar />
-            </ProtectedRoute>
-          }
-        />
-        <Route
-          path="encomiendas/:id/editar"
-          element={
-            <ProtectedRoute anyOf={['encomiendas.update']}>
-              <EncomiendaEditar />
-            </ProtectedRoute>
-          }
-        />
-        <Route
-          path="encomiendas/:id"
-          element={
-            <ProtectedRoute anyOf={['encomiendas.read']}>
-              <EncomiendaDetalle />
-            </ProtectedRoute>
-          }
-        />
-        <Route
-          path="cotizaciones"
-          element={
-            <ProtectedRoute anyOf={['cotizaciones.read', 'cotizaciones.calculate']}>
-              <Cotizacion />
-            </ProtectedRoute>
-          }
-        />
-        <Route path="cotizacion" element={<LegacyRedirect to="/admin/cotizaciones" />} />
-        <Route
-          path="payments"
-          element={
-            <ProtectedRoute roles={['ADMINISTRADOR']}>
-              <Cotizacion />
-            </ProtectedRoute>
-          }
-        />
-        <Route
-          path="yape"
-          element={
-            <ProtectedRoute roles={['ADMINISTRADOR']}>
-              <Cotizacion />
-            </ProtectedRoute>
-          }
-        />
-        <Route
-          path="tracking"
-          element={
-            <ProtectedRoute anyOf={['tracking.read']}>
-              <Tracking />
-            </ProtectedRoute>
-          }
-        />
-        <Route path="sunat" element={<LegacyRedirect to="/admin/sunat/boletas" />} />
-        <Route
-          path="sunat/boletas"
-          element={
-            <ProtectedRoute anyOf={['sunat.read', 'sunat.emit', 'sunat.download_pdf']}>
-              <SunatBoletas />
-            </ProtectedRoute>
-          }
-        />
-        <Route
-          path="reniec"
-          element={
-            <ProtectedRoute anyOf={['encomiendas.write']} roles={['ADMINISTRADOR', 'SECRETARIA']}>
-              <ReniecConsulta />
-            </ProtectedRoute>
-          }
-        />
-        <Route
-          path="optimizacion-carga"
-          element={
-            <ProtectedRoute anyOf={['tracking.update_status', 'encomiendas.read']} roles={['ADMINISTRADOR', 'ESTIBA']}>
-              <OptimizacionCarga />
-            </ProtectedRoute>
-          }
-        />
-        <Route
-          path="estiba/optimizacion-poc"
-          element={
-            <ProtectedRoute anyOf={['tracking.update_status', 'encomiendas.read']} roles={['ADMINISTRADOR', 'ESTIBA']}>
-              <OptimizacionCarga />
-            </ProtectedRoute>
-          }
-        />
-        <Route path="*" element={<NotFound />} />
+        >
+          <Route path="optimizacion-carga" element={<OptimizacionCarga />} />
+        </Route>
+
+        <Route path="*" element={<RoleEntryRedirect />} />
       </Route>
 
       <Route path="/clientes" element={<LegacyRedirect to="/admin/clientes" />} />
@@ -202,15 +189,11 @@ function AppRoutes() {
       <Route path="/encomiendas/buscar" element={<LegacyRedirect to="/admin/encomiendas/buscar" />} />
       <Route path="/encomiendas/:id/editar" element={<LegacyEncomiendaRedirect suffix="/editar" />} />
       <Route path="/encomiendas/:id" element={<LegacyEncomiendaRedirect />} />
-      <Route path="/cotizacion" element={<LegacyRedirect to="/admin/cotizaciones" />} />
-      <Route path="/cotizaciones" element={<LegacyRedirect to="/admin/cotizaciones" />} />
       <Route path="/sunat-boletas" element={<LegacyRedirect to="/admin/sunat/boletas" />} />
       <Route path="/sunat" element={<LegacyRedirect to="/admin/sunat/boletas" />} />
       <Route path="/sunat/boletas" element={<LegacyRedirect to="/admin/sunat/boletas" />} />
       <Route path="/reniec" element={<LegacyRedirect to="/admin/reniec" />} />
       <Route path="/optimizacion-carga" element={<LegacyRedirect to="/admin/optimizacion-carga" />} />
-      <Route path="/payments" element={<LegacyRedirect to="/admin/payments" />} />
-      <Route path="/yape" element={<LegacyRedirect to="/admin/yape" />} />
       <Route path="*" element={<NotFound />} />
     </Routes>
   );

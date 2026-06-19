@@ -200,5 +200,6 @@ function PaymentLine({ label, value }) {
 export default PaymentConfirmationStep;
 
 function formatFragility(value) {
-  return String(value || '').trim().toUpperCase() === 'ALTA' ? 'Fragil' : 'No fragil';
+  const labels = { BAJA: 'Baja', MEDIA: 'Media', ALTA: 'Alta' };
+  return labels[String(value || '').trim().toUpperCase()] || '-';
 }

@@ -2,30 +2,19 @@ import React, { useEffect, useMemo, useState } from 'react';
 import { Link } from 'react-router-dom';
 import { PUBLIC_QUOTE_STORAGE_KEY, quoteEstimateFromPublicQuote, writeSessionJSON } from '../../utils/publicShipment.js';
 import { getDestinos } from '../../services/destinosService.js';
+import {
+  DEFAULT_LOCATION_NAMES,
+  LOCATION_PROVINCES,
+  getLocationOptionsByProvince,
+} from '../../utils/locationHierarchy.js';
 import locationIcon from '../../assets/icons/marcador-de-posicion.svg';
 import packageIcon from '../../assets/icons/paquete.svg';
-import checkIcon from '../../assets/icons/flecha-correcta.svg';
 
 const greenPanel = 'rounded-lg bg-[#3C5940] p-4 shadow-[0_14px_28px_rgba(33,37,41,0.14)] ring-1 ring-[#A3CF84]/20';
 const selectClass =
-  'min-h-11 w-full min-w-0 rounded-md border border-transparent bg-white px-3 text-sm font-bold text-[#212529] shadow-sm outline-none transition hover:border-[#A3CF84] focus:border-[#A3CF84] focus:ring-2 focus:ring-[#A3CF84]';
+  'h-11 w-full min-w-0 rounded-md border border-transparent bg-white px-3 py-0 text-sm font-bold text-[#212529] shadow-sm outline-none transition hover:border-[#A3CF84] focus:border-[#A3CF84] focus:ring-2 focus:ring-[#A3CF84]';
 const inputClass =
-  'min-h-11 w-full min-w-0 rounded-md border border-[#A3CF84]/60 bg-white px-3 text-sm font-semibold text-[#212529] shadow-sm outline-none transition placeholder:text-[#6C757D]/70 hover:border-[#28A745]/60 focus:border-[#28A745] focus:ring-2 focus:ring-[#A3CF84]';
-
-const fallbackDestinations = [
-  'Trujillo',
-  'Shorey',
-  'Huayatan',
-  'Santiago de Chuco',
-  'Chacomas',
-  'Cachicadan',
-  'Santa Cruz de Chuca',
-  'Cochapamba',
-  'Algallama',
-  'Villacruz',
-  'Las Manzanas',
-  'Angasmarca',
-];
+  'h-11 w-full min-w-0 rounded-md border border-[#A3CF84]/60 bg-white px-3 py-0 text-sm font-semibold text-[#212529] shadow-sm outline-none transition placeholder:text-[#6C757D]/70 hover:border-[#28A745]/60 focus:border-[#28A745] focus:ring-2 focus:ring-[#A3CF84]';
 
 function GreenIcon({ src, className = 'h-7 w-7' }) {
   return (
@@ -38,16 +27,21 @@ function GreenIcon({ src, className = 'h-7 w-7' }) {
   );
 }
 
-function SelectField({ label, name, value, onChange, options }) {
+function SelectField({ label, name, value, onChange, options, placeholder = '' }) {
   return (
     <label className="grid min-w-0 gap-1.5">
       <span className="px-1 text-xs font-bold text-[#F8F9FA]">{label}</span>
       <select className={selectClass} name={name} value={value} onChange={onChange}>
-        {options.map((option) => (
-          <option key={option} value={option}>
-            {option}
+        {placeholder && <option value="">{placeholder}</option>}
+        {options.map((option) => {
+          const optionValue = typeof option === 'string' ? option : option.value;
+          const optionLabel = typeof option === 'string' ? option : option.label;
+          return (
+          <option key={optionValue} value={optionValue}>
+            {optionLabel}
           </option>
-        ))}
+          );
+        })}
       </select>
     </label>
   );
@@ -55,25 +49,12 @@ function SelectField({ label, name, value, onChange, options }) {
 
 function RouteConnector() {
   return (
-    <div className="min-w-0 rounded-lg border border-dashed border-[#A3CF84] bg-[#F8F9FA] p-4">
-      <div className="relative mx-auto flex h-16 w-full max-w-[360px] items-center justify-center">
+    <div className="min-w-0 rounded-lg border border-dashed border-[#A3CF84] bg-[#F8F9FA] px-4 py-2">
+      <div className="relative mx-auto flex h-14 w-full max-w-[440px] items-center justify-center">
         <div className="absolute left-2 right-2 top-1/2 h-px -translate-y-1/2 border-t-2 border-dashed border-[#A3CF84]" />
         <span className="relative flex h-12 w-12 items-center justify-center rounded-full bg-white text-2xl font-black text-[#28A745] shadow-sm ring-1 ring-[#A3CF84]/70">
           &rarr;
         </span>
-      </div>
-      <div className="mt-2">
-        <p className="mb-3 text-base font-black text-[#212529]">Puntos intermedios</p>
-        <div className="grid gap-2 sm:grid-cols-2">
-          {['Huamachuco', 'Quiruvilca', 'Santiago de Chuco', 'Angasmarca'].map((point, index) => (
-            <div key={`${point}-${index}`} className="flex min-w-0 items-center gap-2 text-sm font-semibold text-[#3C5940]">
-              <span className="flex h-5 w-5 items-center justify-center rounded-full bg-[#28A745]">
-                <img src={checkIcon} alt="" className="h-3 w-3 brightness-0 invert" />
-              </span>
-              <span className="truncate">{point}</span>
-            </div>
-          ))}
-        </div>
       </div>
     </div>
   );
@@ -81,8 +62,8 @@ function RouteConnector() {
 
 function PublicQuoteCard() {
   const [form, setForm] = useState({
-    origen: 'Trujillo',
-    destino: 'Angasmarca',
+    origen: '',
+    destino: '',
     tipo: 'Sobres',
     peso: '',
     largo: '',
@@ -92,7 +73,17 @@ function PublicQuoteCard() {
   });
   const [quote, setQuote] = useState(null);
   const [error, setError] = useState('');
-  const [destinations, setDestinations] = useState(fallbackDestinations);
+  const [destinations, setDestinations] = useState(DEFAULT_LOCATION_NAMES);
+  const [originProvince, setOriginProvince] = useState('');
+  const [destinationProvince, setDestinationProvince] = useState('');
+  const originOptions = useMemo(
+    () => getLocationOptionsByProvince(destinations, originProvince),
+    [destinations, originProvince],
+  );
+  const destinationOptions = useMemo(
+    () => getLocationOptionsByProvince(destinations, destinationProvince),
+    [destinations, destinationProvince],
+  );
 
   const isComplete = useMemo(
     () => form.origen && form.destino && form.tipo && form.peso && form.largo && form.ancho && form.alto && form.fragilidad,
@@ -104,9 +95,9 @@ function PublicQuoteCard() {
       try {
         const result = await getDestinos();
         const names = result.map((destino) => destino.nombre || destino.name).filter(Boolean);
-        setDestinations(names.length > 0 ? names : fallbackDestinations);
+        setDestinations(names.length > 0 ? names : DEFAULT_LOCATION_NAMES);
       } catch (loadError) {
-        setDestinations(fallbackDestinations);
+        setDestinations(DEFAULT_LOCATION_NAMES);
       }
     }
 
@@ -116,6 +107,18 @@ function PublicQuoteCard() {
   const updateField = (event) => {
     const { name, value } = event.target;
     setForm((current) => ({ ...current, [name]: value }));
+    setQuote(null);
+    setError('');
+  };
+
+  const updateProvince = (field, setProvince) => (event) => {
+    const province = event.target.value;
+    const options = getLocationOptionsByProvince(destinations, province);
+    setProvince(province);
+    setForm((current) => ({
+      ...current,
+      [field]: options[0]?.value || '',
+    }));
     setQuote(null);
     setError('');
   };
@@ -149,7 +152,7 @@ function PublicQuoteCard() {
   };
 
   return (
-    <article id="destinos" className="w-full min-w-0 overflow-hidden rounded-lg border border-[#E4ECE2] bg-white p-5 shadow-[0_18px_40px_rgba(33,37,41,0.09)] sm:p-6 lg:p-7">
+    <article className="w-full min-w-0 overflow-hidden rounded-lg border border-[#E4ECE2] bg-white p-5 shadow-[0_18px_40px_rgba(33,37,41,0.09)] sm:p-6 lg:p-7">
       <div className="flex flex-col gap-2 sm:flex-row sm:items-end sm:justify-between">
         <div>
           <p className="text-sm font-black uppercase text-[#28A745]">Ruta referencial</p>
@@ -167,9 +170,18 @@ function PublicQuoteCard() {
             <h3 className="text-lg font-black text-[#212529]">1. Origen</h3>
           </div>
           <div className={`${greenPanel} grid gap-4`}>
-            <SelectField label="Departamento" value="La Libertad" options={['La Libertad']} onChange={() => {}} />
-            <SelectField label="Provincia" value="Trujillo" options={['Trujillo', 'Santiago de Chuco']} onChange={() => {}} />
-            <SelectField label="Distrito" name="origen" value={form.origen} options={destinations} onChange={updateField} />
+            <SelectField
+              label="Provincia"
+              value={originProvince}
+              options={LOCATION_PROVINCES}
+              placeholder="Seleccionar provincia"
+              onChange={updateProvince('origen', setOriginProvince)}
+            />
+            {originProvince && (
+              <div className="public-progressive-field">
+                <SelectField label="Distrito" name="origen" value={form.origen} options={originOptions} onChange={updateField} />
+              </div>
+            )}
           </div>
         </section>
 
@@ -179,9 +191,18 @@ function PublicQuoteCard() {
             <h3 className="text-lg font-black text-[#212529]">2. Destino</h3>
           </div>
           <div className={`${greenPanel} grid gap-4`}>
-            <SelectField label="Departamento" value="La Libertad" options={['La Libertad']} onChange={() => {}} />
-            <SelectField label="Provincia" value="Santiago de Chuco" options={['Santiago de Chuco', 'Trujillo']} onChange={() => {}} />
-            <SelectField label="Distrito" name="destino" value={form.destino} options={destinations} onChange={updateField} />
+            <SelectField
+              label="Provincia"
+              value={destinationProvince}
+              options={LOCATION_PROVINCES}
+              placeholder="Seleccionar provincia"
+              onChange={updateProvince('destino', setDestinationProvince)}
+            />
+            {destinationProvince && (
+              <div className="public-progressive-field">
+                <SelectField label="Distrito" name="destino" value={form.destino} options={destinationOptions} onChange={updateField} />
+              </div>
+            )}
           </div>
         </section>
 
@@ -247,8 +268,9 @@ function PublicQuoteCard() {
                   <span className="text-sm font-black text-[#3C5940]">Fragilidad</span>
                   <select className={inputClass} name="fragilidad" value={form.fragilidad} onChange={updateField}>
                     <option value="">Seleccionar</option>
-                    <option value="No fragil">No fragil</option>
-                    <option value="Fragil">Fragil</option>
+                    <option value="BAJA">Baja</option>
+                    <option value="MEDIA">Media</option>
+                    <option value="ALTA">Alta</option>
                   </select>
                 </label>
               </div>

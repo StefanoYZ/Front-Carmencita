@@ -45,6 +45,7 @@ function PaymentConfirmationStep({
   onDigitalError,
 }) {
   const quote = quoteEstimateFromForm(form);
+  const isEnvelope = form.tipo_contenido === 'DOCUMENTOS';
 
   const senderItems = [
     { label: 'Documento', value: `${form.remitente_tipo_documento} ${form.remitente_numero_documento}` },
@@ -64,9 +65,9 @@ function PaymentConfirmationStep({
     { label: 'Origen', value: form.origen },
     { label: 'Destino', value: form.destino },
     { label: 'Descripcion', value: form.descripcion },
-    { label: 'Fragilidad', value: formatFragility(form.fragilidad) },
+    ...(!isEnvelope ? [{ label: 'Fragilidad', value: formatFragility(form.fragilidad) }] : []),
     { label: 'Peso', value: `${form.peso_kg} kg` },
-    { label: 'Dimensiones', value: `${form.largo_cm} x ${form.ancho_cm} x ${form.alto_cm} cm` },
+    { label: 'Dimensiones', value: isEnvelope ? 'No aplica (sobre)' : `${form.largo_cm} x ${form.ancho_cm} x ${form.alto_cm} cm` },
     { label: 'Contenido', value: form.tipo_contenido },
   ];
 
@@ -200,5 +201,6 @@ function PaymentLine({ label, value }) {
 export default PaymentConfirmationStep;
 
 function formatFragility(value) {
-  return String(value || '').trim().toUpperCase() === 'ALTA' ? 'Fragil' : 'No fragil';
+  const labels = { BAJA: 'Baja', MEDIA: 'Media', ALTA: 'Alta' };
+  return labels[String(value || '').trim().toUpperCase()] || '-';
 }

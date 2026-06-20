@@ -5,25 +5,26 @@ import Card from '../components/common/Card.jsx';
 import Input from '../components/common/Input.jsx';
 import Loader from '../components/common/Loader.jsx';
 import DataTable from '../components/tables/DataTable.jsx';
+import { useAuth } from '../context/AuthContext.jsx';
 import { getApiErrorMessage } from '../services/apiClient.js';
 import {
   assignRoleToUser,
   createUsuario,
-  disableUsuario,
   getRoles,
   getUsuarios,
   removeRoleFromUser,
+  setUsuarioActivo,
 } from '../services/usuariosService.js';
 
 const emptyUserForm = {
   username: '',
-  email: '',
   password: '',
   full_name: '',
   role_id: '',
 };
 
 function UsuariosInternos() {
+  const { user: currentUser } = useAuth();
   const [usuarios, setUsuarios] = useState([]);
   const [roles, setRoles] = useState([]);
   const [form, setForm] = useState(emptyUserForm);
@@ -31,6 +32,7 @@ function UsuariosInternos() {
   const [saving, setSaving] = useState(false);
   const [error, setError] = useState('');
   const [message, setMessage] = useState('');
+  const [statusLoadingId, setStatusLoadingId] = useState(null);
 
   async function loadData() {
     try {
@@ -66,8 +68,8 @@ function UsuariosInternos() {
 
   const handleCreateUser = async (event) => {
     event.preventDefault();
-    if (!form.username.trim() || !form.email.trim() || !form.password.trim() || !form.full_name.trim()) {
-      setError('Completa usuario, correo, contraseña y nombre.');
+    if (!form.username.trim() || !form.password.trim() || !form.full_name.trim()) {
+      setError('Completa usuario, contraseña y nombre.');
       return;
     }
 
@@ -77,7 +79,6 @@ function UsuariosInternos() {
       setMessage('');
       const created = await createUsuario({
         username: form.username.trim(),
-        email: form.email.trim(),
         password: form.password,
         full_name: form.full_name.trim(),
       });
@@ -94,15 +95,19 @@ function UsuariosInternos() {
     }
   };
 
-  const handleDisableUser = async (user) => {
+  const handleToggleUser = async (user) => {
+    const nextActive = !user.is_active;
     try {
+      setStatusLoadingId(user.id);
       setError('');
       setMessage('');
-      await disableUsuario(user.id);
-      setMessage(`Usuario ${user.username} desactivado.`);
-      await loadData();
-    } catch (disableError) {
-      setError(getApiErrorMessage(disableError, 'No se pudo desactivar el usuario.'));
+      const updated = await setUsuarioActivo(user.id, nextActive);
+      setUsuarios((current) => current.map((item) => (item.id === updated.id ? updated : item)));
+      setMessage(`Usuario ${user.username} ${nextActive ? 'activado' : 'desactivado'}.`);
+    } catch (statusError) {
+      setError(getApiErrorMessage(statusError, 'No se pudo actualizar el estado del usuario.'));
+    } finally {
+      setStatusLoadingId(null);
     }
   };
 
@@ -126,7 +131,6 @@ function UsuariosInternos() {
   const columns = [
     { header: 'Usuario', accessor: 'username' },
     { header: 'Nombre', accessor: 'full_name' },
-    { header: 'Correo', accessor: 'email' },
     { header: 'Estado', accessor: 'is_active', cell: (row) => (row.is_active ? 'Activo' : 'Inactivo') },
     {
       header: 'Rol',
@@ -150,16 +154,27 @@ function UsuariosInternos() {
     {
       header: 'Accion',
       accessor: 'accion',
-      cell: (row) => (
-        <button
-          type="button"
-          className="font-semibold text-brand-dark transition hover:text-brand-green disabled:text-brand-gray"
-          disabled={!row.is_active}
-          onClick={() => handleDisableUser(row)}
-        >
-          Desactivar
-        </button>
-      ),
+      cell: (row) => {
+        const isCurrentSession = row.id === currentUser?.id;
+        const isUpdating = statusLoadingId === row.id;
+        return (
+          <button
+            type="button"
+            className={`font-semibold transition ${
+              isCurrentSession
+                ? 'cursor-not-allowed text-brand-gray'
+                : row.is_active
+                  ? 'text-red-700 hover:text-red-900'
+                  : 'text-brand-green hover:text-brand-dark'
+            }`}
+            disabled={isCurrentSession || isUpdating}
+            title={isCurrentSession ? 'No puedes desactivar la cuenta de tu sesion actual.' : undefined}
+            onClick={() => handleToggleUser(row)}
+          >
+            {isUpdating ? 'Actualizando...' : isCurrentSession ? 'Sesion actual' : row.is_active ? 'Desactivar' : 'Activar'}
+          </button>
+        );
+      },
     },
   ];
 
@@ -174,10 +189,9 @@ function UsuariosInternos() {
       {message && <Alert tone="success">{message}</Alert>}
 
       <Card>
-        <form className="grid gap-4 lg:grid-cols-5 lg:items-end" onSubmit={handleCreateUser}>
+        <form className="grid gap-4 lg:grid-cols-4 lg:items-end" onSubmit={handleCreateUser}>
           <Input label="Usuario" name="username" value={form.username} onChange={updateField} required />
           <Input label="Nombre completo" name="full_name" value={form.full_name} onChange={updateField} required />
-          <Input label="Correo" name="email" type="email" value={form.email} onChange={updateField} required />
           <Input label="Contraseña" name="password" type="password" value={form.password} onChange={updateField} required />
           <label className="block">
             <span className="mb-1.5 block text-sm font-medium text-gray-700">Rol inicial</span>
@@ -195,7 +209,7 @@ function UsuariosInternos() {
               ))}
             </select>
           </label>
-          <div className="lg:col-span-5">
+          <div className="lg:col-span-4">
             <Button type="submit" disabled={saving}>
               {saving ? 'Guardando...' : 'Crear usuario'}
             </Button>

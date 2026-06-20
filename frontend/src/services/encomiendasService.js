@@ -35,6 +35,26 @@ export async function getEncomiendaByCodigo(codigo) {
   return response.data;
 }
 
+export async function getEtiquetaPdf(id) {
+  const response = await apiClient.get(`/encomiendas/${id}/etiqueta/pdf`, {
+    responseType: 'blob',
+  });
+  return response.data;
+}
+
+export async function exportarReporteEncomiendas(formato, filtros = {}) {
+  const extension = formato === 'excel' ? 'xls' : 'pdf';
+  const response = await apiClient.get(`/encomiendas/reportes/operativo.${extension}`, {
+    params: {
+      fecha: filtros.fecha || undefined,
+      estado: filtros.estado || undefined,
+      texto: filtros.texto?.trim() || undefined,
+    },
+    responseType: 'blob',
+  });
+  return response.data;
+}
+
 export const crearEncomienda = createEncomienda;
 export const buscarPorCodigo = getEncomiendaByCodigo;
 
@@ -48,4 +68,6 @@ export const encomiendasService = {
   getEncomiendas,
   getEncomiendaById,
   getEncomiendaByCodigo,
+  getEtiquetaPdf,
+  exportarReporteEncomiendas,
 };

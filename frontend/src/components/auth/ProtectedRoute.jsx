@@ -1,9 +1,14 @@
 import React from 'react';
 import { Navigate, useLocation } from 'react-router-dom';
-import { canAccess, getRoleHomePath } from '../../auth/accessControl.js';
+import {
+  canAccess,
+  getRoleHomePath,
+  hasAnyPermission,
+  hasRole,
+} from '../../auth/accessControl.js';
 import { useAuth } from '../../context/AuthContext.jsx';
 
-function ProtectedRoute({ children, anyOf = [], roles = [] }) {
+function ProtectedRoute({ children, anyOf = [], roles = [], strict = false }) {
   const location = useLocation();
   const { isAuthenticated, user } = useAuth();
 
@@ -11,7 +16,12 @@ function ProtectedRoute({ children, anyOf = [], roles = [] }) {
     return <Navigate to="/login" replace state={{ from: location }} />;
   }
 
-  if (!canAccess(user, { anyOf, roles })) {
+  const hasStrictAccess = (
+    (roles.length === 0 || hasRole(user, roles))
+    && (anyOf.length === 0 || hasAnyPermission(user, anyOf))
+  );
+
+  if (strict ? !hasStrictAccess : !canAccess(user, { anyOf, roles })) {
     return <Navigate to={getRoleHomePath(user)} replace />;
   }
 

@@ -11,6 +11,9 @@ export function getBackendBaseURL() {
 export function getApiErrorMessage(error, fallback = 'No se pudo completar la operacion.') {
   if (!error?.response) {
     const message = error?.message || '';
+    if (error?.code === 'ECONNABORTED' || message.toLowerCase().includes('timeout')) {
+      return 'La simulacion excedio el tiempo de espera. Reduce la cantidad de paquetes o prueba un algoritmo mas ligero.';
+    }
     if (message.toLowerCase().includes('cors')) {
       return 'Error CORS. Verifica la configuracion de origenes permitidos en FastAPI.';
     }

@@ -33,7 +33,7 @@ function sortShipmentsByRecent(items) {
 
 function Dashboard() {
   const { user } = useAuth();
-  const allowedLinks = getAllowedNavigation(user).filter((item) => item.path !== '/admin');
+  const allowedLinks = getAllowedNavigation(user).filter((item) => item.path !== '/admin/dashboard');
   const [shipments, setShipments] = useState([]);
   const [loadingShipments, setLoadingShipments] = useState(true);
   const [shipmentsError, setShipmentsError] = useState('');
@@ -66,6 +66,42 @@ function Dashboard() {
       { label: 'Pre-registros', value: preRegistered, accent: 'bg-brand-gray' },
     ];
   }, [shipments]);
+  const statusDistribution = useMemo(() => {
+    const groups = [
+      {
+        label: 'Pendientes',
+        value: shipments.filter((shipment) => ['PRE_REGISTRADA', 'REGISTRADA', 'COTIZADA', 'PAGO_CONFIRMADO', 'BOLETA_EMITIDA'].includes(shipment.estado)).length,
+        color: '#A3CF84',
+      },
+      {
+        label: 'En camino',
+        value: shipments.filter((shipment) => shipment.estado === 'EN_TRANSITO').length,
+        color: '#28A745',
+      },
+      {
+        label: 'Entregadas',
+        value: shipments.filter((shipment) => shipment.estado === 'ENTREGADA').length,
+        color: '#3C5940',
+      },
+      {
+        label: 'Anuladas',
+        value: shipments.filter((shipment) => shipment.estado === 'ANULADA').length,
+        color: '#6C757D',
+      },
+    ];
+    const total = Math.max(shipments.length, 1);
+    let offset = 0;
+    const segments = groups.map((group) => {
+      const start = offset;
+      offset += (group.value / total) * 100;
+      return `${group.color} ${start}% ${offset}%`;
+    });
+    return {
+      groups,
+      max: Math.max(...groups.map((group) => group.value), 1),
+      gradient: shipments.length ? `conic-gradient(${segments.join(', ')})` : '#E4ECE2',
+    };
+  }, [shipments]);
 
   return (
     <div className="space-y-6">
@@ -95,6 +131,53 @@ function Dashboard() {
             </div>
           </Card>
         ))}
+      </div>
+
+      <div className="grid gap-4 xl:grid-cols-[1.35fr_0.65fr]">
+        <Card>
+          <div>
+            <h3 className="text-lg font-black text-brand-black">Encomiendas por estado</h3>
+            <p className="mt-1 text-sm text-brand-gray">Distribucion operativa de los registros actuales.</p>
+          </div>
+          <div className="mt-6 space-y-4">
+            {statusDistribution.groups.map((group) => (
+              <div key={group.label} className="grid grid-cols-[90px_1fr_36px] items-center gap-3">
+                <span className="text-sm font-semibold text-brand-black">{group.label}</span>
+                <div className="h-3 overflow-hidden rounded-full bg-brand-surface">
+                  <div
+                    className="h-full rounded-full transition-all duration-500"
+                    style={{ width: `${(group.value / statusDistribution.max) * 100}%`, backgroundColor: group.color }}
+                  />
+                </div>
+                <strong className="text-right text-sm text-brand-black">{group.value}</strong>
+              </div>
+            ))}
+          </div>
+        </Card>
+        <Card>
+          <h3 className="text-lg font-black text-brand-black">Distribucion porcentual</h3>
+          <div className="mt-5 flex items-center justify-center gap-7">
+            <div
+              className="grid h-36 w-36 shrink-0 place-items-center rounded-full"
+              style={{ background: statusDistribution.gradient }}
+            >
+              <div className="grid h-24 w-24 place-items-center rounded-full bg-white text-center shadow-inner">
+                <div>
+                  <strong className="block text-2xl text-brand-black">{shipments.length}</strong>
+                  <span className="text-xs font-semibold text-brand-gray">Total</span>
+                </div>
+              </div>
+            </div>
+            <div className="space-y-2">
+              {statusDistribution.groups.map((group) => (
+                <div key={group.label} className="flex items-center gap-2 text-xs font-semibold text-brand-gray">
+                  <span className="h-2.5 w-2.5 rounded-full" style={{ backgroundColor: group.color }} />
+                  {group.label}
+                </div>
+              ))}
+            </div>
+          </div>
+        </Card>
       </div>
 
       <Card>

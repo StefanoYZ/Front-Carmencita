@@ -1,4 +1,4 @@
-import React, { useEffect, useMemo, useRef, useState } from 'react';
+import React, { useEffect, useId, useMemo, useRef, useState } from 'react';
 import { apiBaseURL } from '../../services/apiClient.js';
 
 function getPaymentErrorMessage(data, fallback) {
@@ -29,6 +29,8 @@ async function readPaymentResponse(response, fallback) {
 
 export default function MercadoPagoBrick({
   amount = 100,
+  payerEmail = 'test@test.com',
+  payerName = 'Cliente',
   onApproved,
   onPending,
   onRejected,
@@ -36,15 +38,17 @@ export default function MercadoPagoBrick({
 }) {
   const [status, setStatus] = useState('');
   const [message, setMessage] = useState('');
+  const isTestEnvironment = false;
   const callbacksRef = useRef({
     onApproved,
     onPending,
     onRejected,
     onError,
   });
+  const reactId = useId();
   const containerId = useMemo(
-    () => `paymentBrick_container_${String(amount).replace(/[^a-zA-Z0-9_-]/g, '_')}`,
-    [amount],
+    () => `paymentBrick_container_${reactId.replace(/[^a-zA-Z0-9_-]/g, '_')}`,
+    [reactId],
   );
 
   useEffect(() => {
@@ -90,8 +94,14 @@ export default function MercadoPagoBrick({
 
     const loadBrick = async () => {
       try {
-        const container = document.getElementById(containerId);
-        if (container) container.innerHTML = '';
+        const normalizedAmount = Number(amount);
+        if (!Number.isFinite(normalizedAmount) || normalizedAmount <= 0) {
+          throw new Error('El monto del pago con tarjeta debe ser mayor a cero.');
+        }
+
+        const initialContainer = document.getElementById(containerId);
+        if (!initialContainer) return;
+        initialContainer.innerHTML = '';
 
         await loadMercadoPagoSDK();
         if (!mounted) return;
@@ -99,20 +109,27 @@ export default function MercadoPagoBrick({
         const keyResponse = await fetch(`${apiBaseURL}/payments/public-key`);
         const keyData = await readPaymentResponse(keyResponse, 'No se pudo obtener la Public Key.');
         if (!mounted) return;
-
+        const isTestPublicKey = String(keyData.publicKey || '').startsWith('TEST-');
+        const effectivePayerEmail = isTestPublicKey
+          ? 'test@test.com'
+          : String(payerEmail || '').trim();
         const mp = new window.MercadoPago(keyData.publicKey, {
           locale: 'es-PE',
         });
 
         const bricksBuilder = mp.bricks();
+        const normalizedName = String(payerName || 'Cliente').trim();
+        const [firstName, ...lastNameParts] = normalizedName.split(/\s+/);
+        const activeContainer = document.getElementById(containerId);
+        if (!mounted || !activeContainer) return;
 
         const controller = await bricksBuilder.create('payment', containerId, {
           initialization: {
-            amount: Number(amount),
+            amount: normalizedAmount,
             payer: {
-              email: 'test@test.com',
-              firstName: 'APRO',
-              lastName: '',
+              email: effectivePayerEmail,
+              firstName: firstName || 'Cliente',
+              lastName: lastNameParts.join(' '),
             },
           },
           customization: {
@@ -136,17 +153,34 @@ export default function MercadoPagoBrick({
               try {
                 updateStatus('processing', 'Procesando pago con tarjeta...');
 
+                if (!formData?.token) {
+                  throw new Error('Mercado Pago no genero el token de la tarjeta.');
+                }
+
+                const paymentPayload = {
+                  ...formData,
+                  description: formData.description || 'Pago encomienda - Carmencita Express',
+                  usuario: String(payerEmail || '').trim() || effectivePayerEmail,
+                  payer: {
+                    ...(formData.payer || {}),
+                    email: effectivePayerEmail || formData.payer?.email,
+                  },
+                };
+
                 const response = await fetch(`${apiBaseURL}/payments/process-payment`, {
                   method: 'POST',
                   headers: {
                     'Content-Type': 'application/json',
                   },
-                  body: JSON.stringify(formData),
+                  body: JSON.stringify(paymentPayload),
                 });
 
                 const data = await readPaymentResponse(response, 'No se pudo procesar el pago con tarjeta.');
 
-                const paymentStatus = data?.response?.status || data?.status || data?.data?.status;
+                const paymentStatus =
+                  data?.payment_status
+                  || data?.response?.status
+                  || data?.data?.status;
 
                 if (paymentStatus === 'approved') {
                   updateStatus('approved', 'Pago con tarjeta aprobado.');
@@ -158,13 +192,17 @@ export default function MercadoPagoBrick({
                   updateStatus('rejected', 'Pago con tarjeta rechazado.');
                   callbacksRef.current.onRejected?.(data);
                 }
+
+                return data;
               } catch (error) {
                 updateStatus('error', error?.message || 'Error inesperado procesando el pago.');
                 callbacksRef.current.onError?.(error);
+                throw error;
               }
             },
 
             onError: (error) => {
+              if (!mounted || !document.getElementById(containerId)) return;
               updateStatus('error', 'Error cargando el formulario de pago.');
               callbacksRef.current.onError?.(error);
             },
@@ -172,13 +210,14 @@ export default function MercadoPagoBrick({
         });
 
         if (!mounted) {
-          controller.unmount();
-          if (container) container.innerHTML = '';
+          Promise.resolve(controller.unmount()).catch(() => {});
+          activeContainer.innerHTML = '';
           return;
         }
 
         brickController = controller;
       } catch (error) {
+        if (!mounted || !document.getElementById(containerId)) return;
         updateStatus('error', error?.message || 'Error cargando Mercado Pago.');
         callbacksRef.current.onError?.(error);
       }
@@ -189,7 +228,7 @@ export default function MercadoPagoBrick({
     return () => {
       mounted = false;
       if (brickController) {
-        brickController.unmount();
+        Promise.resolve(brickController.unmount()).catch(() => {});
       }
 
       const container = document.getElementById(containerId);
@@ -197,11 +236,17 @@ export default function MercadoPagoBrick({
         container.innerHTML = '';
       }
     };
-  }, [amount, containerId]);
+  }, [amount, containerId, payerEmail, payerName]);
 
   return (
     <div className="min-h-[328px] rounded-md bg-white">
       <div id={containerId} className="min-h-[250px]" />
+
+      {isTestEnvironment && (
+        <p className="mt-3 rounded-md border border-amber-200 bg-amber-50 px-3 py-2 text-xs font-semibold text-amber-800">
+          Entorno de prueba: para simular aprobación usa titular APRO y documento 123456789.
+        </p>
+      )}
 
       {status && (
         <div

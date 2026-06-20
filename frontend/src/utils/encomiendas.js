@@ -50,6 +50,7 @@ export function normalizeEncomiendasList(payload) {
 }
 
 export function buildEncomiendaPayload(form) {
+  const isEnvelope = isEnvelopeContent(form.tipo_contenido);
   const payload = {
     ...form,
     remitente_tipo_documento: String(form.remitente_tipo_documento || '').trim().toUpperCase(),
@@ -62,10 +63,10 @@ export function buildEncomiendaPayload(form) {
     destinatario_correo: optionalText(form.destinatario_correo),
     tipo_contenido: String(form.tipo_contenido || '').trim().toUpperCase(),
     peso_kg: Number(form.peso_kg),
-    largo_cm: Number(form.largo_cm),
-    ancho_cm: Number(form.ancho_cm),
-    alto_cm: Number(form.alto_cm),
-    fragilidad: form.fragilidad.toUpperCase(),
+    largo_cm: isEnvelope ? 0 : Number(form.largo_cm),
+    ancho_cm: isEnvelope ? 0 : Number(form.ancho_cm),
+    alto_cm: isEnvelope ? 0 : Number(form.alto_cm),
+    fragilidad: isEnvelope ? 'BAJA' : form.fragilidad.toUpperCase(),
   };
 
   delete payload.id;
@@ -140,6 +141,14 @@ export function validateEncomiendaFormFields(form, { includeEstado = false } = {
     }
   });
 
+  if (
+    String(form.origen || '').trim()
+    && String(form.destino || '').trim()
+    && normalizeLocation(form.origen) === normalizeLocation(form.destino)
+  ) {
+    errors.destino = 'El destino debe ser diferente al origen.';
+  }
+
   const senderDocumentError = validateDocumentNumber(form.remitente_tipo_documento, form.remitente_numero_documento);
   if (senderDocumentError) errors.remitente_numero_documento = senderDocumentError;
 
@@ -161,20 +170,22 @@ export function validateEncomiendaFormFields(form, { includeEstado = false } = {
   const contentTypeError = validateContentType(form.tipo_contenido);
   if (contentTypeError) errors.tipo_contenido = contentTypeError;
 
-  const numericMessages = {
-    peso_kg: 'El peso debe ser mayor a 0.',
-    largo_cm: 'Las dimensiones deben ser mayores a 0.',
-    ancho_cm: 'Las dimensiones deben ser mayores a 0.',
-    alto_cm: 'Las dimensiones deben ser mayores a 0.',
-  };
+  const numericMessages = { peso_kg: 'El peso debe ser mayor a 0.' };
+  if (!isEnvelopeContent(form.tipo_contenido)) {
+    numericMessages.largo_cm = 'Las dimensiones deben ser mayores a 0.';
+    numericMessages.ancho_cm = 'Las dimensiones deben ser mayores a 0.';
+    numericMessages.alto_cm = 'Las dimensiones deben ser mayores a 0.';
+  }
 
   Object.entries(numericMessages).forEach(([field, message]) => {
     const error = validatePositiveNumber(form[field], message);
     if (error) errors[field] = error;
   });
 
-  const fragilityError = validateFragility(form.fragilidad);
-  if (fragilityError) errors.fragilidad = fragilityError;
+  if (!isEnvelopeContent(form.tipo_contenido)) {
+    const fragilityError = validateFragility(form.fragilidad);
+    if (fragilityError) errors.fragilidad = fragilityError;
+  }
 
   if (includeEstado && !ESTADOS_ENCOMIENDA.includes(form.estado)) {
     errors.estado = 'El estado seleccionado no es valido.';
@@ -190,5 +201,13 @@ function optionalText(value) {
 
 function normalizeFragilityForForm(value) {
   const fragility = String(value || '').trim().toUpperCase();
-  return fragility === 'ALTA' ? 'ALTA' : 'BAJA';
+  return ['BAJA', 'MEDIA', 'ALTA'].includes(fragility) ? fragility : 'BAJA';
+}
+
+export function isEnvelopeContent(contentType) {
+  return String(contentType || '').trim().toUpperCase() === 'DOCUMENTOS';
+}
+
+function normalizeLocation(value) {
+  return String(value || '').trim().toUpperCase();
 }

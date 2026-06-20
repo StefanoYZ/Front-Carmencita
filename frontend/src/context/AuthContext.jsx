@@ -1,12 +1,24 @@
 import React, { createContext, useCallback, useContext, useEffect, useMemo, useState } from 'react';
+import { useLocation, useNavigate } from 'react-router-dom';
 import { getRoleHomePath } from '../auth/accessControl.js';
-import { clearAuthSession, getStoredAuthToken, getStoredAuthUser, saveAuthSession } from '../auth/session.js';
+import {
+  clearAuthSession,
+  clearLegacyAuthSession,
+  getStoredAuthToken,
+  getStoredAuthUser,
+  saveAuthSession,
+} from '../auth/session.js';
 import { login as loginRequest } from '../services/authService.js';
 
 const AuthContext = createContext(null);
 
 export function AuthProvider({ children }) {
-  const [token, setToken] = useState(() => getStoredAuthToken());
+  const location = useLocation();
+  const navigate = useNavigate();
+  const [token, setToken] = useState(() => {
+    clearLegacyAuthSession();
+    return getStoredAuthToken();
+  });
   const [user, setUser] = useState(() => getStoredAuthUser());
 
   const isAuthenticated = Boolean(token && user);
@@ -28,11 +40,22 @@ export function AuthProvider({ children }) {
   useEffect(() => {
     const handleExpiredSession = () => {
       logout();
+      navigate('/login', {
+        replace: true,
+        state: { sessionMessage: 'La sesión venció. Ingresa nuevamente.' },
+      });
     };
 
     window.addEventListener('carmencita:auth-expired', handleExpiredSession);
     return () => window.removeEventListener('carmencita:auth-expired', handleExpiredSession);
-  }, [logout]);
+  }, [logout, navigate]);
+
+  useEffect(() => {
+    if (!isAuthenticated || location.pathname.startsWith('/admin') || location.pathname === '/login') {
+      return;
+    }
+    logout();
+  }, [isAuthenticated, location.pathname, logout]);
 
   const value = useMemo(
     () => ({

@@ -24,6 +24,7 @@ export function extractSunatSummary(response = {}) {
     cdr_code: response.cdr_code || cdrResponse.code,
     cdr_description: response.cdr_description || cdrResponse.description,
     cdr_notes: response.cdr_notes || cdrResponse.notes || [],
+    xml: response.xml || raw.xml,
     pdf_url: response.pdf_url,
     raw_response: raw,
   };

@@ -1,4 +1,5 @@
 import React from 'react';
+import { Clock3 } from 'lucide-react';
 import packageIcon from '../../assets/icons/paquete.svg';
 import locationIcon from '../../assets/icons/pin-de-ubicacion.svg';
 import checkIcon from '../../assets/icons/flecha-correcta.svg';
@@ -11,7 +12,6 @@ const steps = [
 ];
 
 const statusIndex = {
-  PRE_REGISTRADA: 0,
   REGISTRADA: 0,
   COTIZADA: 0,
   PAGO_CONFIRMADO: 0,
@@ -38,6 +38,20 @@ function GreenIcon({ src, active }) {
 
 function TrackingProgress({ estado }) {
   const normalized = String(estado || '').toUpperCase();
+
+  if (normalized === 'PRE_REGISTRADA') {
+    return (
+      <div className="flex items-center gap-4 rounded-lg border border-amber-300 bg-amber-50 p-4 text-amber-900">
+        <span className="flex h-14 w-14 shrink-0 items-center justify-center rounded-full bg-amber-100">
+          <Clock3 className="h-7 w-7" />
+        </span>
+        <div>
+          <p className="font-black">Pendiente de pago</p>
+          <p className="mt-1 text-sm font-semibold">La encomienda sera recepcionada cuando el pago sea confirmado en agencia.</p>
+        </div>
+      </div>
+    );
+  }
 
   if (normalized === 'ANULADA') {
     return (

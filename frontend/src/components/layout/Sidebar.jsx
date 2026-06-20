@@ -7,8 +7,6 @@ import cuentaIcon from '../../assets/icons/cuenta.svg';
 import paqueteIcon from '../../assets/icons/paquete.svg';
 import marcadorIcon from '../../assets/icons/marcador-de-posicion.svg';
 import tareaIcon from '../../assets/icons/tarea.svg';
-import camionIcon from '../../assets/icons/camion.svg';
-import tarjetaIcon from '../../assets/icons/tarjeta-de-debito.svg';
 
 const navIcons = {
   Dashboard: tareaIcon,
@@ -16,8 +14,6 @@ const navIcons = {
   Encomiendas: paqueteIcon,
   Destinos: marcadorIcon,
   'Usuarios internos': cuentaIcon,
-  Cotizaciones: tarjetaIcon,
-  'Optimizacion de carga': camionIcon,
 };
 
 function Sidebar() {

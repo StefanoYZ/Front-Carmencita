@@ -1,12 +1,8 @@
-import axios from 'axios';
-
-const API_URL = 'http://127.0.0.1:8000';
+import apiClient from './apiClient.js';
 
 export const optimizacionService = {
   async obtenerEscenario() {
-    const response = await axios.get(
-      `${API_URL}/api/v1/load-optimization/sample`
-    );
+    const response = await apiClient.get('/load-optimization/sample');
 
     const sample = response.data.data;
 
@@ -25,10 +21,7 @@ export const optimizacionService = {
       algorithm,
     };
 
-    const response = await axios.post(
-      `${API_URL}/api/v1/load-optimization/simulate`,
-      payload
-    );
+    const response = await apiClient.post('/load-optimization/simulate', payload);
 
     return {
       sample,
@@ -44,10 +37,7 @@ export const optimizacionService = {
       algorithm: 'bfd3d',
     };
 
-    const response = await axios.post(
-      `${API_URL}/api/v1/load-optimization/compare`,
-      payload
-    );
+    const response = await apiClient.post('/load-optimization/compare', payload);
 
     return {
       sample,

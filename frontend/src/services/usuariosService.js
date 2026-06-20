@@ -15,8 +15,8 @@ export async function updateUsuario(id, payload) {
   return response.data;
 }
 
-export async function disableUsuario(id) {
-  const response = await apiClient.delete(`/users/${id}`);
+export async function setUsuarioActivo(id, isActive) {
+  const response = await apiClient.put(`/users/${id}`, { is_active: isActive });
   return response.data;
 }
 
@@ -39,7 +39,7 @@ export const usuariosService = {
   getUsuarios,
   createUsuario,
   updateUsuario,
-  disableUsuario,
+  setUsuarioActivo,
   getRoles,
   assignRoleToUser,
   removeRoleFromUser,

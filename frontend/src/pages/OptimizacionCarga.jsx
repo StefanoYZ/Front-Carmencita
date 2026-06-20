@@ -410,7 +410,19 @@ export default function OptimizacionCarga() {
             </div>
           </div>
           <div className="relative mt-4">
-            <PackingScene3D truck={selectedTruck} placements={renderedPlacements} loadedCodes={loadedCodes} expectedCode={currentPlacement?.codigo} viewMode={viewMode} />
+            {isSceneExpanded ? (
+              <div className="flex h-[520px] items-center justify-center rounded-lg border border-[#d9e7d4] bg-[#F8F9FA] text-sm font-bold text-[#6C757D]">
+                La escena se muestra en la vista ampliada.
+              </div>
+            ) : (
+              <PackingScene3D
+                truck={selectedTruck}
+                placements={renderedPlacements}
+                loadedCodes={loadedCodes}
+                expectedCode={currentPlacement?.codigo}
+                viewMode={viewMode}
+              />
+            )}
             <button
               type="button"
               className="absolute right-4 top-4 z-10 flex h-10 w-10 items-center justify-center rounded-md border border-[#d9e7d4] bg-white/95 text-[#3C5940] shadow-sm transition hover:border-[#28A745] hover:text-[#28A745]"
@@ -487,7 +499,7 @@ export default function OptimizacionCarga() {
       </footer>
 
       {isSceneExpanded && (
-        <div className="fixed inset-0 z-50 bg-[#212529]/80 p-4 backdrop-blur-sm">
+        <div className="fixed inset-0 z-50 bg-[#212529]/90 p-4">
           <div className="mx-auto flex h-full max-w-7xl flex-col rounded-xl border border-[#E4ECE2] bg-white p-4 shadow-2xl">
             <div className="flex flex-col gap-3 border-b border-[#E4ECE2] pb-4 md:flex-row md:items-center md:justify-between">
               <div>
@@ -527,6 +539,7 @@ export default function OptimizacionCarga() {
                 expectedCode={currentPlacement?.codigo}
                 viewMode={viewMode}
                 className="h-full min-h-[420px]"
+                expanded
               />
             </div>
 

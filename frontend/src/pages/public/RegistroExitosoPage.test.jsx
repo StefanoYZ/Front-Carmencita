@@ -85,7 +85,7 @@ describe('RegistroExitosoPage', () => {
       </MemoryRouter>,
     );
 
-    fireEvent.click(screen.getByRole('button', { name: /imprimir boleta electronica/i }));
+    fireEvent.click(screen.getByRole('button', { name: /emitir e imprimir boleta/i }));
     await waitFor(() => expect(generarPdfBetaDesdeEncomienda).toHaveBeenCalledWith({
       encomienda_id: 10,
       confirmar_pago: true,

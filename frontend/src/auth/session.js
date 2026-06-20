@@ -23,7 +23,6 @@ export function saveAuthSession({ access_token, user }) {
   try {
     window.sessionStorage.setItem(AUTH_TOKEN_KEY, access_token);
     window.sessionStorage.setItem(AUTH_USER_KEY, JSON.stringify(user));
-    touchAuthSession();
   } catch (error) {
     // Session persistence is a convenience; login state still works in memory.
   }
@@ -36,22 +35,6 @@ export function clearAuthSession() {
     window.sessionStorage.removeItem(AUTH_LAST_ACTIVITY_KEY);
   } catch (error) {
     // Ignore unavailable storage.
-  }
-}
-
-export function touchAuthSession(timestamp = Date.now()) {
-  try {
-    window.sessionStorage.setItem(AUTH_LAST_ACTIVITY_KEY, String(timestamp));
-  } catch (error) {
-    // Ignore unavailable storage.
-  }
-}
-
-export function getAuthLastActivity() {
-  try {
-    return Number(window.sessionStorage.getItem(AUTH_LAST_ACTIVITY_KEY) || 0);
-  } catch (error) {
-    return 0;
   }
 }
 

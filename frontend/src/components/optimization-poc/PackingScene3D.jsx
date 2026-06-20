@@ -1,5 +1,5 @@
 import React, { Suspense, useEffect, useMemo, useRef, useState } from 'react';
-import { Canvas, useFrame, useThree } from '@react-three/fiber';
+import { Canvas, useThree } from '@react-three/fiber';
 import { Edges, Html, OrbitControls, PerspectiveCamera } from '@react-three/drei';
 import TruckModel from './truck/TruckModel.jsx';
 import { CARGO_LIFT } from './truck/TruckCargoBox.jsx';
@@ -40,12 +40,6 @@ function PackageBox({ placement, loaded, expected, selected, onSelect }) {
   const color = selected ? '#FACC15' : colorForPackage(placement);
   const opacity = selected || hovered || expected ? 1 : loaded ? 0.9 : 0.82;
   const isRotated = placement.orientation && placement.orientation !== 'LWH';
-
-  useFrame((state) => {
-    if (!expected || !meshRef.current) return;
-    const pulse = 1 + Math.sin(state.clock.elapsedTime * 4) * 0.012;
-    meshRef.current.scale.setScalar(pulse);
-  });
 
   useEffect(() => {
     if (!hovered) return undefined;
@@ -144,7 +138,15 @@ function CameraRig({ scene, viewMode }) {
   return <OrbitControls ref={controlsRef} target={scene.target} enablePan enableZoom enableRotate minDistance={2.5} maxDistance={16} />;
 }
 
-export default function PackingScene3D({ truck, placements = [], loadedCodes = [], expectedCode, viewMode = 'isometric', className = 'h-[520px]' }) {
+export default function PackingScene3D({
+  truck,
+  placements = [],
+  loadedCodes = [],
+  expectedCode,
+  viewMode = 'isometric',
+  className = 'h-[520px]',
+  expanded = false,
+}) {
   const [selectedPackageCode, setSelectedPackageCode] = useState(null);
   const scene = useMemo(() => {
     if (!truck) return null;
@@ -219,11 +221,21 @@ export default function PackingScene3D({ truck, placements = [], loadedCodes = [
 
   return (
     <div className={`relative overflow-hidden rounded-lg border border-[#d9e7d4] bg-gradient-to-b from-white to-[#F8F9FA] ${className}`}>
-      <Canvas shadows onPointerMissed={() => setSelectedPackageCode(null)}>
+      <Canvas
+        shadows={!expanded}
+        frameloop="demand"
+        dpr={expanded ? 1 : [1, 1.5]}
+        gl={{
+          antialias: !expanded,
+          powerPreference: 'high-performance',
+        }}
+        performance={{ min: 0.5 }}
+        onPointerMissed={() => setSelectedPackageCode(null)}
+      >
         <Suspense fallback={null}>
           <PerspectiveCamera makeDefault position={scene.cameraPosition} fov={55} />
           <ambientLight intensity={0.65} />
-          <directionalLight position={[8, 12, 10]} intensity={1.2} castShadow />
+          <directionalLight position={[8, 12, 10]} intensity={1.2} castShadow={!expanded} />
           <directionalLight position={[-6, 5, -4]} intensity={0.35} />
           <gridHelper args={[Math.max(scene.depth, scene.width) * 1.35, 24, '#cbd5cf', '#edf2ef']} position={[0, -0.02, 0]} />
           <TruckModel truck={truck} scale={SCALE} />

@@ -107,7 +107,7 @@ function LoginPage() {
                   </div>
                 )}
                 <label className="block">
-                  <span className="text-sm font-black text-brand-black">Usuario o correo</span>
+                  <span className="text-sm font-black text-brand-black">Usuario</span>
                   <span className="mt-2 flex min-h-12 items-center rounded-md border border-gray-200 bg-white px-3 focus-within:border-brand-green focus-within:ring-2 focus-within:ring-brand-lime/50">
                     <img src={userIcon} alt="" className="h-5 w-5 opacity-70" />
                     <input

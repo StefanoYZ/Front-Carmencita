@@ -8,7 +8,6 @@ import { generarPdfBetaDesdeEncomienda } from '../../services/sunatService.js';
 import { formatShipmentCode } from '../../utils/formatShipmentCode.js';
 import { PUBLIC_SUCCESS_STORAGE_KEY, clearSessionKey, readSessionJSON } from '../../utils/publicShipment.js';
 import checkIcon from '../../assets/icons/flecha-correcta.svg';
-import packageIcon from '../../assets/icons/paquete.svg';
 
 function RegistroExitosoPage() {
   const location = useLocation();
@@ -156,7 +155,7 @@ function RegistroExitosoPage() {
                   className="inline-flex min-h-12 items-center justify-center gap-2 rounded-md border border-[#3C5940] bg-white px-5 text-sm font-black text-[#3C5940] transition hover:-translate-y-0.5 hover:bg-[#F8F9FA] disabled:translate-y-0 disabled:cursor-wait disabled:opacity-65"
                 >
                   <FileText size={19} />
-                  {printing === 'receipt' ? 'Generando boleta...' : 'Imprimir boleta electronica'}
+                  {printing === 'receipt' ? 'Emitiendo boleta...' : 'Emitir e imprimir boleta'}
                 </button>
               </div>
             </div>
@@ -169,13 +168,6 @@ function RegistroExitosoPage() {
           )}
 
           <div className="mt-8 flex flex-col gap-3 sm:flex-row">
-            <Link
-              to={code ? `/tracking/${code}` : '/tracking'}
-              className="inline-flex min-h-12 items-center justify-center gap-2 rounded-md bg-[#28A745] px-5 text-sm font-black text-white transition hover:bg-[#3C5940]"
-            >
-              <img src={packageIcon} alt="" className="h-5 w-5 brightness-0 invert" />
-              Rastrear codigo
-            </Link>
             <Link
               to="/"
               className="inline-flex min-h-12 items-center justify-center rounded-md border border-gray-300 px-5 text-sm font-black text-gray-700 transition hover:bg-gray-50"

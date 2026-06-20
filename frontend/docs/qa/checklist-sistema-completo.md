@@ -46,7 +46,8 @@ Fecha de ejecución: 19 de junio de 2026
 | Destinos | Crear y listar | Persiste y respeta permisos | pytest | APROBADA |
 | Usuarios | Crear, activar, desactivar y asignar roles | Persiste permisos y estado | pytest | APROBADA |
 | SUNAT | Generar PDF/XML local | Produce contenido para la encomienda | pytest | APROBADA |
-| SUNAT | Enviar a Lycet beta | Recibe confirmación del proveedor | Lycet configurado no respondió | BLOQUEADA |
+| SUNAT | Enviar a Lycet beta | Recibe XML firmado, hash y CDR | Boleta B001-180745 aceptada, CDR 0 | APROBADA |
+| SUNAT | Reutilizar comprobante | PDF/XML conservan serie y correlativo | pytest + PostgreSQL | APROBADA |
 | Optimización | Ejecutar algoritmos | Devuelve coordenadas dentro del box | pytest + Playwright | APROBADA |
 | Optimización | Cambiar camión y cámara | Actualiza escena sin perder estado | Playwright | APROBADA |
 | Optimización | Siguiente, anterior y reiniciar | Controla la carga progresiva | Playwright | APROBADA |

@@ -16,7 +16,7 @@ export async function updateUsuario(id, payload) {
 }
 
 export async function setUsuarioActivo(id, isActive) {
-  const response = await apiClient.put(`/users/${id}`, { is_active: isActive });
+  const response = await apiClient.patch(`/users/${id}/status`, { is_active: isActive });
   return response.data;
 }
 

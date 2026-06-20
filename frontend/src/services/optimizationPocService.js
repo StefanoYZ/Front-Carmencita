@@ -4,8 +4,8 @@ import { getOptimizationAlgorithm } from '../config/optimizationPocAlgorithms.js
 const basePath = '/optimization/poc';
 
 export const optimizationPocService = {
-  async getScenario(limit = 70) {
-    const response = await apiClient.get(`${basePath}/scenario`, { params: { limit }, timeout: 30000 });
+  async getScenario() {
+    const response = await apiClient.get(`${basePath}/scenario`, { timeout: 30000 });
     return response.data;
   },
 

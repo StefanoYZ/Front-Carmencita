@@ -5,6 +5,7 @@ import Card from '../components/common/Card.jsx';
 import Input from '../components/common/Input.jsx';
 import Loader from '../components/common/Loader.jsx';
 import DataTable from '../components/tables/DataTable.jsx';
+import { useAuth } from '../context/AuthContext.jsx';
 import { getApiErrorMessage } from '../services/apiClient.js';
 import {
   assignRoleToUser,
@@ -23,6 +24,7 @@ const emptyUserForm = {
 };
 
 function UsuariosInternos() {
+  const { user: currentUser } = useAuth();
   const [usuarios, setUsuarios] = useState([]);
   const [roles, setRoles] = useState([]);
   const [form, setForm] = useState(emptyUserForm);
@@ -30,6 +32,7 @@ function UsuariosInternos() {
   const [saving, setSaving] = useState(false);
   const [error, setError] = useState('');
   const [message, setMessage] = useState('');
+  const [statusLoadingId, setStatusLoadingId] = useState(null);
 
   async function loadData() {
     try {
@@ -95,13 +98,16 @@ function UsuariosInternos() {
   const handleToggleUser = async (user) => {
     const nextActive = !user.is_active;
     try {
+      setStatusLoadingId(user.id);
       setError('');
       setMessage('');
-      await setUsuarioActivo(user.id, nextActive);
+      const updated = await setUsuarioActivo(user.id, nextActive);
+      setUsuarios((current) => current.map((item) => (item.id === updated.id ? updated : item)));
       setMessage(`Usuario ${user.username} ${nextActive ? 'activado' : 'desactivado'}.`);
-      await loadData();
     } catch (statusError) {
       setError(getApiErrorMessage(statusError, 'No se pudo actualizar el estado del usuario.'));
+    } finally {
+      setStatusLoadingId(null);
     }
   };
 
@@ -148,19 +154,27 @@ function UsuariosInternos() {
     {
       header: 'Accion',
       accessor: 'accion',
-      cell: (row) => (
-        <button
-          type="button"
-          className={`font-semibold transition ${
-            row.is_active
-              ? 'text-red-700 hover:text-red-900'
-              : 'text-brand-green hover:text-brand-dark'
-          }`}
-          onClick={() => handleToggleUser(row)}
-        >
-          {row.is_active ? 'Desactivar' : 'Activar'}
-        </button>
-      ),
+      cell: (row) => {
+        const isCurrentSession = row.id === currentUser?.id;
+        const isUpdating = statusLoadingId === row.id;
+        return (
+          <button
+            type="button"
+            className={`font-semibold transition ${
+              isCurrentSession
+                ? 'cursor-not-allowed text-brand-gray'
+                : row.is_active
+                  ? 'text-red-700 hover:text-red-900'
+                  : 'text-brand-green hover:text-brand-dark'
+            }`}
+            disabled={isCurrentSession || isUpdating}
+            title={isCurrentSession ? 'No puedes desactivar la cuenta de tu sesion actual.' : undefined}
+            onClick={() => handleToggleUser(row)}
+          >
+            {isUpdating ? 'Actualizando...' : isCurrentSession ? 'Sesion actual' : row.is_active ? 'Desactivar' : 'Activar'}
+          </button>
+        );
+      },
     },
   ];
 

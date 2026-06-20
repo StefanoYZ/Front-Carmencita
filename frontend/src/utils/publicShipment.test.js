@@ -1,0 +1,53 @@
+import { describe, expect, it } from 'vitest';
+import {
+  buildPublicShipmentPayload,
+  emptyPublicShipmentForm,
+  validatePublicShipmentForm,
+} from './publicShipment.js';
+
+function validForm(overrides = {}) {
+  return {
+    ...emptyPublicShipmentForm,
+    remitente_numero_documento: '70123456',
+    remitente_nombre: 'Remitente QA',
+    remitente_telefono: '987654321',
+    destinatario_numero_documento: '70876543',
+    destinatario_nombre: 'Destinatario QA',
+    destinatario_telefono: '976543210',
+    origen: 'Trujillo',
+    destino: 'Shorey',
+    descripcion: 'Sobre de prueba',
+    tipo_contenido: 'DOCUMENTOS',
+    peso_kg: '1',
+    fragilidad: 'BAJA',
+    ...overrides,
+  };
+}
+
+describe('public shipment validation', () => {
+  it('rechaza origen y destino iguales', () => {
+    const errors = validatePublicShipmentForm(validForm({ destino: 'Trujillo' }));
+
+    expect(errors.destino).toBe('El destino debe ser diferente al origen.');
+  });
+
+  it('permite sobres sin dimensiones y envia ceros al backend', () => {
+    const form = validForm();
+
+    expect(validatePublicShipmentForm(form)).toEqual({});
+    expect(buildPublicShipmentPayload(form)).toMatchObject({
+      tipo_contenido: 'DOCUMENTOS',
+      largo_cm: 0,
+      ancho_cm: 0,
+      alto_cm: 0,
+    });
+  });
+
+  it('mantiene las dimensiones obligatorias para paquetes', () => {
+    const errors = validatePublicShipmentForm(validForm({ tipo_contenido: 'ROPA' }));
+
+    expect(errors.largo_cm).toBeTruthy();
+    expect(errors.ancho_cm).toBeTruthy();
+    expect(errors.alto_cm).toBeTruthy();
+  });
+});

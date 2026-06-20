@@ -9,15 +9,14 @@ import { getApiErrorMessage } from '../services/apiClient.js';
 import {
   assignRoleToUser,
   createUsuario,
-  disableUsuario,
   getRoles,
   getUsuarios,
   removeRoleFromUser,
+  setUsuarioActivo,
 } from '../services/usuariosService.js';
 
 const emptyUserForm = {
   username: '',
-  email: '',
   password: '',
   full_name: '',
   role_id: '',
@@ -66,8 +65,8 @@ function UsuariosInternos() {
 
   const handleCreateUser = async (event) => {
     event.preventDefault();
-    if (!form.username.trim() || !form.email.trim() || !form.password.trim() || !form.full_name.trim()) {
-      setError('Completa usuario, correo, contraseña y nombre.');
+    if (!form.username.trim() || !form.password.trim() || !form.full_name.trim()) {
+      setError('Completa usuario, contraseña y nombre.');
       return;
     }
 
@@ -77,7 +76,6 @@ function UsuariosInternos() {
       setMessage('');
       const created = await createUsuario({
         username: form.username.trim(),
-        email: form.email.trim(),
         password: form.password,
         full_name: form.full_name.trim(),
       });
@@ -94,15 +92,16 @@ function UsuariosInternos() {
     }
   };
 
-  const handleDisableUser = async (user) => {
+  const handleToggleUser = async (user) => {
+    const nextActive = !user.is_active;
     try {
       setError('');
       setMessage('');
-      await disableUsuario(user.id);
-      setMessage(`Usuario ${user.username} desactivado.`);
+      await setUsuarioActivo(user.id, nextActive);
+      setMessage(`Usuario ${user.username} ${nextActive ? 'activado' : 'desactivado'}.`);
       await loadData();
-    } catch (disableError) {
-      setError(getApiErrorMessage(disableError, 'No se pudo desactivar el usuario.'));
+    } catch (statusError) {
+      setError(getApiErrorMessage(statusError, 'No se pudo actualizar el estado del usuario.'));
     }
   };
 
@@ -126,7 +125,6 @@ function UsuariosInternos() {
   const columns = [
     { header: 'Usuario', accessor: 'username' },
     { header: 'Nombre', accessor: 'full_name' },
-    { header: 'Correo', accessor: 'email' },
     { header: 'Estado', accessor: 'is_active', cell: (row) => (row.is_active ? 'Activo' : 'Inactivo') },
     {
       header: 'Rol',
@@ -153,11 +151,14 @@ function UsuariosInternos() {
       cell: (row) => (
         <button
           type="button"
-          className="font-semibold text-brand-dark transition hover:text-brand-green disabled:text-brand-gray"
-          disabled={!row.is_active}
-          onClick={() => handleDisableUser(row)}
+          className={`font-semibold transition ${
+            row.is_active
+              ? 'text-red-700 hover:text-red-900'
+              : 'text-brand-green hover:text-brand-dark'
+          }`}
+          onClick={() => handleToggleUser(row)}
         >
-          Desactivar
+          {row.is_active ? 'Desactivar' : 'Activar'}
         </button>
       ),
     },
@@ -174,10 +175,9 @@ function UsuariosInternos() {
       {message && <Alert tone="success">{message}</Alert>}
 
       <Card>
-        <form className="grid gap-4 lg:grid-cols-5 lg:items-end" onSubmit={handleCreateUser}>
+        <form className="grid gap-4 lg:grid-cols-4 lg:items-end" onSubmit={handleCreateUser}>
           <Input label="Usuario" name="username" value={form.username} onChange={updateField} required />
           <Input label="Nombre completo" name="full_name" value={form.full_name} onChange={updateField} required />
-          <Input label="Correo" name="email" type="email" value={form.email} onChange={updateField} required />
           <Input label="Contraseña" name="password" type="password" value={form.password} onChange={updateField} required />
           <label className="block">
             <span className="mb-1.5 block text-sm font-medium text-gray-700">Rol inicial</span>
@@ -195,7 +195,7 @@ function UsuariosInternos() {
               ))}
             </select>
           </label>
-          <div className="lg:col-span-5">
+          <div className="lg:col-span-4">
             <Button type="submit" disabled={saving}>
               {saving ? 'Guardando...' : 'Crear usuario'}
             </Button>

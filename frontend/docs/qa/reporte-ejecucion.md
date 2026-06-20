@@ -6,13 +6,26 @@ Fecha: 19 de junio de 2026
 
 La lógica principal de registro, pagos controlados, encomiendas, clientes, roles, optimización, etiquetas y persistencia fue validada. No se dejaron registros `TEST_QA` en PostgreSQL.
 
+## Validación Lycet del 19 de junio de 2026
+
+- Se levantó `Lycet-Carmencita` en Docker sobre `http://localhost:8001`.
+- Se usó el RUC de pruebas `20161515648`, documento `03`, serie `B001`.
+- La boleta beta `B001-180745` fue aceptada.
+- `/invoice/send` devolvió XML firmado, hash y CDR.
+- `sunatResponse.success` fue `true`.
+- El código CDR fue `0`.
+- La descripción recibida fue: `La Boleta numero B001-180745, ha sido aceptada`.
+- `/invoice/status` respondió error SOL `00103`; por ello el backend conserva como fuente principal el CDR retornado durante `/invoice/send`.
+- La tabla `boletas_electronicas` fue creada en PostgreSQL mediante SQLAlchemy.
+- PDF, XML y CDR se reutilizan desde la misma emisión persistida por encomienda.
+
 ## Ejecuciones
 
 | Comando o comprobación | Resultado |
 |---|---|
-| `pytest -q --cov=app` | 29 aprobadas, 0 fallidas, cobertura total 68% |
+| `pytest -q` | 30 aprobadas, 0 fallidas |
 | `python -m compileall -q app` | Aprobado |
-| `npm test` | 5 archivos, 12 pruebas aprobadas |
+| `npm test` | 6 archivos, 15 pruebas aprobadas |
 | `npm run lint` | 0 errores, 86 advertencias |
 | `npm run build` | Aprobado |
 | Playwright escritorio | 10 escenarios aprobados en ejecución estable |

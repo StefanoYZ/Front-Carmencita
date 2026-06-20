@@ -199,6 +199,8 @@ function LocationField({ label, name, value, onChange, error, options }) {
 }
 
 function ShipmentFormStep({ form, errors, reniecStatus, locationOptions = [], onChange, onReniecLookup, onSubmit, onCancel }) {
+  const isEnvelope = form.tipo_contenido === 'DOCUMENTOS';
+
   return (
     <form className="space-y-6" onSubmit={onSubmit}>
       <div className="grid min-w-0 gap-6 xl:grid-cols-2">
@@ -240,16 +242,22 @@ function ShipmentFormStep({ form, errors, reniecStatus, locationOptions = [], on
             <option value="ALIMENTOS">Alimentos</option>
             <option value="OTROS">Otros</option>
           </Field>
-          <Field as="select" label="Fragilidad" name="fragilidad" value={form.fragilidad} onChange={onChange} error={errors.fragilidad}>
-            <option value="">Seleccionar</option>
-            <option value="BAJA">Baja</option>
-            <option value="MEDIA">Media</option>
-            <option value="ALTA">Alta</option>
-          </Field>
+          {!isEnvelope && (
+            <Field as="select" label="Fragilidad" name="fragilidad" value={form.fragilidad} onChange={onChange} error={errors.fragilidad}>
+              <option value="">Seleccionar</option>
+              <option value="BAJA">Baja</option>
+              <option value="MEDIA">Media</option>
+              <option value="ALTA">Alta</option>
+            </Field>
+          )}
           <Field label="Peso total (kg)" name="peso_kg" inputMode="decimal" value={form.peso_kg} onChange={onChange} error={errors.peso_kg} />
-          <Field label="Largo (cm)" name="largo_cm" inputMode="decimal" value={form.largo_cm} onChange={onChange} error={errors.largo_cm} />
-          <Field label="Ancho (cm)" name="ancho_cm" inputMode="decimal" value={form.ancho_cm} onChange={onChange} error={errors.ancho_cm} />
-          <Field label="Alto (cm)" name="alto_cm" inputMode="decimal" value={form.alto_cm} onChange={onChange} error={errors.alto_cm} />
+          {!isEnvelope && (
+            <>
+              <Field label="Largo (cm)" name="largo_cm" inputMode="decimal" value={form.largo_cm} onChange={onChange} error={errors.largo_cm} />
+              <Field label="Ancho (cm)" name="ancho_cm" inputMode="decimal" value={form.ancho_cm} onChange={onChange} error={errors.ancho_cm} />
+              <Field label="Alto (cm)" name="alto_cm" inputMode="decimal" value={form.alto_cm} onChange={onChange} error={errors.alto_cm} />
+            </>
+          )}
           <label className="grid gap-1.5 md:col-span-2 xl:col-span-4">
             <span className="text-sm font-black text-[#3C5940]">Descripcion</span>
             <textarea

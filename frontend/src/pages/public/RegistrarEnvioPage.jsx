@@ -108,6 +108,13 @@ function RegistrarEnvioPage() {
         next[documentField] = sanitizeShipmentField(documentField, next[documentField], next);
       }
 
+      if (name === 'tipo_contenido' && value === 'DOCUMENTOS') {
+        next.largo_cm = '';
+        next.ancho_cm = '';
+        next.alto_cm = '';
+        next.fragilidad = 'BAJA';
+      }
+
       return next;
     });
     setErrors((current) => {

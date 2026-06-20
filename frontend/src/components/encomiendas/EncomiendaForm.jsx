@@ -49,6 +49,7 @@ function FormSection({ title, children }) {
 }
 
 function EncomiendaForm({ form, errors = {}, onChange, onSubmit, loading = false, mode = 'create', codigoEncomienda = '' }) {
+  const isEnvelope = form.tipo_contenido === 'DOCUMENTOS';
   const [reniecStatus, setReniecStatus] = React.useState({
     remitente: null,
     destinatario: null,
@@ -70,6 +71,16 @@ function EncomiendaForm({ form, errors = {}, onChange, onSubmit, loading = false
 
   const updateFieldValue = (name, value) => {
     onChange({ target: { name, value } });
+  };
+
+  const handleContentTypeChange = (event) => {
+    onChange(event);
+    if (event.target.value === 'DOCUMENTOS') {
+      updateFieldValue('largo_cm', '');
+      updateFieldValue('ancho_cm', '');
+      updateFieldValue('alto_cm', '');
+      updateFieldValue('fragilidad', 'BAJA');
+    }
   };
 
   const updatePersonFromLocalClient = (role, client) => {
@@ -207,7 +218,7 @@ function EncomiendaForm({ form, errors = {}, onChange, onSubmit, loading = false
             <select
               name="tipo_contenido"
               value={form.tipo_contenido}
-              onChange={onChange}
+              onChange={handleContentTypeChange}
               className="min-h-10 w-full rounded-md border border-gray-200 bg-white px-3 py-2 text-sm text-brand-black outline-none transition hover:border-brand-lime focus:border-brand-green focus:ring-2 focus:ring-brand-lime/50"
             >
               <option value="">Seleccionar</option>
@@ -220,23 +231,29 @@ function EncomiendaForm({ form, errors = {}, onChange, onSubmit, loading = false
             {errors.tipo_contenido && <span className="mt-1 block text-xs font-semibold text-brand-dark">{errors.tipo_contenido}</span>}
           </label>
           <Input label="Peso (kg)" name="peso_kg" inputMode="decimal" value={form.peso_kg} onChange={onChange} error={errors.peso_kg} required />
-          <Input label="Largo (cm)" name="largo_cm" inputMode="decimal" value={form.largo_cm} onChange={onChange} error={errors.largo_cm} required />
-          <Input label="Ancho (cm)" name="ancho_cm" inputMode="decimal" value={form.ancho_cm} onChange={onChange} error={errors.ancho_cm} required />
-          <Input label="Alto (cm)" name="alto_cm" inputMode="decimal" value={form.alto_cm} onChange={onChange} error={errors.alto_cm} required />
-          <label className="block">
-            <span className="mb-1.5 block text-sm font-medium text-brand-black">Fragilidad</span>
-            <select
-              name="fragilidad"
-              value={form.fragilidad}
-              onChange={onChange}
-              className="min-h-10 w-full rounded-md border border-gray-200 bg-white px-3 py-2 text-sm text-brand-black outline-none transition hover:border-brand-lime focus:border-brand-green focus:ring-2 focus:ring-brand-lime/50"
-            >
-              <option value="BAJA">Baja</option>
-              <option value="MEDIA">Media</option>
-              <option value="ALTA">Alta</option>
-            </select>
-            {errors.fragilidad && <span className="mt-1 block text-xs font-semibold text-brand-dark">{errors.fragilidad}</span>}
-          </label>
+          {!isEnvelope && (
+            <>
+              <Input label="Largo (cm)" name="largo_cm" inputMode="decimal" value={form.largo_cm} onChange={onChange} error={errors.largo_cm} required />
+              <Input label="Ancho (cm)" name="ancho_cm" inputMode="decimal" value={form.ancho_cm} onChange={onChange} error={errors.ancho_cm} required />
+              <Input label="Alto (cm)" name="alto_cm" inputMode="decimal" value={form.alto_cm} onChange={onChange} error={errors.alto_cm} required />
+            </>
+          )}
+          {!isEnvelope && (
+            <label className="block">
+              <span className="mb-1.5 block text-sm font-medium text-brand-black">Fragilidad</span>
+              <select
+                name="fragilidad"
+                value={form.fragilidad}
+                onChange={onChange}
+                className="min-h-10 w-full rounded-md border border-gray-200 bg-white px-3 py-2 text-sm text-brand-black outline-none transition hover:border-brand-lime focus:border-brand-green focus:ring-2 focus:ring-brand-lime/50"
+              >
+                <option value="BAJA">Baja</option>
+                <option value="MEDIA">Media</option>
+                <option value="ALTA">Alta</option>
+              </select>
+              {errors.fragilidad && <span className="mt-1 block text-xs font-semibold text-brand-dark">{errors.fragilidad}</span>}
+            </label>
+          )}
           {mode === 'edit' && (
             <label className="block">
               <span className="mb-1.5 block text-sm font-medium text-brand-black">Estado</span>

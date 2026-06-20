@@ -106,14 +106,15 @@ export function mapQuoteToShipmentForm(quote) {
     destino: quote.destino || 'Angasmarca',
     tipo_contenido: quote.tipo === 'Sobres' ? 'DOCUMENTOS' : quote.tipo ? 'PAQUETE' : '',
     peso_kg: quote.peso || '',
-    largo_cm: quote.largo || '',
-    ancho_cm: quote.ancho || '',
-    alto_cm: quote.alto || '',
+    largo_cm: quote.tipo === 'Sobres' ? '' : quote.largo || '',
+    ancho_cm: quote.tipo === 'Sobres' ? '' : quote.ancho || '',
+    alto_cm: quote.tipo === 'Sobres' ? '' : quote.alto || '',
     fragilidad: normalizeFragilityValue(quote.fragilidad),
   };
 }
 
 export function buildPublicShipmentPayload(form) {
+  const isEnvelope = isEnvelopeContent(form.tipo_contenido);
   return {
     remitente_tipo_documento: String(form.remitente_tipo_documento || '').trim().toUpperCase(),
     remitente_numero_documento: String(form.remitente_numero_documento || '').trim(),
@@ -132,10 +133,10 @@ export function buildPublicShipmentPayload(form) {
     descripcion: String(form.descripcion || '').trim(),
     tipo_contenido: String(form.tipo_contenido || '').trim().toUpperCase(),
     peso_kg: Number(form.peso_kg),
-    largo_cm: Number(form.largo_cm),
-    ancho_cm: Number(form.ancho_cm),
-    alto_cm: Number(form.alto_cm),
-    fragilidad: String(form.fragilidad || '').trim().toUpperCase(),
+    largo_cm: isEnvelope ? 0 : Number(form.largo_cm),
+    ancho_cm: isEnvelope ? 0 : Number(form.ancho_cm),
+    alto_cm: isEnvelope ? 0 : Number(form.alto_cm),
+    fragilidad: isEnvelope ? 'BAJA' : String(form.fragilidad || '').trim().toUpperCase(),
   };
 }
 
@@ -150,7 +151,6 @@ export function validatePublicShipmentForm(form) {
     ['destino', 'El destino es obligatorio.'],
     ['descripcion', 'La descripcion es obligatoria.'],
     ['tipo_contenido', 'Selecciona el tipo de contenido.'],
-    ['fragilidad', 'Selecciona la fragilidad.'],
   ].forEach(([field, message]) => {
     if (!String(form[field] || '').trim()) {
       errors[field] = message;
@@ -160,15 +160,29 @@ export function validatePublicShipmentForm(form) {
   const contentError = validateContentType(form.tipo_contenido);
   if (contentError) errors.tipo_contenido = contentError;
 
-  const fragilityError = validateFragility(form.fragilidad);
-  if (fragilityError) errors.fragilidad = fragilityError;
+  if (!isEnvelopeContent(form.tipo_contenido)) {
+    if (!String(form.fragilidad || '').trim()) {
+      errors.fragilidad = 'Selecciona la fragilidad.';
+    } else {
+      const fragilityError = validateFragility(form.fragilidad);
+      if (fragilityError) errors.fragilidad = fragilityError;
+    }
+  }
 
-  const numericMessages = {
-    peso_kg: 'El peso debe ser mayor a 0.',
-    largo_cm: 'Las dimensiones deben ser mayores a 0.',
-    ancho_cm: 'Las dimensiones deben ser mayores a 0.',
-    alto_cm: 'Las dimensiones deben ser mayores a 0.',
-  };
+  if (
+    String(form.origen || '').trim()
+    && String(form.destino || '').trim()
+    && normalizeLocation(form.origen) === normalizeLocation(form.destino)
+  ) {
+    errors.destino = 'El destino debe ser diferente al origen.';
+  }
+
+  const numericMessages = { peso_kg: 'El peso debe ser mayor a 0.' };
+  if (!isEnvelopeContent(form.tipo_contenido)) {
+    numericMessages.largo_cm = 'Las dimensiones deben ser mayores a 0.';
+    numericMessages.ancho_cm = 'Las dimensiones deben ser mayores a 0.';
+    numericMessages.alto_cm = 'Las dimensiones deben ser mayores a 0.';
+  }
 
   Object.entries(numericMessages).forEach(([field, message]) => {
     const error = validatePositiveNumber(form[field], message);
@@ -209,6 +223,14 @@ function optionalText(value) {
 
 function roundMoney(value) {
   return Number(Number(value || 0).toFixed(2));
+}
+
+export function isEnvelopeContent(contentType) {
+  return String(contentType || '').trim().toUpperCase() === 'DOCUMENTOS';
+}
+
+function normalizeLocation(value) {
+  return String(value || '').trim().toUpperCase();
 }
 
 function normalizeFragilityValue(value) {

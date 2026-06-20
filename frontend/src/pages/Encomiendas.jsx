@@ -1,5 +1,6 @@
 import React, { useEffect, useState } from 'react';
 import { Link, useNavigate } from 'react-router-dom';
+import { FileSpreadsheet, FileText } from 'lucide-react';
 import Alert from '../components/common/Alert.jsx';
 import Badge from '../components/common/Badge.jsx';
 import Button from '../components/common/Button.jsx';
@@ -7,7 +8,11 @@ import Card from '../components/common/Card.jsx';
 import Loader from '../components/common/Loader.jsx';
 import DataTable from '../components/tables/DataTable.jsx';
 import { calcularCotizacion } from '../services/cotizacionesService.js';
-import { deleteEncomienda, getEncomiendas } from '../services/encomiendasService.js';
+import {
+  deleteEncomienda,
+  exportarReporteEncomiendas,
+  getEncomiendas,
+} from '../services/encomiendasService.js';
 import {
   descargarPdfMock,
   emitirBoletaDesdeEncomienda,
@@ -84,6 +89,21 @@ function Encomiendas() {
 
   const clearFilters = () => {
     setFilters({ fecha: '', estado: '', texto: '' });
+  };
+
+  const handleExport = async (format) => {
+    try {
+      setActionLoading(`export-${format}`);
+      setError('');
+      const blob = await exportarReporteEncomiendas(format, filters);
+      const dateSuffix = filters.fecha || new Date().toISOString().slice(0, 10);
+      downloadBlob(blob, `reporte_encomiendas_${dateSuffix}.${format === 'excel' ? 'xls' : 'pdf'}`);
+      setMessage(`Reporte ${format === 'excel' ? 'Excel' : 'PDF'} descargado correctamente.`);
+    } catch (exportError) {
+      setError(getApiErrorMessage(exportError, 'No se pudo exportar el reporte.'));
+    } finally {
+      setActionLoading('');
+    }
   };
 
   const handleCotizar = async (row) => {
@@ -237,9 +257,29 @@ function Encomiendas() {
             <h3 className="text-lg font-black text-brand-black">Listado de encomiendas</h3>
             <p className="mt-1 text-sm text-brand-gray">Filtra por fecha, estado o datos principales.</p>
           </div>
-          <Button variant="secondary" onClick={loadRows} disabled={loading}>
-            {loading ? 'Actualizando...' : 'Actualizar'}
-          </Button>
+          <div className="flex flex-wrap gap-2">
+            <Button
+              variant="secondary"
+              className="gap-2"
+              onClick={() => handleExport('excel')}
+              disabled={Boolean(actionLoading)}
+            >
+              <FileSpreadsheet size={17} />
+              {actionLoading === 'export-excel' ? 'Exportando...' : 'Excel'}
+            </Button>
+            <Button
+              variant="secondary"
+              className="gap-2"
+              onClick={() => handleExport('pdf')}
+              disabled={Boolean(actionLoading)}
+            >
+              <FileText size={17} />
+              {actionLoading === 'export-pdf' ? 'Exportando...' : 'PDF'}
+            </Button>
+            <Button variant="secondary" onClick={loadRows} disabled={loading}>
+              {loading ? 'Actualizando...' : 'Actualizar'}
+            </Button>
+          </div>
         </div>
 
         <div className="mb-5 grid gap-3 rounded-lg border border-gray-200 bg-brand-surface p-4 md:grid-cols-[1fr_180px_180px_auto] md:items-end">

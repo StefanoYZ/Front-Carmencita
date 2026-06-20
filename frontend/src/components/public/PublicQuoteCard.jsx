@@ -84,10 +84,16 @@ function PublicQuoteCard() {
     () => getLocationOptionsByProvince(destinations, destinationProvince),
     [destinations, destinationProvince],
   );
+  const isEnvelope = form.tipo === 'Sobres';
+  const hasDifferentRoute = Boolean(form.origen && form.destino && form.origen !== form.destino);
 
   const isComplete = useMemo(
-    () => form.origen && form.destino && form.tipo && form.peso && form.largo && form.ancho && form.alto && form.fragilidad,
-    [form],
+    () => hasDifferentRoute
+      && form.tipo
+      && form.peso
+      && (isEnvelope || form.fragilidad)
+      && (isEnvelope || (form.largo && form.ancho && form.alto)),
+    [form, hasDifferentRoute, isEnvelope],
   );
 
   useEffect(() => {
@@ -106,25 +112,47 @@ function PublicQuoteCard() {
 
   const updateField = (event) => {
     const { name, value } = event.target;
-    setForm((current) => ({ ...current, [name]: value }));
+    const nextRoute = { ...form, [name]: value };
+    setForm((current) => ({
+      ...current,
+      [name]: value,
+      ...(name === 'tipo' && value === 'Sobres'
+        ? { largo: '', ancho: '', alto: '', fragilidad: '' }
+        : {}),
+    }));
     setQuote(null);
-    setError('');
+    setError(
+      nextRoute.origen && nextRoute.destino && nextRoute.origen === nextRoute.destino
+        ? 'El origen y el destino deben ser diferentes.'
+        : '',
+    );
   };
 
   const updateProvince = (field, setProvince) => (event) => {
     const province = event.target.value;
     const options = getLocationOptionsByProvince(destinations, province);
+    const selectedLocation = options[0]?.value || '';
     setProvince(province);
     setForm((current) => ({
       ...current,
-      [field]: options[0]?.value || '',
+      [field]: selectedLocation,
     }));
     setQuote(null);
-    setError('');
+    const otherLocation = field === 'origen' ? form.destino : form.origen;
+    setError(
+      selectedLocation && otherLocation && selectedLocation === otherLocation
+        ? 'El origen y el destino deben ser diferentes.'
+        : '',
+    );
   };
 
   const calculateQuote = (event) => {
     event.preventDefault();
+
+    if (form.origen && form.destino && form.origen === form.destino) {
+      setError('El origen y el destino deben ser diferentes.');
+      return;
+    }
 
     if (!isComplete) {
       setError('Completa los detalles del envio para calcular el monto.');
@@ -132,10 +160,10 @@ function PublicQuoteCard() {
     }
 
     const weight = Number(form.peso);
-    const volume = Number(form.largo) * Number(form.ancho) * Number(form.alto);
+    const volume = isEnvelope ? 0 : Number(form.largo) * Number(form.ancho) * Number(form.alto);
 
-    if ([weight, volume].some((value) => !Number.isFinite(value) || value <= 0)) {
-      setError('Ingresa medidas y peso mayores a cero.');
+    if (!Number.isFinite(weight) || weight <= 0 || (!isEnvelope && (!Number.isFinite(volume) || volume <= 0))) {
+      setError(isEnvelope ? 'Ingresa un peso mayor a cero.' : 'Ingresa medidas y peso mayores a cero.');
       return;
     }
 
@@ -264,35 +292,39 @@ function PublicQuoteCard() {
                   </div>
                 </label>
 
-                <label className="mt-4 grid gap-2">
-                  <span className="text-sm font-black text-[#3C5940]">Fragilidad</span>
-                  <select className={inputClass} name="fragilidad" value={form.fragilidad} onChange={updateField}>
-                    <option value="">Seleccionar</option>
-                    <option value="BAJA">Baja</option>
-                    <option value="MEDIA">Media</option>
-                    <option value="ALTA">Alta</option>
-                  </select>
-                </label>
+                {!isEnvelope && (
+                  <label className="mt-4 grid gap-2">
+                    <span className="text-sm font-black text-[#3C5940]">Fragilidad</span>
+                    <select className={inputClass} name="fragilidad" value={form.fragilidad} onChange={updateField}>
+                      <option value="">Seleccionar</option>
+                      <option value="BAJA">Baja</option>
+                      <option value="MEDIA">Media</option>
+                      <option value="ALTA">Alta</option>
+                    </select>
+                  </label>
+                )}
               </div>
 
-              <div className="min-w-0 lg:col-span-2">
-                <p className="text-sm font-black text-[#3C5940]">Medidas del paquete (cm)</p>
-                <div className="mt-3 grid min-w-0 grid-cols-1 gap-3 sm:grid-cols-3">
-                  {[
-                    ['largo', 'Largo'],
-                    ['ancho', 'Ancho'],
-                    ['alto', 'Alto'],
-                  ].map(([name, label]) => (
-                    <label key={name} className="grid min-w-0 gap-1.5">
-                      <span className="text-sm font-bold text-[#3C5940]">{label}</span>
-                      <input className={inputClass} min="0" name={name} step="0.1" type="number" value={form[name]} onChange={updateField} />
-                    </label>
-                  ))}
+              {!isEnvelope && (
+                <div className="min-w-0 lg:col-span-2">
+                  <p className="text-sm font-black text-[#3C5940]">Medidas del paquete (cm)</p>
+                  <div className="mt-3 grid min-w-0 grid-cols-1 gap-3 sm:grid-cols-3">
+                    {[
+                      ['largo', 'Largo'],
+                      ['ancho', 'Ancho'],
+                      ['alto', 'Alto'],
+                    ].map(([name, label]) => (
+                      <label key={name} className="grid min-w-0 gap-1.5">
+                        <span className="text-sm font-bold text-[#3C5940]">{label}</span>
+                        <input className={inputClass} min="0" name={name} step="0.1" type="number" value={form[name]} onChange={updateField} />
+                      </label>
+                    ))}
+                  </div>
                 </div>
-              </div>
+              )}
             </div>
 
-            {error && <p className="mt-3 rounded-md border border-[#3C5940]/30 bg-white px-3 py-2 text-sm font-semibold text-[#212529]">{error}</p>}
+            {error && <p className="mt-3 rounded-md border border-red-300 bg-red-50 px-3 py-2 text-sm font-semibold text-red-700">{error}</p>}
 
             <button
               className="mt-5 flex min-h-12 w-full items-center justify-center rounded-lg bg-[#28A745] px-6 text-base font-black text-white shadow-[0_12px_24px_rgba(40,167,69,0.28)] transition hover:-translate-y-0.5 hover:bg-[#3C5940] hover:shadow-[0_14px_28px_rgba(60,89,64,0.24)] disabled:translate-y-0 disabled:cursor-not-allowed disabled:bg-white disabled:text-[#6C757D] disabled:shadow-none disabled:ring-1 disabled:ring-[#A3CF84] sm:max-w-[180px]"

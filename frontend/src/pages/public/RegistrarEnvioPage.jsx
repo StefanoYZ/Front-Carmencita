@@ -113,6 +113,7 @@ function RegistrarEnvioPage() {
         next.ancho_cm = '';
         next.alto_cm = '';
         next.fragilidad = 'BAJA';
+        next.orientacion_base = '';
       }
 
       return next;

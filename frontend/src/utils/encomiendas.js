@@ -30,6 +30,7 @@ export const emptyEncomiendaForm = {
   ancho_cm: '',
   alto_cm: '',
   fragilidad: 'BAJA',
+  orientacion_base: '',
 };
 
 export const ESTADOS_ENCOMIENDA = [
@@ -67,6 +68,7 @@ export function buildEncomiendaPayload(form) {
     ancho_cm: isEnvelope ? 0 : Number(form.ancho_cm),
     alto_cm: isEnvelope ? 0 : Number(form.alto_cm),
     fragilidad: isEnvelope ? 'BAJA' : form.fragilidad.toUpperCase(),
+    orientacion_base: isEnvelope ? null : String(form.orientacion_base || '').trim().toUpperCase(),
   };
 
   delete payload.id;
@@ -116,6 +118,7 @@ export function normalizeEncomiendaForForm(encomienda) {
     ancho_cm: encomienda.ancho_cm || '',
     alto_cm: encomienda.alto_cm || '',
     fragilidad: normalizeFragilityForForm(encomienda.fragilidad),
+    orientacion_base: encomienda.orientacion_base || '',
     estado: encomienda.estado || 'REGISTRADA',
   };
 }
@@ -185,6 +188,9 @@ export function validateEncomiendaFormFields(form, { includeEstado = false } = {
   if (!isEnvelopeContent(form.tipo_contenido)) {
     const fragilityError = validateFragility(form.fragilidad);
     if (fragilityError) errors.fragilidad = fragilityError;
+    if (!String(form.orientacion_base || '').trim()) {
+      errors.orientacion_base = 'Selecciona la cara que ira hacia abajo.';
+    }
   }
 
   if (includeEstado && !ESTADOS_ENCOMIENDA.includes(form.estado)) {

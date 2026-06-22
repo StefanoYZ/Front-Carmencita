@@ -1,5 +1,6 @@
 import React, { useEffect, useMemo, useState } from 'react';
 import { Link } from 'react-router-dom';
+import PackageBaseSelector from '../common/PackageBaseSelector.jsx';
 import { PUBLIC_QUOTE_STORAGE_KEY, quoteEstimateFromPublicQuote, writeSessionJSON } from '../../utils/publicShipment.js';
 import { getDestinos } from '../../services/destinosService.js';
 import {
@@ -70,6 +71,7 @@ function PublicQuoteCard() {
     ancho: '',
     alto: '',
     fragilidad: '',
+    orientacion_base: '',
   });
   const [quote, setQuote] = useState(null);
   const [error, setError] = useState('');
@@ -92,7 +94,7 @@ function PublicQuoteCard() {
       && form.tipo
       && form.peso
       && (isEnvelope || form.fragilidad)
-      && (isEnvelope || (form.largo && form.ancho && form.alto)),
+      && (isEnvelope || (form.largo && form.ancho && form.alto && form.orientacion_base)),
     [form, hasDifferentRoute, isEnvelope],
   );
 
@@ -117,7 +119,7 @@ function PublicQuoteCard() {
       ...current,
       [name]: value,
       ...(name === 'tipo' && value === 'Sobres'
-        ? { largo: '', ancho: '', alto: '', fragilidad: '' }
+        ? { largo: '', ancho: '', alto: '', fragilidad: '', orientacion_base: '' }
         : {}),
     }));
     setQuote(null);
@@ -126,6 +128,12 @@ function PublicQuoteCard() {
         ? 'El origen y el destino deben ser diferentes.'
         : '',
     );
+  };
+
+  const updateBaseOrientation = (orientation) => {
+    setForm((current) => ({ ...current, orientacion_base: orientation }));
+    setQuote(null);
+    setError('');
   };
 
   const updateProvince = (field, setProvince) => (event) => {
@@ -238,12 +246,13 @@ function PublicQuoteCard() {
           <RouteConnector />
         </div>
 
-        <section className="min-w-0 lg:col-span-2">
-          <div className="mb-3 flex items-center gap-2">
-            <GreenIcon src={packageIcon} className="h-8 w-8" />
-            <h3 className="text-lg font-black text-[#212529]">3. Detalles del envio</h3>
-          </div>
-          <form className="min-w-0 rounded-lg border border-[#A3CF84] bg-[#E4ECE2] p-4 shadow-[inset_0_1px_0_rgba(255,255,255,0.55),0_10px_24px_rgba(60,89,64,0.10)] sm:p-5" onSubmit={calculateQuote}>
+        <div className="grid min-w-0 gap-5 lg:col-span-2 lg:grid-cols-[minmax(0,1fr)_270px] lg:items-start">
+          <section className="min-w-0">
+            <div className="mb-3 flex items-center gap-2">
+              <GreenIcon src={packageIcon} className="h-8 w-8" />
+              <h3 className="text-lg font-black text-[#212529]">3. Detalles del envio</h3>
+            </div>
+            <form className="min-w-0 rounded-lg border border-[#A3CF84] bg-[#E4ECE2] p-4 shadow-[inset_0_1px_0_rgba(255,255,255,0.55),0_10px_24px_rgba(60,89,64,0.10)] sm:p-5" onSubmit={calculateQuote}>
             <div className="grid min-w-0 gap-5 lg:grid-cols-2">
               <div className="min-w-0">
                 <p className="text-sm font-black text-[#3C5940]">Tipo de envio</p>
@@ -333,37 +342,48 @@ function PublicQuoteCard() {
             >
               COTIZAR
             </button>
-          </form>
-        </section>
-      </div>
+            </form>
 
-      <div className="mt-8 grid min-w-0 gap-4 lg:grid-cols-[minmax(0,220px)_minmax(0,1fr)] xl:grid-cols-[minmax(0,220px)_minmax(0,1fr)_auto]">
-        <div className="rounded-lg bg-[#E4ECE2] px-5 py-4 text-center ring-1 ring-[#A3CF84]/45">
-          <p className="text-sm font-bold text-[#3C5940]">Tiempo estimado de entrega</p>
-          <p className="text-lg font-black text-[#212529]">12 a 24 horas</p>
+            {!isEnvelope && (
+              <PackageBaseSelector
+                length={form.largo}
+                width={form.ancho}
+                height={form.alto}
+                value={form.orientacion_base}
+                onChange={updateBaseOrientation}
+              />
+            )}
+          </section>
+
+          <aside className="grid gap-4 lg:sticky lg:top-24 lg:pt-12">
+            <div className="rounded-lg bg-[#E4ECE2] px-5 py-5 text-center ring-1 ring-[#A3CF84]/45">
+              <p className="text-sm font-bold text-[#3C5940]">Tiempo estimado de entrega</p>
+              <p className="mt-2 text-xl font-black text-[#212529]">12 a 24 horas</p>
+            </div>
+
+            <div className="min-w-0 rounded-lg bg-[#3C5940] px-5 py-5 text-white shadow-[0_12px_24px_rgba(60,89,64,0.16)]">
+              <p className="text-sm font-bold text-[#F8F9FA]">Precio estimado</p>
+              <p className="mt-2 break-words text-3xl font-black">S/ {quote ? quote.toFixed(2) : '0.00'}</p>
+            </div>
+
+            {quote && (
+              <Link
+                to="/registrar-envio"
+                state={{
+                  quote: {
+                    ...form,
+                    estimatedTotal: quote,
+                  },
+                }}
+                onClick={saveQuoteForRegistration}
+                className="inline-flex min-h-14 w-full items-center justify-center gap-3 rounded-lg bg-[#28A745] px-5 text-base font-black text-white shadow-lg shadow-black/10 transition hover:-translate-y-0.5 hover:bg-[#3C5940]"
+              >
+                <img src={packageIcon} alt="" className="h-7 w-7 brightness-0 invert" />
+                Registro de envio
+              </Link>
+            )}
+          </aside>
         </div>
-
-        <div className="min-w-0 rounded-lg bg-[#3C5940] px-5 py-4 text-white shadow-[0_12px_24px_rgba(60,89,64,0.16)]">
-          <p className="text-sm font-bold text-[#F8F9FA]">Precio estimado</p>
-          <p className="mt-1 break-words text-3xl font-black sm:text-4xl">S/ {quote ? quote.toFixed(2) : '0.00'}</p>
-        </div>
-
-        {quote && (
-          <Link
-            to="/registrar-envio"
-            state={{
-              quote: {
-                ...form,
-                estimatedTotal: quote,
-              },
-            }}
-            onClick={saveQuoteForRegistration}
-            className="inline-flex min-h-14 w-full items-center justify-center gap-3 rounded-lg bg-[#28A745] px-6 text-base font-black text-white shadow-lg shadow-black/10 transition hover:-translate-y-0.5 hover:bg-[#3C5940] xl:w-auto"
-          >
-            <img src={packageIcon} alt="" className="h-7 w-7 brightness-0 invert" />
-            Registro de envio
-          </Link>
-        )}
       </div>
     </article>
   );

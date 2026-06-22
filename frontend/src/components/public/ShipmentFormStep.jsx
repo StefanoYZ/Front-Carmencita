@@ -1,4 +1,5 @@
 import React, { useEffect, useMemo, useState } from 'react';
+import PackageBaseSelector from '../common/PackageBaseSelector.jsx';
 import packageIcon from '../../assets/icons/paquete.svg';
 import userIcon from '../../assets/icons/cuenta.svg';
 import {
@@ -270,6 +271,18 @@ function ShipmentFormStep({ form, errors, reniecStatus, locationOptions = [], on
             <FieldError>{errors.descripcion}</FieldError>
           </label>
         </div>
+        {!isEnvelope && (
+          <PackageBaseSelector
+            length={form.largo_cm}
+            width={form.ancho_cm}
+            height={form.alto_cm}
+            value={form.orientacion_base}
+            error={errors.orientacion_base}
+            onChange={(orientation) => onChange({
+              target: { name: 'orientacion_base', value: orientation },
+            })}
+          />
+        )}
       </section>
 
       {errors.general && <div className="rounded-md border border-red-300 bg-red-50 p-3 text-sm font-semibold text-red-700 shadow-sm">{errors.general}</div>}

@@ -1,4 +1,5 @@
 import React from 'react';
+import PackageBaseSelector from '../common/PackageBaseSelector.jsx';
 import Alert from '../common/Alert.jsx';
 import Button from '../common/Button.jsx';
 import Input from '../common/Input.jsx';
@@ -80,6 +81,7 @@ function EncomiendaForm({ form, errors = {}, onChange, onSubmit, loading = false
       updateFieldValue('ancho_cm', '');
       updateFieldValue('alto_cm', '');
       updateFieldValue('fragilidad', 'BAJA');
+      updateFieldValue('orientacion_base', '');
     }
   };
 
@@ -271,6 +273,16 @@ function EncomiendaForm({ form, errors = {}, onChange, onSubmit, loading = false
             </label>
           )}
         </div>
+        {!isEnvelope && (
+          <PackageBaseSelector
+            length={form.largo_cm}
+            width={form.ancho_cm}
+            height={form.alto_cm}
+            value={form.orientacion_base}
+            error={errors.orientacion_base}
+            onChange={(orientation) => updateFieldValue('orientacion_base', orientation)}
+          />
+        )}
       </FormSection>
 
       <Button type="submit" disabled={loading}>

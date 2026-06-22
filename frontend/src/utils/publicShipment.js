@@ -33,6 +33,7 @@ export const emptyPublicShipmentForm = {
   ancho_cm: '',
   alto_cm: '',
   fragilidad: 'BAJA',
+  orientacion_base: '',
 };
 
 export function readSessionJSON(key, fallback = null) {
@@ -110,6 +111,7 @@ export function mapQuoteToShipmentForm(quote) {
     ancho_cm: quote.tipo === 'Sobres' ? '' : quote.ancho || '',
     alto_cm: quote.tipo === 'Sobres' ? '' : quote.alto || '',
     fragilidad: normalizeFragilityValue(quote.fragilidad),
+    orientacion_base: quote.tipo === 'Sobres' ? '' : quote.orientacion_base || '',
   };
 }
 
@@ -137,6 +139,7 @@ export function buildPublicShipmentPayload(form) {
     ancho_cm: isEnvelope ? 0 : Number(form.ancho_cm),
     alto_cm: isEnvelope ? 0 : Number(form.alto_cm),
     fragilidad: isEnvelope ? 'BAJA' : String(form.fragilidad || '').trim().toUpperCase(),
+    orientacion_base: isEnvelope ? null : String(form.orientacion_base || '').trim().toUpperCase(),
   };
 }
 
@@ -166,6 +169,9 @@ export function validatePublicShipmentForm(form) {
     } else {
       const fragilityError = validateFragility(form.fragilidad);
       if (fragilityError) errors.fragilidad = fragilityError;
+    }
+    if (!String(form.orientacion_base || '').trim()) {
+      errors.orientacion_base = 'Selecciona la cara que ira hacia abajo.';
     }
   }
 

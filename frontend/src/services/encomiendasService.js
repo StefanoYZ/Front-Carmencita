@@ -35,6 +35,16 @@ export async function getEncomiendaByCodigo(codigo) {
   return response.data;
 }
 
+export async function confirmarPreRegistro(id) {
+  const response = await apiClient.post(`/encomiendas/${id}/confirmar-registro`);
+  return response.data;
+}
+
+export async function entregarEncomienda(id, payload) {
+  const response = await apiClient.post(`/encomiendas/${id}/entregar`, payload);
+  return response.data;
+}
+
 export async function getEtiquetaPdf(id) {
   const response = await apiClient.get(`/encomiendas/${id}/etiqueta/pdf`, {
     responseType: 'blob',
@@ -68,6 +78,8 @@ export const encomiendasService = {
   getEncomiendas,
   getEncomiendaById,
   getEncomiendaByCodigo,
+  confirmarPreRegistro,
+  entregarEncomienda,
   getEtiquetaPdf,
   exportarReporteEncomiendas,
 };

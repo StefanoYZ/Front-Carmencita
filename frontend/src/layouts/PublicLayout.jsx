@@ -2,6 +2,7 @@ import React, { useEffect, useState } from 'react';
 import { Outlet, useLocation } from 'react-router-dom';
 import PublicHeader from '../components/public/PublicHeader.jsx';
 import LoadingScreen from '../components/public/LoadingScreen.jsx';
+import AssistantFloatingButton from '../components/asistente/AssistantFloatingButton.jsx';
 
 function PublicLayout() {
   const location = useLocation();
@@ -50,6 +51,7 @@ function PublicLayout() {
           <p className="font-semibold text-white/70">Trujillo - Angasmarca</p>
         </div>
       </footer>
+      <AssistantFloatingButton />
     </div>
   );
 }

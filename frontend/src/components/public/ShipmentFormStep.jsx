@@ -97,6 +97,12 @@ function PersonFields({ prefix, form, errors, onChange, onReniecLookup, reniecSt
           value={form[`${prefix}_numero_documento`]}
           onChange={onChange}
           onBlur={() => onReniecLookup(prefix)}
+          onKeyDown={(event) => {
+            if (event.key === 'Enter') {
+              event.preventDefault();
+              onReniecLookup(prefix);
+            }
+          }}
           error={errors[`${prefix}_numero_documento`]}
           inputMode="numeric"
           maxLength={form[`${prefix}_tipo_documento`] === 'DNI' ? 8 : undefined}

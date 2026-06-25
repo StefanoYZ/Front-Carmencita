@@ -5,16 +5,20 @@ import TrackingProgress from '../../components/public/TrackingProgress.jsx';
 import { getApiErrorMessage } from '../../services/apiClient.js';
 import { getEtiquetaPdf } from '../../services/encomiendasService.js';
 import { generarPdfBetaDesdeEncomienda } from '../../services/sunatService.js';
+import { iniciarLogBoleta, finalizarLogBoleta } from '../../services/measurementLogsService.js';
 import { formatShipmentCode } from '../../utils/formatShipmentCode.js';
 import { PUBLIC_SUCCESS_STORAGE_KEY, clearSessionKey, readSessionJSON } from '../../utils/publicShipment.js';
 import checkIcon from '../../assets/icons/flecha-correcta.svg';
 
-function RegistroExitosoPage() {
-  const location = useLocation();
-  const stored = useMemo(() => readSessionJSON(PUBLIC_SUCCESS_STORAGE_KEY, null), []);
-  const result = location.state?.result || stored?.result || null;
-  const summary = location.state?.summary || stored?.summary || null;
-  const payment = location.state?.payment || stored?.payment || null;
+export function RegistroExitosoContent({
+  result,
+  summary,
+  payment,
+  homePath = '/',
+  homeLabel = 'Volver al inicio',
+  clearOnUnmount = false,
+  onHome = null,
+}) {
   const [printing, setPrinting] = useState('');
   const [printError, setPrintError] = useState('');
   const code = formatShipmentCode(result?.codigo_encomienda);
@@ -29,10 +33,11 @@ function RegistroExitosoPage() {
         : 'Pendiente en agencia';
 
   useEffect(() => {
+    if (!clearOnUnmount) return undefined;
     return () => {
       clearSessionKey(PUBLIC_SUCCESS_STORAGE_KEY);
     };
-  }, []);
+  }, [clearOnUnmount]);
 
   const openPdfForPrint = async ({ type, loadingText, getPdf }) => {
     const printWindow = window.open('', '_blank');
@@ -74,10 +79,24 @@ function RegistroExitosoPage() {
   const handlePrintReceipt = () => openPdfForPrint({
     type: 'receipt',
     loadingText: 'Generando boleta electronica',
-    getPdf: () => generarPdfBetaDesdeEncomienda({
-      encomienda_id: result.id,
-      confirmar_pago: true,
-    }),
+    getPdf: async () => {
+      const log = await iniciarLogBoleta({
+        encomienda_id: result.id,
+        actor_origen: 'cliente_externo',
+        canal: 'externo',
+      }).catch(() => null);
+
+      const blob = await generarPdfBetaDesdeEncomienda({
+        encomienda_id: result.id,
+        confirmar_pago: true,
+      });
+
+      if (log?.id) {
+        finalizarLogBoleta(log.id).catch(() => {});
+      }
+
+      return blob;
+    },
   });
 
   return (
@@ -168,16 +187,43 @@ function RegistroExitosoPage() {
           )}
 
           <div className="mt-8 flex flex-col gap-3 sm:flex-row">
-            <Link
-              to="/"
-              className="inline-flex min-h-12 items-center justify-center rounded-md border border-gray-300 px-5 text-sm font-black text-gray-700 transition hover:bg-gray-50"
-            >
-              Volver al inicio
-            </Link>
+            {onHome ? (
+              <button
+                type="button"
+                onClick={onHome}
+                className="inline-flex min-h-12 items-center justify-center rounded-md border border-gray-300 px-5 text-sm font-black text-gray-700 transition hover:bg-gray-50"
+              >
+                {homeLabel}
+              </button>
+            ) : (
+              <Link
+                to={homePath}
+                className="inline-flex min-h-12 items-center justify-center rounded-md border border-gray-300 px-5 text-sm font-black text-gray-700 transition hover:bg-gray-50"
+              >
+                {homeLabel}
+              </Link>
+            )}
           </div>
         </div>
       </div>
     </section>
+  );
+}
+
+function RegistroExitosoPage() {
+  const location = useLocation();
+  const stored = useMemo(() => readSessionJSON(PUBLIC_SUCCESS_STORAGE_KEY, null), []);
+  const result = location.state?.result || stored?.result || null;
+  const summary = location.state?.summary || stored?.summary || null;
+  const payment = location.state?.payment || stored?.payment || null;
+
+  return (
+    <RegistroExitosoContent
+      result={result}
+      summary={summary}
+      payment={payment}
+      clearOnUnmount
+    />
   );
 }
 

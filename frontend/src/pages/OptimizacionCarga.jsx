@@ -17,6 +17,8 @@ import {
 import PackingScene3D from '../components/optimization-poc/PackingScene3D.jsx';
 import MetricCard from '../components/optimization-poc/MetricCard.jsx';
 import { getApiErrorMessage } from '../services/apiClient.js';
+import { finalizarCargaServicio } from '../services/measurementLogsService.js';
+import { iniciarOrdenCarga, siguienteSimulado } from '../services/cargaLogsService.js';
 import { optimizationPocService } from '../services/optimizationPocService.js';
 import { getOptimizationAlgorithm } from '../config/optimizationPocAlgorithms.js';
 
@@ -53,6 +55,8 @@ export default function OptimizacionCarga() {
   const [placementCursor, setPlacementCursor] = useState(0);
   const [isSceneExpanded, setIsSceneExpanded] = useState(false);
   const [handoffPrompt, setHandoffPrompt] = useState(null);
+  const [closedLoadingLogs, setClosedLoadingLogs] = useState(false);
+  const [ordenCargaId, setOrdenCargaId] = useState(null);
   const [error, setError] = useState('');
 
   useEffect(() => {
@@ -176,6 +180,8 @@ export default function OptimizacionCarga() {
     setPlacementCursor(0);
     setStatus('IDLE');
     setHandoffPrompt(null);
+    setClosedLoadingLogs(false);
+    setOrdenCargaId(null);
     setError('');
   };
 
@@ -245,9 +251,20 @@ export default function OptimizacionCarga() {
         return;
       }
       setSimulation(result);
+      setClosedLoadingLogs(false);
       setPlacementCursor(1);
       setStatus('ORDERED');
       showHandoffPromptIfNeeded(result, selectedTruckId);
+
+      const sortedIds = [...(result.placements || [])]
+        .sort((a, b) => a.loading_sequence - b.loading_sequence)
+        .map((p) => p.package_id)
+        .filter(Boolean);
+      if (sortedIds.length) {
+        iniciarOrdenCarga({ encomienda_ids: sortedIds, modo_prueba: true })
+          .then((logs) => setOrdenCargaId(logs[0]?.orden_carga_id || null))
+          .catch(() => {});
+      }
     } catch (runError) {
       setError(getApiErrorMessage(runError, 'No se pudo ejecutar la simulacion PoC.'));
       setStatus('ERROR');
@@ -278,6 +295,7 @@ export default function OptimizacionCarga() {
       };
       setSelectedTruckId(handoffPrompt.targetTruckId);
       setSimulation(mergedResult);
+      setClosedLoadingLogs(false);
       setPlacementCursor(mergedResult?.placements?.length ? 1 : pendingDocuments.length ? 1 : 0);
       setStatus(mergedResult?.placements?.length || pendingDocuments.length ? 'ORDERED' : 'ERROR');
       setHandoffPrompt(null);
@@ -308,11 +326,30 @@ export default function OptimizacionCarga() {
   const goToNextPlacement = () => {
     if (!simulation) return;
     if (handoffPrompt && placementCursor >= orderedPlacements.length) return;
+
+    if (ordenCargaId && currentPlacement) {
+      siguienteSimulado(ordenCargaId, currentPlacement.package_id).catch(() => {});
+    }
+
     setPlacementCursor((current) => {
       const next = Math.min(workflowEndCursor, current + 1);
-      setStatus(next >= workflowEndCursor ? 'COMPLETED' : 'LOADING');
+      if (next >= workflowEndCursor) {
+        setStatus('COMPLETED');
+        closeLoadingLogs();
+      } else {
+        setStatus('LOADING');
+      }
       return next;
     });
+  };
+
+  const closeLoadingLogs = async () => {
+    if (!simulation || closedLoadingLogs) return;
+    setClosedLoadingLogs(true);
+    const shipmentIds = (simulation.ordered_packages || []).map((item) => item.id).filter(Boolean);
+    await Promise.allSettled(
+      shipmentIds.map((encomienda_id) => finalizarCargaServicio({ encomienda_id })),
+    );
   };
 
   return (
@@ -508,7 +545,16 @@ export default function OptimizacionCarga() {
           <ActionButton icon={RefreshCw} label="Restablecer" onClick={resetSimulation} />
           <ActionButton icon={PackageCheck} label={status === 'ORDERING' ? 'Ordenando...' : 'Ordenar'} onClick={runSimulation} primary disabled={status === 'ORDERING'} />
           <ActionButton icon={Clock} label="Simular cierre automatico" onClick={runSimulation} disabled={status === 'ORDERING'} />
-          <ActionButton icon={Flag} label="Finalizar" onClick={() => setStatus('COMPLETED')} disabled={!simulation} primary />
+          <ActionButton
+            icon={Flag}
+            label="Finalizar"
+            onClick={() => {
+              setStatus('COMPLETED');
+              closeLoadingLogs();
+            }}
+            disabled={!simulation}
+            primary
+          />
         </div>
       </footer>
 

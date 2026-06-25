@@ -21,6 +21,7 @@ import {
 import { getApiErrorMessage } from '../services/apiClient.js';
 import { getDimensions, normalizeEncomiendasList } from '../utils/encomiendas.js';
 import { downloadBlob } from '../utils/downloadBlob.js';
+import { formatDateInput, formatDateTime } from '../utils/formatDate.js';
 import { formatShipmentCode } from '../utils/formatShipmentCode.js';
 import { formatCurrency } from '../utils/formatCurrency.js';
 
@@ -60,7 +61,7 @@ function Encomiendas() {
   const getRowDate = (row) => {
     const value = row.fecha_creacion || row.created_at;
     if (!value) return '';
-    return String(value).slice(0, 10);
+    return formatDateInput(value);
   };
 
   const filteredRows = rows.filter((row) => {
@@ -204,7 +205,14 @@ function Encomiendas() {
         </Badge>
       ),
     },
-    { header: 'Fecha', accessor: 'fecha_creacion', cell: (row) => row.fecha_creacion || row.created_at || '-' },
+    {
+      header: 'Fecha',
+      accessor: 'fecha_creacion',
+      cell: (row) => {
+        const value = row.fecha_creacion || row.created_at;
+        return value ? formatDateTime(value) : '-';
+      },
+    },
     {
       header: 'Acciones',
       accessor: 'acciones',

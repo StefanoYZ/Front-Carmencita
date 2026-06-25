@@ -2,6 +2,7 @@ import React from 'react';
 import Badge from '../common/Badge.jsx';
 import Card from '../common/Card.jsx';
 import { getDimensions } from '../../utils/encomiendas.js';
+import { formatDateTime } from '../../utils/formatDate.js';
 import { formatShipmentCode } from '../../utils/formatShipmentCode.js';
 
 function Field({ label, value }) {
@@ -57,8 +58,14 @@ function EncomiendaSummary({ encomienda }) {
           <Field label="Peso" value={encomienda.peso_kg ? `${encomienda.peso_kg} kg` : '-'} />
           <Field label="Dimensiones" value={getDimensions(encomienda)} />
           <Field label="Fragilidad" value={formatFragility(encomienda.fragilidad)} />
-          <Field label="Fecha creacion" value={encomienda.fecha_creacion || encomienda.created_at} />
-          <Field label="Ultima actualizacion" value={encomienda.fecha_actualizacion || encomienda.updated_at} />
+          <Field
+            label="Fecha creacion"
+            value={formatOptionalDate(encomienda.fecha_creacion || encomienda.created_at)}
+          />
+          <Field
+            label="Ultima actualizacion"
+            value={formatOptionalDate(encomienda.fecha_actualizacion || encomienda.updated_at)}
+          />
         </dl>
       </Card>
     </div>
@@ -70,4 +77,8 @@ export default EncomiendaSummary;
 function formatFragility(value) {
   const labels = { BAJA: 'Baja', MEDIA: 'Media', ALTA: 'Alta' };
   return labels[String(value || '').trim().toUpperCase()] || '-';
+}
+
+function formatOptionalDate(value) {
+  return value ? formatDateTime(value) : '-';
 }

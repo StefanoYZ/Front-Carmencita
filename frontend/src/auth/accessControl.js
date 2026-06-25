@@ -74,9 +74,9 @@ export function getRoleHomePath(user) {
   if (hasRole(user, ['ESTIBA']) && hasAnyPermission(user, ['optimization.read'])) {
     return '/admin/optimizacion-carga';
   }
-  if (hasRole(user, ['ADMINISTRADOR'])) return '/admin/dashboard';
   if (hasRole(user, ['SECRETARIA']) && canAccess(user, { anyOf: ['encomiendas.write'] })) {
-    return '/admin/encomiendas/nueva';
+    return '/secretaria';
   }
+  if (hasRole(user, ['ADMINISTRADOR'])) return '/admin/dashboard';
   return getAllowedNavigation(user)[0]?.path || '/login';
 }

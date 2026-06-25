@@ -36,6 +36,13 @@ function PaymentConfirmationStep({
   error,
   paymentMethod,
   paymentNotice,
+  allowedPaymentMethods = ['agency', 'yape', 'card'],
+  encomiendaId = null,
+  usuario = '',
+  agencyActionLabel = 'Crear pre-registro',
+  agencyTitle = 'Pago en agencia',
+  agencyDescription = 'Generaremos un codigo para que completes el pago y la atencion en agencia.',
+  agencyNotice = 'El envio quedara como pre-registro hasta que sea formalizado.',
   onBack,
   onConfirmAgency,
   onDigitalApproved,
@@ -46,6 +53,7 @@ function PaymentConfirmationStep({
 }) {
   const quote = quoteEstimateFromForm(form);
   const isEnvelope = form.tipo_contenido === 'DOCUMENTOS';
+  const visiblePaymentMethods = paymentMethods.filter((method) => allowedPaymentMethods.includes(method.value));
 
   const senderItems = [
     { label: 'Documento', value: `${form.remitente_tipo_documento} ${form.remitente_numero_documento}` },
@@ -98,7 +106,7 @@ function PaymentConfirmationStep({
         <section className="rounded-lg border border-[#E4ECE2] bg-white p-5 shadow-[0_14px_32px_rgba(33,37,41,0.07)]">
           <h3 className="text-lg font-black text-[#212529]">Metodo de pago</h3>
           <div className="mt-4 grid gap-3">
-            {paymentMethods.map((method) => (
+            {visiblePaymentMethods.map((method) => (
               <PaymentMethodCard
                 key={method.value}
                 active={paymentMethod === method.value}
@@ -116,13 +124,13 @@ function PaymentConfirmationStep({
           {paymentMethod === 'agency' && (
             <div className="flex min-h-[328px] flex-col justify-between rounded-md border border-[#A3CF84]/50 bg-[#E4ECE2] p-4">
               <div>
-                <h4 className="text-base font-black text-[#212529]">Pago en agencia</h4>
+                <h4 className="text-base font-black text-[#212529]">{agencyTitle}</h4>
                 <p className="mt-2 text-sm font-semibold leading-6 text-[#6C757D]">
-                  Generaremos un codigo para que completes el pago y la atencion en agencia.
+                  {agencyDescription}
                 </p>
               </div>
               <p className="rounded-md bg-white p-3 text-sm font-bold text-[#3C5940] shadow-sm">
-                El envio quedara como pre-registro hasta que sea formalizado.
+                {agencyNotice}
               </p>
             </div>
           )}
@@ -131,6 +139,8 @@ function PaymentConfirmationStep({
             <YapePayment
               amount={quote.total}
               email={form.remitente_correo || 'test@test.com'}
+              encomiendaId={encomiendaId}
+              usuario={usuario}
               onApproved={(paymentResult) => onDigitalApproved?.('yape', paymentResult)}
               onPending={(paymentResult) => onDigitalPending?.('yape', paymentResult)}
               onRejected={(paymentResult) => onDigitalPending?.('yape', paymentResult)}
@@ -143,6 +153,8 @@ function PaymentConfirmationStep({
               amount={quote.total}
               payerEmail={form.remitente_correo || 'test@test.com'}
               payerName={form.remitente_nombre || 'Cliente'}
+              encomiendaId={encomiendaId}
+              usuario={usuario}
               onApproved={(paymentResult) => onDigitalApproved?.('card', paymentResult)}
               onPending={(paymentResult) => onDigitalPending?.('card', paymentResult)}
               onRejected={(paymentResult) => onDigitalPending?.('card', paymentResult)}
@@ -169,14 +181,16 @@ function PaymentConfirmationStep({
               Volver
             </button>
             {paymentMethod === 'agency' ? (
-              <button
-                type="button"
-                className="min-h-12 rounded-md bg-[#28A745] px-5 text-sm font-black text-white shadow-[0_12px_24px_rgba(40,167,69,0.24)] transition hover:-translate-y-0.5 hover:bg-[#3C5940] disabled:translate-y-0 disabled:cursor-not-allowed disabled:opacity-70"
-                onClick={onConfirmAgency}
-                disabled={loading}
-              >
-                {loading ? 'Procesando...' : 'Crear pre-registro'}
-              </button>
+              onConfirmAgency ? (
+                <button
+                  type="button"
+                  className="min-h-12 rounded-md bg-[#28A745] px-5 text-sm font-black text-white shadow-[0_12px_24px_rgba(40,167,69,0.24)] transition hover:-translate-y-0.5 hover:bg-[#3C5940] disabled:translate-y-0 disabled:cursor-not-allowed disabled:opacity-70"
+                  onClick={onConfirmAgency}
+                  disabled={loading}
+                >
+                  {loading ? 'Procesando...' : agencyActionLabel}
+                </button>
+              ) : null
             ) : (
               <div className="rounded-md bg-[#E4ECE2] px-4 py-3 text-center text-sm font-bold text-[#3C5940]">
                 Completa el pago en el panel superior.

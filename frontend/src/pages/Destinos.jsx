@@ -1,16 +1,18 @@
 import React, { useEffect, useState } from 'react';
+import { Power, PowerOff } from 'lucide-react';
 import Alert from '../components/common/Alert.jsx';
 import Button from '../components/common/Button.jsx';
 import Card from '../components/common/Card.jsx';
 import Input from '../components/common/Input.jsx';
 import Loader from '../components/common/Loader.jsx';
+import StatusBadge from '../components/common/StatusBadge.jsx';
 import DataTable from '../components/tables/DataTable.jsx';
 import { getApiErrorMessage } from '../services/apiClient.js';
 import { createDestino, getDestinos, updateDestino } from '../services/destinosService.js';
 
 const columns = [
-  { header: 'Destino', accessor: 'nombre' },
-  { header: 'Estado', accessor: 'activo', cell: (row) => (row.activo ? 'Activo' : 'Inactivo') },
+  { header: 'Destino', accessor: 'nombre', cell: (row) => <span className="font-semibold text-brand-black">{row.nombre}</span> },
+  { header: 'Estado', accessor: 'activo', cell: (row) => <StatusBadge value={row.activo ? 'ACTIVO' : 'INACTIVO'} /> },
 ];
 
 function Destinos() {
@@ -76,15 +78,27 @@ function Destinos() {
     {
       header: 'Accion',
       accessor: 'accion',
-      cell: (row) => (
-        <button
-          type="button"
-          className="font-semibold text-brand-green hover:text-brand-dark"
-          onClick={() => handleToggle(row)}
-        >
-          {row.activo ? 'Desactivar' : 'Activar'}
-        </button>
-      ),
+      align: 'right',
+      cell: (row) => {
+        const Icon = row.activo ? PowerOff : Power;
+        return (
+          <div className="flex justify-end">
+            <button
+              type="button"
+              onClick={() => handleToggle(row)}
+              aria-label={`${row.activo ? 'Desactivar' : 'Activar'} ${row.nombre}`}
+              className={`inline-flex min-h-9 items-center gap-2 rounded-lg border px-3 text-sm font-bold transition focus:outline-none focus-visible:ring-2 focus-visible:ring-offset-1 ${
+                row.activo
+                  ? 'border-red-200 text-red-600 hover:border-red-400 hover:bg-red-50 focus-visible:ring-red-300'
+                  : 'border-brand-green/40 text-brand-green hover:border-brand-green hover:bg-brand-lime/15 focus-visible:ring-brand-green'
+              }`}
+            >
+              <Icon size={15} aria-hidden="true" />
+              {row.activo ? 'Desactivar' : 'Activar'}
+            </button>
+          </div>
+        );
+      },
     },
   ];
 

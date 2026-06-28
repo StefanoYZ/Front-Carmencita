@@ -7,25 +7,17 @@ import Card from '../components/common/Card.jsx';
 import Loader from '../components/common/Loader.jsx';
 import EncomiendaSummary from '../components/encomiendas/EncomiendaSummary.jsx';
 import { getApiErrorMessage } from '../services/apiClient.js';
-import { calcularCotizacion } from '../services/cotizacionesService.js';
 import { deleteEncomienda, getEncomiendaById } from '../services/encomiendasService.js';
-import {
-  descargarPdfMock,
-  emitirBoletaDesdeEncomienda,
-  generarPdfBetaDesdeEncomienda,
-  generarXmlBetaDesdeEncomienda,
-} from '../services/sunatService.js';
+import { descargarPdfMock, emitirBoletaDesdeEncomienda } from '../services/sunatService.js';
+import { canEditEncomienda } from '../utils/encomiendas.js';
 import { downloadBlob } from '../utils/downloadBlob.js';
 import { formatCurrency } from '../utils/formatCurrency.js';
 import { extractSunatSummary } from '../utils/sunatResponse.js';
-import { formatShipmentCode } from '../utils/formatShipmentCode.js';
 
 function EncomiendaDetalle() {
   const { id } = useParams();
   const [encomienda, setEncomienda] = useState(null);
-  const [cotizacion, setCotizacion] = useState(null);
   const [boleta, setBoleta] = useState(null);
-  const [xmlResponse, setXmlResponse] = useState(null);
   const [loading, setLoading] = useState('detalle');
   const [error, setError] = useState('');
   const [message, setMessage] = useState('');
@@ -59,14 +51,6 @@ function EncomiendaDetalle() {
     }
   };
 
-  const handleCotizar = () => runAction('cotizacion', async () => {
-    if (encomienda?.estado === 'ANULADA') {
-      setError('No se puede cotizar una encomienda anulada.');
-      return;
-    }
-    setCotizacion(await calcularCotizacion({ encomienda_id: Number(id) }));
-  });
-
   const handleEmitir = () => runAction('boleta', async () => {
     if (encomienda?.estado === 'ANULADA') {
       setError('No se puede emitir boleta para una encomienda anulada.');
@@ -93,30 +77,12 @@ function EncomiendaDetalle() {
     setMessage('PDF descargado correctamente.');
   });
 
-  const handlePdfBeta = () => runAction('pdfBeta', async () => {
-    if (encomienda?.estado === 'ANULADA') {
-      setError('No se puede emitir boleta para una encomienda anulada.');
-      return;
-    }
-    const blob = await generarPdfBetaDesdeEncomienda({ encomienda_id: Number(id), confirmar_pago: true });
-    downloadBlob(blob, `boleta_${formatShipmentCode(encomienda?.codigo_encomienda) || id}.pdf`);
-    setMessage('PDF generado correctamente.');
-  });
-
-  const handleXmlBeta = () => runAction('xmlBeta', async () => {
-    if (encomienda?.estado === 'ANULADA') {
-      setError('No se puede emitir boleta para una encomienda anulada.');
-      return;
-    }
-    setXmlResponse(await generarXmlBetaDesdeEncomienda({ encomienda_id: Number(id), confirmar_pago: true }));
-  });
-
   return (
     <div className="space-y-6">
       <div className="flex flex-col gap-3 sm:flex-row sm:items-center sm:justify-between">
         <div>
           <h2 className="page-title">Detalle de encomienda</h2>
-          <p className="page-subtitle">Datos completos, cotizacion y acciones SUNAT.</p>
+          <p className="page-subtitle">Datos completos y acciones SUNAT de la encomienda.</p>
         </div>
         <Link to="/admin/encomiendas"><Button variant="secondary">Volver al listado</Button></Link>
       </div>
@@ -131,38 +97,22 @@ function EncomiendaDetalle() {
 
           <Card>
             <div className="flex flex-wrap gap-2">
-              <Button onClick={handleCotizar} disabled={encomienda.estado === 'ANULADA' || loading === 'cotizacion'}>
-                {loading === 'cotizacion' ? 'Calculando...' : 'Calcular cotizacion'}
-              </Button>
               <Button onClick={handleEmitir} disabled={encomienda.estado === 'ANULADA' || loading === 'boleta'}>
                 {loading === 'boleta' ? 'Emitiendo...' : 'Emitir boleta SUNAT'}
               </Button>
-              <Link to={`/admin/encomiendas/${id}/editar`}><Button variant="secondary">Editar</Button></Link>
+              {canEditEncomienda(encomienda.estado) ? (
+                <Link to={`/admin/encomiendas/${id}/editar`}><Button variant="secondary">Editar</Button></Link>
+              ) : (
+                <Button variant="secondary" disabled title="No editable: ya esta en transito o entregada">
+                  Editar
+                </Button>
+              )}
               <Button variant="ghost" onClick={handleAnular} disabled={encomienda.estado === 'ANULADA' || loading === 'anular'}>
                 {loading === 'anular' ? 'Anulando...' : 'Anular'}
-              </Button>
-              <Button variant="secondary" onClick={handlePdfBeta} disabled={encomienda.estado === 'ANULADA' || loading === 'pdfBeta'}>
-                {loading === 'pdfBeta' ? 'Generando...' : 'Generar PDF'}
-              </Button>
-              <Button variant="secondary" onClick={handleXmlBeta} disabled={encomienda.estado === 'ANULADA' || loading === 'xmlBeta'}>
-                {loading === 'xmlBeta' ? 'Generando...' : 'Generar XML'}
               </Button>
             </div>
           </Card>
         </>
-      )}
-
-      {cotizacion && (
-        <Card className="border-brand-lime bg-brand-lime/20">
-          <p className="text-sm font-bold text-brand-dark">Cotizacion</p>
-          <h3 className="mt-1 text-xl font-semibold text-brand-black">{formatShipmentCode(cotizacion.codigo_encomienda)}</h3>
-          <dl className="mt-4 grid gap-3 text-sm md:grid-cols-4">
-            <div><dt className="text-gray-500">Subtotal</dt><dd className="font-medium">{formatCurrency(cotizacion.subtotal)}</dd></div>
-            <div><dt className="text-gray-500">IGV</dt><dd className="font-medium">{formatCurrency(cotizacion.igv)}</dd></div>
-            <div><dt className="text-gray-500">Total</dt><dd className="font-medium">{formatCurrency(cotizacion.total)}</dd></div>
-            <div><dt className="text-gray-500">Moneda</dt><dd className="font-medium">{cotizacion.moneda}</dd></div>
-          </dl>
-        </Card>
       )}
 
       {boleta && (
@@ -182,15 +132,6 @@ function EncomiendaDetalle() {
           {boleta.cdr_description && <Alert tone="info">{boleta.cdr_description}</Alert>}
           {boleta.cdr_notes?.length > 0 && <Alert tone="warning">{boleta.cdr_notes.join(' ')}</Alert>}
           {boleta.pdf_url && <div className="mt-4"><Button variant="secondary" onClick={handlePdfMock} disabled={loading === 'pdfMock'}>Ver PDF</Button></div>}
-        </Card>
-      )}
-
-      {xmlResponse && (
-        <Card>
-          <h3 className="text-lg font-semibold text-brand-black">Respuesta XML</h3>
-          <pre className="mt-4 max-h-96 overflow-auto rounded-md bg-gray-50 p-3 text-xs text-gray-700">
-            {typeof xmlResponse === 'string' ? xmlResponse : JSON.stringify(xmlResponse, null, 2)}
-          </pre>
         </Card>
       )}
     </div>

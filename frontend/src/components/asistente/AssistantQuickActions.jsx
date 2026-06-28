@@ -11,11 +11,11 @@ const QUICK_ACTIONS = [
   { id: 'preregistro', label: 'Hacer pre-registro', icon: PackageCheck, message: 'Quiero hacer un pre-registro de mi envío' },
 ];
 
-export default function AssistantQuickActions({ onAction, disabled = false }) {
+export default function AssistantQuickActions({ onAction, disabled = false, compact = false }) {
   return (
     <div className="px-3 pb-2">
-      <p className="mb-2 text-xs font-black uppercase text-[#3C5940]">Acciones rápidas</p>
-      <div className="grid grid-cols-2 gap-2">
+      <p className="mb-2 text-xs font-black uppercase text-[#3C5940]">Consultas rápidas</p>
+      <div className={`grid gap-2 ${compact ? 'grid-cols-1 sm:grid-cols-2' : 'grid-cols-2'}`}>
         {QUICK_ACTIONS.map((action, index) => {
           const Icon = action.icon;
           return (

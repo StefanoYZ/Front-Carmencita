@@ -1,13 +1,21 @@
 import React, { useEffect, useMemo, useState } from 'react';
 import { Link, useLocation } from 'react-router-dom';
 import { FileText, Printer } from 'lucide-react';
+import PaymentConfirmationStep from '../../components/public/PaymentConfirmationStep.jsx';
+import PackageBaseSelector from '../../components/common/PackageBaseSelector.jsx';
 import TrackingProgress from '../../components/public/TrackingProgress.jsx';
 import { getApiErrorMessage } from '../../services/apiClient.js';
-import { getEtiquetaPdf } from '../../services/encomiendasService.js';
+import { validatePackageBaseOrientation } from '../../utils/shipmentValidation.js';
+import { confirmarPreRegistro, getEtiquetaPdf } from '../../services/encomiendasService.js';
 import { generarPdfBetaDesdeEncomienda } from '../../services/sunatService.js';
 import { iniciarLogBoleta, finalizarLogBoleta } from '../../services/measurementLogsService.js';
 import { formatShipmentCode } from '../../utils/formatShipmentCode.js';
-import { PUBLIC_SUCCESS_STORAGE_KEY, clearSessionKey, readSessionJSON } from '../../utils/publicShipment.js';
+import {
+  PUBLIC_SUCCESS_STORAGE_KEY,
+  clearSessionKey,
+  readSessionJSON,
+  writeSessionJSON,
+} from '../../utils/publicShipment.js';
 import checkIcon from '../../assets/icons/flecha-correcta.svg';
 
 export function RegistroExitosoContent({
@@ -18,19 +26,38 @@ export function RegistroExitosoContent({
   homeLabel = 'Volver al inicio',
   clearOnUnmount = false,
   onHome = null,
+  autoPayOnline = false,
 }) {
+  const [currentResult, setCurrentResult] = useState(result);
+  const [currentPayment, setCurrentPayment] = useState(payment);
+  const [payingOnline, setPayingOnline] = useState(
+    Boolean(autoPayOnline) && (result?.estado || 'PRE_REGISTRADA') === 'PRE_REGISTRADA' && Boolean(summary),
+  );
+  const [paymentMethod, setPaymentMethod] = useState('yape');
+  const [paymentNotice, setPaymentNotice] = useState('');
+  const [paymentError, setPaymentError] = useState('');
+  const [paymentLoading, setPaymentLoading] = useState(false);
+  // Cara/base del paquete: algunos pre-registros (p. ej. los de CarmiBot) llegan
+  // sin elegirla; el cliente debe seleccionarla antes de pagar en línea.
+  const [baseOrientation, setBaseOrientation] = useState(
+    summary?.orientacion_base || result?.orientacion_base || '',
+  );
   const [printing, setPrinting] = useState('');
   const [printError, setPrintError] = useState('');
-  const code = formatShipmentCode(result?.codigo_encomienda);
-  const estado = result?.estado || 'PRE_REGISTRADA';
+  const code = formatShipmentCode(currentResult?.codigo_encomienda);
+  const estado = currentResult?.estado || 'PRE_REGISTRADA';
   const isPreRegistration = estado === 'PRE_REGISTRADA';
-  const canPrintLabel = !isPreRegistration && Boolean(result?.id);
+  const canPrintLabel = !isPreRegistration && Boolean(currentResult?.id);
   const paymentLabel =
-    payment?.method === 'yape'
+    currentPayment?.method === 'yape'
       ? 'Yape aprobado'
-      : payment?.method === 'card'
+      : currentPayment?.method === 'card'
         ? 'Tarjeta aprobada'
-        : 'Pendiente en agencia';
+        : currentPayment?.method === 'qr'
+          ? 'QR aprobado'
+          : currentPayment?.method === 'pos'
+            ? 'POS aprobado'
+            : 'Pendiente en agencia';
 
   useEffect(() => {
     if (!clearOnUnmount) return undefined;
@@ -38,6 +65,11 @@ export function RegistroExitosoContent({
       clearSessionKey(PUBLIC_SUCCESS_STORAGE_KEY);
     };
   }, [clearOnUnmount]);
+
+  useEffect(() => {
+    setCurrentResult(result);
+    setCurrentPayment(payment);
+  }, [payment, result]);
 
   const openPdfForPrint = async ({ type, loadingText, getPdf }) => {
     const printWindow = window.open('', '_blank');
@@ -73,7 +105,7 @@ export function RegistroExitosoContent({
   const handlePrintLabel = () => openPdfForPrint({
     type: 'label',
     loadingText: 'Preparando etiqueta con QR',
-    getPdf: () => getEtiquetaPdf(result.id),
+    getPdf: () => getEtiquetaPdf(currentResult.id),
   });
 
   const handlePrintReceipt = () => openPdfForPrint({
@@ -81,13 +113,13 @@ export function RegistroExitosoContent({
     loadingText: 'Generando boleta electronica',
     getPdf: async () => {
       const log = await iniciarLogBoleta({
-        encomienda_id: result.id,
+        encomienda_id: currentResult.id,
         actor_origen: 'cliente_externo',
         canal: 'externo',
       }).catch(() => null);
 
       const blob = await generarPdfBetaDesdeEncomienda({
-        encomienda_id: result.id,
+        encomienda_id: currentResult.id,
         confirmar_pago: true,
       });
 
@@ -98,6 +130,130 @@ export function RegistroExitosoContent({
       return blob;
     },
   });
+
+  const handleOnlineApproved = async (method, paymentResult) => {
+    if (!currentResult?.id) return;
+    try {
+      setPaymentLoading(true);
+      setPaymentError('');
+      setPaymentNotice('');
+      const confirmed = await confirmarPreRegistro(currentResult.id, baseOrientation || null);
+      const nextPayment = {
+        method,
+        status: 'approved',
+        response: paymentResult,
+      };
+      setCurrentResult(confirmed);
+      setCurrentPayment(nextPayment);
+      setPayingOnline(false);
+      writeSessionJSON(PUBLIC_SUCCESS_STORAGE_KEY, {
+        result: confirmed,
+        summary,
+        payment: nextPayment,
+      });
+      window.scrollTo({ top: 0, behavior: 'smooth' });
+    } catch (error) {
+      setPaymentError(
+        getApiErrorMessage(
+          error,
+          'El pago fue aprobado, pero no se pudo formalizar el pre-registro.',
+        ),
+      );
+    } finally {
+      setPaymentLoading(false);
+    }
+  };
+
+  if (isPreRegistration && payingOnline && summary) {
+    const isEnvelope = String(summary.tipo_contenido || '').trim().toUpperCase() === 'DOCUMENTOS';
+    const needsBase = !isEnvelope && !baseOrientation;
+    const baseOrientationError = isEnvelope || !baseOrientation
+      ? ''
+      : validatePackageBaseOrientation({
+        contentType: summary.tipo_contenido,
+        description: summary.descripcion,
+        fragility: summary.fragilidad,
+        baseOrientation,
+        lengthCm: summary.largo_cm,
+        widthCm: summary.ancho_cm,
+        heightCm: summary.alto_cm,
+      });
+    return (
+      <section className="bg-[#F8F9FA] px-4 py-10 sm:px-6 lg:px-8">
+        <div className="mx-auto max-w-6xl">
+          <div className="mb-5 rounded-2xl border border-[#A3CF84]/70 bg-white p-5 shadow-sm">
+            <p className="text-xs font-black uppercase tracking-wide text-[#28A745]">Pago por internet</p>
+            <h1 className="mt-1 text-2xl font-black text-[#212529]">Completa el pago de tu pre-registro</h1>
+            <p className="mt-2 text-sm font-semibold leading-6 text-[#6C757D]">
+              Codigo {code || '-'}: si el pago queda aprobado, el envio pasara automaticamente a REGISTRADO.
+            </p>
+          </div>
+
+          <PaymentConfirmationStep
+            form={summary}
+            loading={paymentLoading}
+            error={paymentError}
+            paymentMethod={paymentMethod}
+            paymentNotice={paymentNotice}
+            allowedPaymentMethods={['yape', 'card']}
+            encomiendaId={currentResult.id}
+            paymentDisabled={needsBase || Boolean(baseOrientationError)}
+            paymentDisabledMessage="Selecciona la cara/base del paquete (en Datos de la encomienda) para habilitar el pago."
+            extraSummaryNode={!isEnvelope ? (
+              <section className="rounded-lg border border-[#A3CF84]/70 bg-white p-5 shadow-[0_14px_32px_rgba(33,37,41,0.07)]">
+                <div className="flex items-center gap-2">
+                  <h3 className="text-lg font-black text-[#212529]">Cara / base del paquete</h3>
+                  {needsBase && (
+                    <span className="rounded-full bg-amber-100 px-2 py-0.5 text-xs font-black uppercase tracking-wide text-amber-700 ring-1 ring-amber-300">
+                      Requerido
+                    </span>
+                  )}
+                </div>
+                <p className="mt-1 text-sm font-semibold leading-6 text-[#6C757D]">
+                  Indica sobre qué cara viajará apoyado el paquete para asegurar que llegue en buen estado.
+                </p>
+                <div className="mt-3">
+                  <PackageBaseSelector
+                    length={summary.largo_cm}
+                    width={summary.ancho_cm}
+                    height={summary.alto_cm}
+                    value={baseOrientation}
+                    error={baseOrientationError}
+                    onChange={(orientation) => {
+                      setBaseOrientation(orientation);
+                      setPaymentError('');
+                    }}
+                  />
+                </div>
+              </section>
+            ) : null}
+            onBack={() => {
+              setPayingOnline(false);
+              setPaymentError('');
+              setPaymentNotice('');
+            }}
+            onEdit={() => {
+              setPayingOnline(false);
+              setPaymentError('');
+              setPaymentNotice('');
+            }}
+            onSelectPayment={(value) => {
+              setPaymentMethod(value);
+              setPaymentError('');
+              setPaymentNotice('');
+            }}
+            onDigitalApproved={handleOnlineApproved}
+            onDigitalPending={(method) => {
+              setPaymentNotice(`Pago con ${method === 'yape' ? 'Yape' : 'tarjeta'} pendiente de validacion.`);
+            }}
+            onDigitalError={(method, error) => {
+              setPaymentError(error?.message || `No se pudo procesar el pago con ${method === 'yape' ? 'Yape' : 'tarjeta'}.`);
+            }}
+          />
+        </div>
+      </section>
+    );
+  }
 
   return (
     <section className="px-4 py-10 sm:px-6 lg:px-8">
@@ -116,7 +272,7 @@ export function RegistroExitosoContent({
               </h1>
               <p className="mt-3 max-w-2xl text-base leading-7 text-gray-600">
                 {isPreRegistration
-                  ? 'Acercate a agencia con este codigo para completar el pago y formalizar el envio.'
+                  ? 'Puedes completar el pago en agencia o pagarlo por internet para formalizar el envio.'
                   : 'El pago fue confirmado y el registro formal de la encomienda fue creado.'}
               </p>
 
@@ -187,6 +343,19 @@ export function RegistroExitosoContent({
           )}
 
           <div className="mt-8 flex flex-col gap-3 sm:flex-row">
+            {isPreRegistration && summary && currentResult?.id && (
+              <button
+                type="button"
+                onClick={() => {
+                  setPayingOnline(true);
+                  setPaymentError('');
+                  setPaymentNotice('');
+                }}
+                className="inline-flex min-h-12 items-center justify-center rounded-md bg-[#28A745] px-5 text-sm font-black text-white shadow-[0_10px_22px_rgba(40,167,69,0.22)] transition hover:-translate-y-0.5 hover:bg-[#3C5940]"
+              >
+                Pagar ahora por internet
+              </button>
+            )}
             {onHome ? (
               <button
                 type="button"
@@ -216,12 +385,14 @@ function RegistroExitosoPage() {
   const result = location.state?.result || stored?.result || null;
   const summary = location.state?.summary || stored?.summary || null;
   const payment = location.state?.payment || stored?.payment || null;
+  const autoPay = Boolean(location.state?.autoPay);
 
   return (
     <RegistroExitosoContent
       result={result}
       summary={summary}
       payment={payment}
+      autoPayOnline={autoPay}
       clearOnUnmount
     />
   );

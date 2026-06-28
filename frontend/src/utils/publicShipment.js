@@ -1,8 +1,10 @@
 import {
   validateContentType,
+  validateContentDescriptionCoherence,
   validateDocumentNumber,
   validateEmail,
   validateFragility,
+  validatePackageBaseOrientation,
   validatePhone,
   validatePositiveNumber,
 } from './shipmentValidation.js';
@@ -163,6 +165,9 @@ export function validatePublicShipmentForm(form) {
   const contentError = validateContentType(form.tipo_contenido);
   if (contentError) errors.tipo_contenido = contentError;
 
+  const coherenceError = validateContentDescriptionCoherence(form.tipo_contenido, form.descripcion);
+  if (coherenceError) errors.tipo_contenido = coherenceError;
+
   if (!isEnvelopeContent(form.tipo_contenido)) {
     if (!String(form.fragilidad || '').trim()) {
       errors.fragilidad = 'Selecciona la fragilidad.';
@@ -172,6 +177,17 @@ export function validatePublicShipmentForm(form) {
     }
     if (!String(form.orientacion_base || '').trim()) {
       errors.orientacion_base = 'Selecciona la cara que ira hacia abajo.';
+    } else {
+      const orientationError = validatePackageBaseOrientation({
+        contentType: form.tipo_contenido,
+        description: form.descripcion,
+        fragility: form.fragilidad,
+        baseOrientation: form.orientacion_base,
+        lengthCm: form.largo_cm,
+        widthCm: form.ancho_cm,
+        heightCm: form.alto_cm,
+      });
+      if (orientationError) errors.orientacion_base = orientationError;
     }
   }
 

@@ -43,6 +43,10 @@ function PaymentConfirmationStep({
   agencyTitle = 'Pago en agencia',
   agencyDescription = 'Generaremos un codigo para que completes el pago y la atencion en agencia.',
   agencyNotice = 'El envio quedara como pre-registro hasta que sea formalizado.',
+  layout = 'default',
+  extraSummaryNode = null,
+  paymentDisabled = false,
+  paymentDisabledMessage = '',
   onBack,
   onConfirmAgency,
   onDigitalApproved,
@@ -54,6 +58,9 @@ function PaymentConfirmationStep({
   const quote = quoteEstimateFromForm(form);
   const isEnvelope = form.tipo_contenido === 'DOCUMENTOS';
   const visiblePaymentMethods = paymentMethods.filter((method) => allowedPaymentMethods.includes(method.value));
+  const isStackedLayout = layout === 'stacked';
+  const isReverse = layout === 'split-reverse';
+  const showActionPanel = !isStackedLayout || paymentMethod === 'agency';
 
   const senderItems = [
     { label: 'Documento', value: `${form.remitente_tipo_documento} ${form.remitente_numero_documento}` },
@@ -80,16 +87,41 @@ function PaymentConfirmationStep({
   ];
 
   return (
-    <div className="grid min-w-0 items-start gap-6 xl:grid-cols-[minmax(0,1fr)_minmax(340px,380px)]">
-      <div className="grid min-w-0 auto-rows-max items-start gap-5 lg:grid-cols-2">
+    <div
+      className={
+        isStackedLayout
+          ? 'grid min-w-0 items-start gap-6'
+          : isReverse
+            ? 'grid min-w-0 items-start gap-6 xl:grid-cols-[minmax(340px,380px)_minmax(0,1fr)]'
+            : 'grid min-w-0 items-start gap-6 xl:grid-cols-[minmax(0,1fr)_minmax(340px,380px)]'
+      }
+    >
+      <div
+        className={`${
+          isStackedLayout
+            ? 'grid min-w-0 auto-rows-max items-start gap-5 xl:grid-cols-2'
+            : 'grid min-w-0 auto-rows-max items-start gap-5 lg:grid-cols-2'
+        }${isReverse ? ' xl:order-2' : ''}`}
+      >
         <ShipmentSummaryCard title="Datos del remitente" items={senderItems} onEdit={onEdit} />
         <ShipmentSummaryCard title="Datos del destinatario" items={recipientItems} onEdit={onEdit} />
-        <div className="lg:col-span-2">
+        <div className={isStackedLayout ? 'xl:col-span-2' : 'lg:col-span-2'}>
           <ShipmentSummaryCard title="Datos de la encomienda" items={shipmentItems} onEdit={onEdit} />
         </div>
+        {extraSummaryNode && (
+          <div className={isStackedLayout ? 'xl:col-span-2' : 'lg:col-span-2'}>
+            {extraSummaryNode}
+          </div>
+        )}
       </div>
 
-      <aside className="min-w-0 space-y-5 2xl:sticky 2xl:top-28 2xl:self-start">
+      <aside
+        className={`${
+          isStackedLayout
+            ? 'grid min-w-0 items-start gap-5 xl:grid-cols-[minmax(280px,360px)_minmax(280px,360px)_minmax(360px,1fr)]'
+            : 'min-w-0 space-y-5 2xl:sticky 2xl:top-28 2xl:self-start'
+        }${isReverse ? ' xl:order-1' : ''}`}
+      >
         <section className="rounded-lg border border-[#E4ECE2] bg-white p-5 shadow-[0_14px_32px_rgba(33,37,41,0.07)]">
           <h3 className="text-lg font-black text-[#212529]">Detalle de pago</h3>
           <div className="mt-4 space-y-3 text-sm">
@@ -121,7 +153,13 @@ function PaymentConfirmationStep({
         </section>
 
         <section className="min-h-[360px] rounded-lg border border-[#E4ECE2] bg-white p-4 shadow-[0_14px_32px_rgba(33,37,41,0.07)]">
-          {paymentMethod === 'agency' && (
+          {paymentDisabled && (
+            <div className="flex min-h-[328px] flex-col items-center justify-center rounded-md border border-amber-300 bg-amber-50 p-4 text-center text-sm font-bold text-amber-800">
+              {paymentDisabledMessage || 'Completa los datos requeridos arriba para habilitar el pago.'}
+            </div>
+          )}
+
+          {!paymentDisabled && paymentMethod === 'agency' && (
             <div className="flex min-h-[328px] flex-col justify-between rounded-md border border-[#A3CF84]/50 bg-[#E4ECE2] p-4">
               <div>
                 <h4 className="text-base font-black text-[#212529]">{agencyTitle}</h4>
@@ -135,7 +173,7 @@ function PaymentConfirmationStep({
             </div>
           )}
 
-          {paymentMethod === 'yape' && (
+          {!paymentDisabled && paymentMethod === 'yape' && (
             <YapePayment
               amount={quote.total}
               email={form.remitente_correo || 'test@test.com'}
@@ -148,7 +186,7 @@ function PaymentConfirmationStep({
             />
           )}
 
-          {paymentMethod === 'card' && (
+          {!paymentDisabled && paymentMethod === 'card' && (
             <MercadoPagoBrick
               amount={quote.total}
               payerEmail={form.remitente_correo || 'test@test.com'}
@@ -166,38 +204,40 @@ function PaymentConfirmationStep({
         {paymentNotice && <div className="rounded-md border border-amber-300 bg-amber-50 p-3 text-sm font-semibold text-amber-800">{paymentNotice}</div>}
         {error && <div className="rounded-md border border-red-300 bg-red-50 p-3 text-sm font-semibold text-red-700">{error}</div>}
 
-        <div className="rounded-lg border border-[#E4ECE2] bg-white p-4 shadow-[0_14px_32px_rgba(33,37,41,0.07)]">
-          <div className="mb-4 flex items-center justify-between gap-4">
-            <span className="text-sm font-bold text-gray-500">Total</span>
-            <span className="break-words text-right text-2xl font-black text-[#28A745]">{formatCurrency(quote.total)}</span>
+        {showActionPanel && (
+          <div className="rounded-lg border border-[#E4ECE2] bg-white p-4 shadow-[0_14px_32px_rgba(33,37,41,0.07)]">
+            <div className="mb-4 flex items-center justify-between gap-4">
+              <span className="text-sm font-bold text-gray-500">Total</span>
+              <span className="break-words text-right text-2xl font-black text-[#28A745]">{formatCurrency(quote.total)}</span>
+            </div>
+            <div className="grid gap-3 sm:grid-cols-2 xl:grid-cols-1">
+              <button
+                type="button"
+                className="min-h-12 rounded-md border border-[#A3CF84]/70 bg-white px-5 text-sm font-black text-[#3C5940] transition hover:border-[#28A745] hover:bg-[#F8F9FA]"
+                onClick={onBack}
+                disabled={loading}
+              >
+                Volver
+              </button>
+              {paymentMethod === 'agency' ? (
+                onConfirmAgency ? (
+                  <button
+                    type="button"
+                    className="min-h-12 rounded-md bg-[#28A745] px-5 text-sm font-black text-white shadow-[0_12px_24px_rgba(40,167,69,0.24)] transition hover:-translate-y-0.5 hover:bg-[#3C5940] disabled:translate-y-0 disabled:cursor-not-allowed disabled:opacity-70"
+                    onClick={onConfirmAgency}
+                    disabled={loading}
+                  >
+                    {loading ? 'Procesando...' : agencyActionLabel}
+                  </button>
+                ) : null
+              ) : (
+                <div className="rounded-md bg-[#E4ECE2] px-4 py-3 text-center text-sm font-bold text-[#3C5940]">
+                  Completa el pago en el panel superior.
+                </div>
+              )}
+            </div>
           </div>
-          <div className="grid gap-3 sm:grid-cols-2 xl:grid-cols-1">
-            <button
-              type="button"
-              className="min-h-12 rounded-md border border-[#A3CF84]/70 bg-white px-5 text-sm font-black text-[#3C5940] transition hover:border-[#28A745] hover:bg-[#F8F9FA]"
-              onClick={onBack}
-              disabled={loading}
-            >
-              Volver
-            </button>
-            {paymentMethod === 'agency' ? (
-              onConfirmAgency ? (
-                <button
-                  type="button"
-                  className="min-h-12 rounded-md bg-[#28A745] px-5 text-sm font-black text-white shadow-[0_12px_24px_rgba(40,167,69,0.24)] transition hover:-translate-y-0.5 hover:bg-[#3C5940] disabled:translate-y-0 disabled:cursor-not-allowed disabled:opacity-70"
-                  onClick={onConfirmAgency}
-                  disabled={loading}
-                >
-                  {loading ? 'Procesando...' : agencyActionLabel}
-                </button>
-              ) : null
-            ) : (
-              <div className="rounded-md bg-[#E4ECE2] px-4 py-3 text-center text-sm font-bold text-[#3C5940]">
-                Completa el pago en el panel superior.
-              </div>
-            )}
-          </div>
-        </div>
+        )}
       </aside>
     </div>
   );

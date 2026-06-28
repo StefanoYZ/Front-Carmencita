@@ -24,7 +24,7 @@ function PublicHeader() {
   };
 
   return (
-    <header className="sticky top-0 z-50 border-b border-gray-100 bg-white shadow-sm">
+    <header className="sticky top-0 z-50 border-b border-gray-100 bg-white/80 shadow-[0_4px_20px_-12px_rgba(33,37,41,0.25)] backdrop-blur-md">
       <div className="mx-auto flex min-h-[82px] max-w-[1440px] items-center justify-between gap-4 px-4 sm:px-6 lg:min-h-[92px] lg:px-8">
         <NavLink to="/" className="flex items-center gap-3" onClick={() => setOpen(false)}>
           <img src={logo} alt="Carmencita Express" className="h-14 w-auto sm:h-16 lg:h-[72px]" />
@@ -57,14 +57,14 @@ function PublicHeader() {
           </a>
           <NavLink
             to="/registrar-envio"
-            className="inline-flex min-h-10 items-center gap-1.5 whitespace-nowrap rounded-md bg-[#28A745] px-3.5 py-2 text-[13px] font-black text-white shadow-md shadow-black/10 transition hover:bg-[#3C5940]"
+            className="inline-flex min-h-10 items-center gap-1.5 whitespace-nowrap rounded-xl bg-gradient-to-b from-[#28A745] to-[#1f8f3a] px-3.5 py-2 text-[13px] font-black text-white shadow-[0_6px_16px_-4px_rgba(40,167,69,0.45)] transition hover:-translate-y-0.5 hover:from-[#2fb850] hover:to-[#3C5940]"
           >
             <img src={packageIcon} alt="" className="h-5 w-5 brightness-0 invert" />
             Registro de envio
           </NavLink>
           <NavLink
             to="/login"
-            className="inline-flex min-h-10 items-center gap-1.5 whitespace-nowrap rounded-md border border-[#3C5940] bg-white px-3.5 py-2 text-[13px] font-black text-[#3C5940] transition hover:bg-[#E4ECE2]"
+            className="inline-flex min-h-10 items-center gap-1.5 whitespace-nowrap rounded-xl border border-[#3C5940] bg-white px-3.5 py-2 text-[13px] font-black text-[#3C5940] transition hover:bg-[#E4ECE2]"
           >
             <LogIn size={17} />
             Acceso interno

@@ -328,7 +328,7 @@ function RegistrarEnvioPage() {
   return (
     <section className="bg-[#F8F9FA] px-4 py-8 sm:px-6 lg:px-8">
       <div className="mx-auto max-w-7xl">
-        <div className="mb-6 flex flex-col gap-4 rounded-lg border border-[#E4ECE2] bg-white p-5 shadow-[0_14px_32px_rgba(33,37,41,0.07)] sm:flex-row sm:items-start sm:justify-between">
+        <div className="mb-6 flex flex-col gap-4 rounded-2xl border border-[#E4ECE2] bg-white p-5 shadow-[0_1px_2px_rgba(33,37,41,0.04),0_16px_38px_-18px_rgba(33,37,41,0.22)] sm:flex-row sm:items-start sm:justify-between">
           <div>
             <Link to="/" className="text-sm font-black text-[#28A745] hover:text-[#3C5940]">
               Volver

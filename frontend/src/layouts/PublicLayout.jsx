@@ -37,9 +37,15 @@ function PublicLayout() {
 
   return (
     <div className="min-h-screen bg-[#F8F9FA] text-[#212529]">
+      <a
+        href="#contenido-publico"
+        className="sr-only focus:not-sr-only focus:absolute focus:left-4 focus:top-4 focus:z-[100] focus:rounded-xl focus:bg-white focus:px-4 focus:py-2 focus:text-sm focus:font-black focus:text-brand-dark focus:shadow-lg focus:ring-2 focus:ring-brand-green"
+      >
+        Saltar al contenido
+      </a>
       {loading && <LoadingScreen leaving={leaving} />}
       <PublicHeader />
-      <main>
+      <main id="contenido-publico">
         <Outlet />
       </main>
       <footer className="border-t border-white/10 bg-[#212529] px-4 py-8 text-white">

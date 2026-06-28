@@ -1,5 +1,7 @@
 import React, { useEffect, useMemo, useState } from 'react';
 import PackageBaseSelector from '../common/PackageBaseSelector.jsx';
+import FieldAlertBell from '../asistente/FieldAlertBell.jsx';
+import useCoherenceWarnings from '../../hooks/useCoherenceWarnings.js';
 import packageIcon from '../../assets/icons/paquete.svg';
 import userIcon from '../../assets/icons/cuenta.svg';
 import {
@@ -9,7 +11,7 @@ import {
 } from '../../utils/locationHierarchy.js';
 
 const inputClass =
-  'h-11 w-full rounded-md border border-[#A3CF84] bg-white px-3 py-0 text-sm font-semibold text-[#212529] shadow-sm outline-none transition placeholder:text-[#6C757D]/70 hover:border-[#28A745] focus:border-[#28A745] focus:ring-2 focus:ring-[#A3CF84]';
+  'h-11 w-full rounded-xl border border-gray-200 bg-white px-3.5 py-0 text-sm font-semibold text-[#212529] shadow-sm outline-none transition placeholder:text-[#6C757D]/60 hover:border-[#A3CF84] focus:border-[#28A745] focus:ring-4 focus:ring-[#A3CF84]/25';
 
 function FieldError({ children }) {
   return (
@@ -23,7 +25,7 @@ function FieldError({ children }) {
   );
 }
 
-function Field({ label, name, value, onChange, error, type = 'text', as = 'input', children, ...props }) {
+function Field({ label, name, value, onChange, error, warning, alertMode = 'chat', type = 'text', as = 'input', children, ...props }) {
   const Control = as;
   const controlProps = {
     className: inputClass,
@@ -40,9 +42,12 @@ function Field({ label, name, value, onChange, error, type = 'text', as = 'input
   return (
     <label className="grid self-start content-start gap-1.5">
       <span className="text-sm font-black text-[#3C5940]">{label}</span>
-      <Control {...controlProps}>
-        {children}
-      </Control>
+      <div className="relative">
+        <Control {...controlProps}>
+          {children}
+        </Control>
+        <FieldAlertBell warning={warning} label={label} mode={alertMode} />
+      </div>
       <FieldError>{error}</FieldError>
     </label>
   );
@@ -63,9 +68,9 @@ function ReniecMessage({ status }) {
 
 function SectionTitle({ icon, title }) {
   return (
-    <div className="mb-5 flex items-center gap-3 border-b border-[#A3CF84]/45 pb-4">
-      <span className="flex h-11 w-11 shrink-0 items-center justify-center rounded-md bg-[#E4ECE2] ring-1 ring-[#A3CF84]/45">
-        <img src={icon} alt="" className="h-6 w-6" />
+    <div className="mb-5 flex items-center gap-3 border-b border-gray-100 pb-4">
+      <span className="flex h-11 w-11 shrink-0 items-center justify-center rounded-xl bg-gradient-to-br from-[#28A745] to-[#1f6f37] shadow-[0_8px_18px_-8px_rgba(40,167,69,0.65)]">
+        <img src={icon} alt="" className="h-5 w-5 brightness-0 invert" />
       </span>
       <h2 className="text-xl font-black text-[#212529]">{title}</h2>
     </div>
@@ -205,14 +210,24 @@ function LocationField({ label, name, value, onChange, error, options }) {
   );
 }
 
-function ShipmentFormStep({ form, errors, reniecStatus, locationOptions = [], onChange, onReniecLookup, onSubmit, onCancel }) {
+function ShipmentFormStep({ form, errors, reniecStatus, locationOptions = [], onChange, onReniecLookup, onSubmit, onCancel, alertMode = 'chat' }) {
   const isEnvelope = form.tipo_contenido === 'DOCUMENTOS';
+  const coherenceWarnings = useCoherenceWarnings({
+    tipoContenido: form.tipo_contenido,
+    descripcion: form.descripcion,
+    pesoKg: form.peso_kg,
+    largoCm: form.largo_cm,
+    anchoCm: form.ancho_cm,
+    altoCm: form.alto_cm,
+    fragilidad: form.fragilidad,
+    orientacionBase: form.orientacion_base,
+  });
 
   return (
     <form className="space-y-6" onSubmit={onSubmit}>
       <div className="grid min-w-0 gap-6 xl:grid-cols-2">
-        <section className="min-w-0 rounded-lg border border-[#A3CF84]/70 bg-white p-5 shadow-[0_16px_34px_rgba(33,37,41,0.09)] sm:p-6">
-          <SectionTitle icon={userIcon} title="Quien envia?" />
+        <section className="min-w-0 rounded-2xl border border-[#A3CF84]/70 bg-white p-5 shadow-[0_1px_2px_rgba(33,37,41,0.04),0_16px_38px_-18px_rgba(33,37,41,0.22)] sm:p-6">
+          <SectionTitle icon={userIcon} title="¿Quién envía?" />
           <PersonFields
             prefix="remitente"
             form={form}
@@ -223,8 +238,8 @@ function ShipmentFormStep({ form, errors, reniecStatus, locationOptions = [], on
           />
         </section>
 
-        <section className="min-w-0 rounded-lg border border-[#A3CF84]/70 bg-white p-5 shadow-[0_16px_34px_rgba(33,37,41,0.09)] sm:p-6">
-          <SectionTitle icon={userIcon} title="Quien recibe?" />
+        <section className="min-w-0 rounded-2xl border border-[#A3CF84]/70 bg-white p-5 shadow-[0_1px_2px_rgba(33,37,41,0.04),0_16px_38px_-18px_rgba(33,37,41,0.22)] sm:p-6">
+          <SectionTitle icon={userIcon} title="¿Quién recibe?" />
           <PersonFields
             prefix="destinatario"
             form={form}
@@ -236,16 +251,17 @@ function ShipmentFormStep({ form, errors, reniecStatus, locationOptions = [], on
         </section>
       </div>
 
-      <section className="min-w-0 rounded-lg border border-[#A3CF84] bg-[#E4ECE2] p-5 shadow-[0_18px_42px_rgba(60,89,64,0.16)] ring-1 ring-white/70 sm:p-6">
+      <section className="min-w-0 rounded-2xl border border-[#A3CF84]/60 bg-gradient-to-b from-[#F4F8F1] to-white p-5 shadow-[0_1px_2px_rgba(33,37,41,0.04),0_16px_38px_-18px_rgba(33,37,41,0.22)] sm:p-6">
         <SectionTitle icon={packageIcon} title="Datos de la encomienda" />
         <div className="grid min-w-0 items-start gap-4 md:grid-cols-2 xl:grid-cols-4">
           <LocationField label="Origen" name="origen" value={form.origen} onChange={onChange} error={errors.origen} options={locationOptions} />
           <LocationField label="Destino" name="destino" value={form.destino} onChange={onChange} error={errors.destino} options={locationOptions} />
-          <Field as="select" label="Tipo de contenido" name="tipo_contenido" value={form.tipo_contenido} onChange={onChange} error={errors.tipo_contenido}>
+          <Field as="select" label="Tipo de contenido" name="tipo_contenido" value={form.tipo_contenido} onChange={onChange} error={errors.tipo_contenido} warning={coherenceWarnings.tipo_contenido} alertMode={alertMode}>
             <option value="">Seleccionar</option>
             <option value="DOCUMENTOS">Documentos</option>
             <option value="ROPA">Ropa</option>
             <option value="ELECTRONICOS">Electronicos</option>
+            <option value="ELECTRODOMESTICOS">Electrodomesticos</option>
             <option value="ALIMENTOS">Alimentos</option>
             <option value="OTROS">Otros</option>
           </Field>
@@ -257,51 +273,57 @@ function ShipmentFormStep({ form, errors, reniecStatus, locationOptions = [], on
               <option value="ALTA">Alta</option>
             </Field>
           )}
-          <Field label="Peso total (kg)" name="peso_kg" inputMode="decimal" value={form.peso_kg} onChange={onChange} error={errors.peso_kg} />
+          <Field label="Peso total (kg)" name="peso_kg" inputMode="decimal" value={form.peso_kg} onChange={onChange} error={errors.peso_kg} warning={coherenceWarnings.peso_kg} alertMode={alertMode} />
           {!isEnvelope && (
             <>
-              <Field label="Largo (cm)" name="largo_cm" inputMode="decimal" value={form.largo_cm} onChange={onChange} error={errors.largo_cm} />
-              <Field label="Ancho (cm)" name="ancho_cm" inputMode="decimal" value={form.ancho_cm} onChange={onChange} error={errors.ancho_cm} />
-              <Field label="Alto (cm)" name="alto_cm" inputMode="decimal" value={form.alto_cm} onChange={onChange} error={errors.alto_cm} />
+              <Field label="Largo (cm)" name="largo_cm" inputMode="decimal" value={form.largo_cm} onChange={onChange} error={errors.largo_cm} warning={coherenceWarnings.largo_cm} alertMode={alertMode} />
+              <Field label="Ancho (cm)" name="ancho_cm" inputMode="decimal" value={form.ancho_cm} onChange={onChange} error={errors.ancho_cm} warning={coherenceWarnings.ancho_cm} alertMode={alertMode} />
+              <Field label="Alto (cm)" name="alto_cm" inputMode="decimal" value={form.alto_cm} onChange={onChange} error={errors.alto_cm} warning={coherenceWarnings.alto_cm} alertMode={alertMode} />
             </>
           )}
           <label className="grid gap-1.5 md:col-span-2 xl:col-span-4">
             <span className="text-sm font-black text-[#3C5940]">Descripcion</span>
-            <textarea
-              className={`${inputClass} min-h-28 resize-y`}
-              name="descripcion"
-              value={form.descripcion}
-              onChange={onChange}
-              placeholder="Describe brevemente el contenido de la encomienda"
-            />
+            <div className="relative">
+              <textarea
+                className={`${inputClass} min-h-28 resize-y`}
+                name="descripcion"
+                value={form.descripcion}
+                onChange={onChange}
+                placeholder="Describe brevemente el contenido de la encomienda"
+              />
+              <FieldAlertBell warning={coherenceWarnings.descripcion} label="Descripción" mode={alertMode} />
+            </div>
             <FieldError>{errors.descripcion}</FieldError>
           </label>
         </div>
         {!isEnvelope && (
-          <PackageBaseSelector
-            length={form.largo_cm}
-            width={form.ancho_cm}
-            height={form.alto_cm}
-            value={form.orientacion_base}
-            error={errors.orientacion_base}
-            onChange={(orientation) => onChange({
-              target: { name: 'orientacion_base', value: orientation },
-            })}
-          />
+          <div className="relative">
+            <PackageBaseSelector
+              length={form.largo_cm}
+              width={form.ancho_cm}
+              height={form.alto_cm}
+              value={form.orientacion_base}
+              error={errors.orientacion_base}
+              onChange={(orientation) => onChange({
+                target: { name: 'orientacion_base', value: orientation },
+              })}
+            />
+            <FieldAlertBell warning={coherenceWarnings.orientacion_base} label="Cara del paquete" mode={alertMode} />
+          </div>
         )}
       </section>
 
       {errors.general && <div className="rounded-md border border-red-300 bg-red-50 p-3 text-sm font-semibold text-red-700 shadow-sm">{errors.general}</div>}
 
-      <div className="sticky bottom-3 z-20 mt-6 flex flex-col-reverse gap-3 rounded-lg border border-[#A3CF84]/70 bg-white/95 p-3 shadow-[0_16px_40px_rgba(33,37,41,0.18)] backdrop-blur sm:flex-row sm:justify-end">
+      <div className="sticky bottom-3 z-20 mt-6 flex flex-col-reverse gap-3 rounded-2xl border border-[#A3CF84]/70 bg-white/90 p-3 shadow-[0_16px_40px_-16px_rgba(33,37,41,0.3)] backdrop-blur sm:flex-row sm:justify-end">
         <button
           type="button"
-          className="min-h-12 rounded-md border border-[#A3CF84]/70 bg-white px-6 text-sm font-black text-[#3C5940] shadow-sm transition hover:border-[#28A745] hover:bg-[#F8F9FA]"
+          className="min-h-12 rounded-xl border border-[#A3CF84]/70 bg-white px-6 text-sm font-black text-[#3C5940] shadow-sm transition hover:border-[#28A745] hover:bg-[#F8F9FA]"
           onClick={onCancel}
         >
           Cancelar
         </button>
-        <button type="submit" className="min-h-12 rounded-md bg-[#28A745] px-7 text-sm font-black text-white shadow-[0_12px_24px_rgba(40,167,69,0.24)] transition hover:-translate-y-0.5 hover:bg-[#3C5940]">
+        <button type="submit" className="min-h-12 rounded-xl bg-gradient-to-b from-[#28A745] to-[#1f8f3a] px-7 text-sm font-black text-white shadow-[0_8px_20px_-6px_rgba(40,167,69,0.5)] transition hover:-translate-y-0.5 hover:from-[#2fb850] hover:to-[#3C5940]">
           Continuar
         </button>
       </div>

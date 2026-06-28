@@ -20,6 +20,11 @@ export async function deleteEncomienda(id) {
   return response.data;
 }
 
+export async function eliminarPreRegistroVencido(id) {
+  const response = await apiClient.delete(`/encomiendas/${id}/pre-registro-vencido`);
+  return response.data;
+}
+
 export async function getEncomiendas() {
   const response = await apiClient.get('/encomiendas');
   return response.data;
@@ -35,8 +40,9 @@ export async function getEncomiendaByCodigo(codigo) {
   return response.data;
 }
 
-export async function confirmarPreRegistro(id) {
-  const response = await apiClient.post(`/encomiendas/${id}/confirmar-registro`);
+export async function confirmarPreRegistro(id, orientacionBase = null) {
+  const body = orientacionBase ? { orientacion_base: orientacionBase } : undefined;
+  const response = await apiClient.post(`/encomiendas/${id}/confirmar-registro`, body);
   return response.data;
 }
 
@@ -75,6 +81,7 @@ export const encomiendasService = {
   createEncomienda,
   updateEncomienda,
   deleteEncomienda,
+  eliminarPreRegistroVencido,
   getEncomiendas,
   getEncomiendaById,
   getEncomiendaByCodigo,

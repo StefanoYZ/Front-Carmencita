@@ -8,11 +8,21 @@ import { getApiErrorMessage } from '../services/apiClient.js';
 import { clientesService } from '../services/clientes.service.js';
 
 const columns = [
-  { header: 'Cliente', accessor: 'nombre_completo' },
-  { header: 'DNI', accessor: 'dni' },
-  { header: 'Telefono', accessor: 'telefono' },
-  { header: 'Correo', accessor: 'correo' },
-  { header: 'Direccion', accessor: 'direccion' },
+  {
+    header: 'Cliente',
+    accessor: 'nombre_completo',
+    cell: (row) => <span className="font-semibold text-brand-black">{row.nombre_completo || '-'}</span>,
+  },
+  { header: 'DNI', accessor: 'dni', cell: (row) => row.dni || '-' },
+  { header: 'Telefono', accessor: 'telefono', cell: (row) => row.telefono || '-' },
+  { header: 'Correo', accessor: 'correo', wrap: true, cell: (row) => row.correo || <span className="text-brand-gray">-</span> },
+  {
+    header: 'Direccion',
+    accessor: 'direccion',
+    wrap: true,
+    className: 'max-w-[220px]',
+    cell: (row) => row.direccion || <span className="text-brand-gray">-</span>,
+  },
 ];
 
 function Clientes() {
@@ -50,7 +60,12 @@ function Clientes() {
       {loading && <Loader label="Cargando clientes..." />}
 
       <Card>
-        <DataTable columns={columns} data={clientes} />
+        <DataTable
+          columns={columns}
+          data={clientes}
+          caption="Clientes registrados en el sistema"
+          emptyMessage="Aun no hay clientes registrados."
+        />
       </Card>
     </div>
   );

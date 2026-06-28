@@ -1,13 +1,14 @@
-import React, { useEffect, useState } from 'react';
+import React, { useEffect, useMemo, useState } from 'react';
 import { Link, useNavigate } from 'react-router-dom';
-import { FileSpreadsheet, FileText } from 'lucide-react';
+import { Ban, Eye, FileSpreadsheet, FileText, Loader2, Pencil } from 'lucide-react';
 import Alert from '../components/common/Alert.jsx';
-import Badge from '../components/common/Badge.jsx';
 import Button from '../components/common/Button.jsx';
 import Card from '../components/common/Card.jsx';
 import Loader from '../components/common/Loader.jsx';
+import StatusBadge from '../components/common/StatusBadge.jsx';
+import FragilityBadge from '../components/common/FragilityBadge.jsx';
 import DataTable from '../components/tables/DataTable.jsx';
-import { calcularCotizacion } from '../services/cotizacionesService.js';
+import Pagination from '../components/tables/Pagination.jsx';
 import {
   deleteEncomienda,
   exportarReporteEncomiendas,
@@ -19,11 +20,12 @@ import {
   generarPdfBetaDesdeEncomienda,
 } from '../services/sunatService.js';
 import { getApiErrorMessage } from '../services/apiClient.js';
-import { getDimensions, normalizeEncomiendasList } from '../utils/encomiendas.js';
+import { canEditEncomienda, getDimensions, normalizeEncomiendasList, sortEncomiendasByRecent } from '../utils/encomiendas.js';
 import { downloadBlob } from '../utils/downloadBlob.js';
 import { formatDateInput, formatDateTime } from '../utils/formatDate.js';
 import { formatShipmentCode } from '../utils/formatShipmentCode.js';
-import { formatCurrency } from '../utils/formatCurrency.js';
+
+const PAGE_SIZE = 35;
 
 function Encomiendas() {
   const navigate = useNavigate();
@@ -37,6 +39,7 @@ function Encomiendas() {
   const [actionLoading, setActionLoading] = useState('');
   const [error, setError] = useState('');
   const [message, setMessage] = useState('');
+  const [page, setPage] = useState(1);
 
   async function loadRows() {
     try {
@@ -84,12 +87,22 @@ function Encomiendas() {
     return matchesDate && matchesStatus && matchesText;
   });
 
+  // Mas recientes primero: la pagina 1 muestra las ultimas encomiendas.
+  const sortedRows = useMemo(() => sortEncomiendasByRecent(filteredRows), [filteredRows]);
+  const pageCount = Math.max(1, Math.ceil(sortedRows.length / PAGE_SIZE));
+  const currentPage = Math.min(page, pageCount);
+  const pagedRows = sortedRows.slice((currentPage - 1) * PAGE_SIZE, currentPage * PAGE_SIZE);
+  const firstShown = sortedRows.length ? (currentPage - 1) * PAGE_SIZE + 1 : 0;
+  const lastShown = Math.min(currentPage * PAGE_SIZE, sortedRows.length);
+
   const updateFilter = (event) => {
     setFilters((current) => ({ ...current, [event.target.name]: event.target.value }));
+    setPage(1);
   };
 
   const clearFilters = () => {
     setFilters({ fecha: '', estado: '', texto: '' });
+    setPage(1);
   };
 
   const handleExport = async (format) => {
@@ -102,26 +115,6 @@ function Encomiendas() {
       setMessage(`Reporte ${format === 'excel' ? 'Excel' : 'PDF'} descargado correctamente.`);
     } catch (exportError) {
       setError(getApiErrorMessage(exportError, 'No se pudo exportar el reporte.'));
-    } finally {
-      setActionLoading('');
-    }
-  };
-
-  const handleCotizar = async (row) => {
-    if (row.estado === 'ANULADA') {
-      setError('No se puede cotizar una encomienda anulada.');
-      return;
-    }
-
-    try {
-      setActionLoading(`cotizar-${row.id}`);
-      setError('');
-      setMessage('');
-      const result = await calcularCotizacion({ encomienda_id: row.id });
-      setMessage(`Cotizacion ${formatShipmentCode(result.codigo_encomienda)}: total ${formatCurrency(result.total)} ${result.moneda}.`);
-      navigate(`/admin/cotizaciones?encomienda_id=${row.id}`);
-    } catch (quoteError) {
-      setError(getApiErrorMessage(quoteError, 'No se pudo calcular la cotizacion.'));
     } finally {
       setActionLoading('');
     }
@@ -187,59 +180,101 @@ function Encomiendas() {
   };
 
   const columns = [
-    { header: 'Codigo', accessor: 'codigo_encomienda', cell: (row) => formatShipmentCode(row.codigo_encomienda) },
-    { header: 'Remitente', accessor: 'remitente_nombre' },
-    { header: 'Destinatario', accessor: 'destinatario_nombre' },
-    { header: 'Origen', accessor: 'origen' },
-    { header: 'Destino', accessor: 'destino' },
-    { header: 'Descripcion', accessor: 'descripcion' },
-    { header: 'Peso', accessor: 'peso_kg', cell: (row) => `${row.peso_kg} kg` },
-    { header: 'Dimensiones', accessor: 'dimensiones', cell: getDimensions },
-    { header: 'Fragilidad', accessor: 'fragilidad', cell: (row) => <Badge tone="gray">{formatFragility(row.fragilidad)}</Badge> },
+    {
+      header: 'Codigo',
+      accessor: 'codigo_encomienda',
+      cell: (row) => <span className="font-black text-brand-black">{formatShipmentCode(row.codigo_encomienda)}</span>,
+    },
+    {
+      header: 'Remitente / Destinatario',
+      accessor: 'remitente_nombre',
+      cell: (row) => (
+        <div className="leading-tight">
+          <p className="font-semibold text-brand-black">{row.remitente_nombre || '-'}</p>
+          <p className="mt-0.5 text-xs text-brand-gray">
+            <span aria-hidden="true">&rarr; </span>{row.destinatario_nombre || '-'}
+          </p>
+        </div>
+      ),
+    },
+    {
+      header: 'Ruta',
+      accessor: 'origen',
+      cell: (row) => (
+        <span className="font-medium text-brand-black">
+          {row.origen || '-'} <span className="text-brand-gray" aria-hidden="true">&rarr;</span> {row.destino || '-'}
+        </span>
+      ),
+    },
+    {
+      header: 'Descripcion',
+      accessor: 'descripcion',
+      wrap: true,
+      className: 'max-w-[200px]',
+      cell: (row) => (
+        <p className="line-clamp-2 text-sm text-brand-gray" title={row.descripcion || ''}>
+          {row.descripcion || '-'}
+        </p>
+      ),
+    },
+    {
+      header: 'Carga',
+      accessor: 'peso_kg',
+      cell: (row) => (
+        <div className="leading-tight">
+          <p className="font-semibold text-brand-black">{row.peso_kg ? `${row.peso_kg} kg` : '-'}</p>
+          <p className="mt-0.5 text-xs text-brand-gray">{getDimensions(row)}</p>
+        </div>
+      ),
+    },
+    { header: 'Fragilidad', accessor: 'fragilidad', cell: (row) => <FragilityBadge value={row.fragilidad} /> },
     {
       header: 'Estado',
       accessor: 'estado',
-      cell: (row) => (
-        <Badge tone={row.estado === 'ENTREGADA' ? 'green' : row.estado === 'ANULADA' ? 'gray' : 'amber'}>
-          {row.estado || 'SIN ESTADO'}
-        </Badge>
-      ),
+      cell: (row) => <StatusBadge value={row.estado} />,
     },
     {
       header: 'Fecha',
       accessor: 'fecha_creacion',
       cell: (row) => {
         const value = row.fecha_creacion || row.created_at;
-        return value ? formatDateTime(value) : '-';
+        return <span className="text-sm text-brand-gray">{value ? formatDateTime(value) : '-'}</span>;
       },
     },
     {
       header: 'Acciones',
       accessor: 'acciones',
-      cell: (row) => (
-        <div className="flex flex-wrap gap-2">
-          <Button variant="secondary" className="min-h-8 px-3 py-1.5" onClick={() => navigate(`/admin/encomiendas/${row.id}`)}>
-            Ver detalle
-          </Button>
-          <Button
-            variant="secondary"
-            className="min-h-8 px-3 py-1.5"
-            disabled={row.estado === 'ANULADA' || actionLoading === `cotizar-${row.id}`}
-            onClick={() => handleCotizar(row)}
-          >
-            {actionLoading === `cotizar-${row.id}` ? 'Cotizando...' : 'Cotizar'}
-          </Button>
-          <Button className="min-h-8 px-3 py-1.5" disabled={row.estado === 'ANULADA' || actionLoading === `emitir-${row.id}`} onClick={() => handleEmitir(row)}>
-            {actionLoading === `emitir-${row.id}` ? 'Emitiendo...' : 'Emitir boleta'}
-          </Button>
-          <Button variant="ghost" className="min-h-8 px-3 py-1.5" onClick={() => navigate(`/admin/encomiendas/${row.id}/editar`)}>
-            Editar
-          </Button>
-          <Button variant="ghost" className="min-h-8 px-3 py-1.5" disabled={row.estado === 'ANULADA' || actionLoading === `anular-${row.id}`} onClick={() => handleAnular(row)}>
-            {actionLoading === `anular-${row.id}` ? 'Anulando...' : 'Anular'}
-          </Button>
-        </div>
-      ),
+      align: 'right',
+      cell: (row) => {
+        const anulada = row.estado === 'ANULADA';
+        const editable = canEditEncomienda(row.estado);
+        return (
+          <div className="flex flex-nowrap items-center justify-end gap-1.5">
+            <IconAction icon={Eye} label="Ver detalle" onClick={() => navigate(`/admin/encomiendas/${row.id}`)} />
+            <IconAction
+              icon={FileText}
+              label="Emitir boleta"
+              loading={actionLoading === `emitir-${row.id}`}
+              disabled={anulada || actionLoading === `emitir-${row.id}`}
+              onClick={() => handleEmitir(row)}
+            />
+            <IconAction
+              icon={Pencil}
+              label={editable ? 'Editar' : 'No editable: ya esta en transito o entregada'}
+              disabled={!editable}
+              onClick={() => navigate(`/admin/encomiendas/${row.id}/editar`)}
+            />
+            <IconAction
+              icon={Ban}
+              label="Anular"
+              danger
+              loading={actionLoading === `anular-${row.id}`}
+              disabled={anulada || actionLoading === `anular-${row.id}`}
+              onClick={() => handleAnular(row)}
+            />
+          </div>
+        );
+      },
     },
   ];
 
@@ -332,15 +367,44 @@ function Encomiendas() {
           <Button variant="ghost" onClick={clearFilters}>Limpiar</Button>
         </div>
 
-        {loading ? <Loader label="Cargando encomiendas..." /> : <DataTable columns={columns} data={filteredRows} />}
+        {loading ? (
+          <Loader label="Cargando encomiendas..." />
+        ) : (
+          <>
+            <DataTable columns={columns} data={pagedRows} caption="Listado de encomiendas registradas" />
+            <div className="mt-4 flex flex-col items-center justify-between gap-3 sm:flex-row">
+              <p className="text-xs font-semibold text-brand-gray">
+                {sortedRows.length > 0
+                  ? `Mostrando ${firstShown}–${lastShown} de ${sortedRows.length}`
+                  : 'Sin resultados'}
+              </p>
+              <Pagination page={currentPage} pageCount={pageCount} onChange={setPage} />
+            </div>
+          </>
+        )}
       </Card>
     </div>
   );
 }
 
+
 export default Encomiendas;
 
-function formatFragility(value) {
-  const labels = { BAJA: 'Baja', MEDIA: 'Media', ALTA: 'Alta' };
-  return labels[String(value || '').trim().toUpperCase()] || '-';
+function IconAction({ icon: Icon, label, onClick, disabled = false, loading = false, danger = false }) {
+  return (
+    <button
+      type="button"
+      onClick={onClick}
+      disabled={disabled}
+      aria-label={label}
+      title={label}
+      className={`flex h-9 w-9 shrink-0 items-center justify-center rounded-lg border transition focus:outline-none focus-visible:ring-2 focus-visible:ring-offset-1 disabled:cursor-not-allowed disabled:opacity-40 ${
+        danger
+          ? 'border-red-200 text-red-600 hover:border-red-400 hover:bg-red-50 focus-visible:ring-red-300'
+          : 'border-gray-200 text-brand-dark hover:border-brand-green hover:bg-brand-surface focus-visible:ring-brand-green'
+      }`}
+    >
+      {loading ? <Loader2 size={16} className="animate-spin" aria-hidden="true" /> : <Icon size={16} aria-hidden="true" />}
+    </button>
+  );
 }

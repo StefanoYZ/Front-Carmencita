@@ -375,7 +375,7 @@ export default function OptimizacionCarga() {
       </header>
 
       <main className="mt-5 grid gap-5 xl:grid-cols-[420px_minmax(0,1fr)_370px]">
-        <section className="rounded-xl border border-[#E4ECE2] bg-white p-5 shadow-soft">
+        <section className="rounded-2xl border border-[#E4ECE2] bg-white p-5 shadow-[0_1px_2px_rgba(33,37,41,0.04),0_16px_38px_-18px_rgba(33,37,41,0.22)]">
           <div className="flex items-center justify-between gap-3">
             <h2 className="flex items-center gap-2 text-lg font-black">
               <PackageOpen className="h-5 w-5 text-[#28A745]" />
@@ -444,7 +444,7 @@ export default function OptimizacionCarga() {
           </div>
         </section>
 
-        <section className="rounded-xl border border-[#E4ECE2] bg-white p-5 shadow-soft">
+        <section className="rounded-2xl border border-[#E4ECE2] bg-white p-5 shadow-[0_1px_2px_rgba(33,37,41,0.04),0_16px_38px_-18px_rgba(33,37,41,0.22)]">
           <div className="flex flex-col gap-3 md:flex-row md:items-center md:justify-between">
             <h2 className="flex items-center gap-2 text-lg font-black">
               <Box className="h-5 w-5 text-[#28A745]" />
@@ -512,7 +512,7 @@ export default function OptimizacionCarga() {
             onOpenHandoff={() => setStatus('COMPLETED')}
           />
 
-          <section className="rounded-xl border border-[#E4ECE2] bg-white p-5 shadow-soft">
+          <section className="rounded-2xl border border-[#E4ECE2] bg-white p-5 shadow-[0_1px_2px_rgba(33,37,41,0.04),0_16px_38px_-18px_rgba(33,37,41,0.22)]">
             <h2 className="mb-4 flex items-center gap-2 text-lg font-black">
               <Flag className="h-5 w-5 text-[#28A745]" />
               Metricas
@@ -678,7 +678,7 @@ function ProgressPanel({
   onOpenHandoff,
 }) {
   return (
-    <section className="rounded-xl border border-[#E4ECE2] bg-white p-5 shadow-soft">
+    <section className="rounded-2xl border border-[#E4ECE2] bg-white p-5 shadow-[0_1px_2px_rgba(33,37,41,0.04),0_16px_38px_-18px_rgba(33,37,41,0.22)]">
       <h2 className="mb-4 flex items-center gap-2 text-lg font-black">
         <PackageCheck className="h-5 w-5 text-[#28A745]" />
         Avance de acomodo

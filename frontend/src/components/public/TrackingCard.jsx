@@ -65,10 +65,11 @@ function TrackingCard({ initialCode = '' }) {
   };
 
   return (
-    <article className="w-full min-w-0 overflow-hidden rounded-lg border border-gray-200 bg-white shadow-[0_14px_34px_rgba(31,41,55,0.10)]">
-      <div className="bg-[#3C5940] p-5 text-white sm:p-6">
-        <h2 className="text-2xl font-black sm:text-3xl">Rastrea tu encomienda</h2>
-        <p className="mt-2 max-w-xl text-sm font-semibold leading-6 text-[#F8F9FA] sm:text-base">
+    <article className="w-full min-w-0 overflow-hidden rounded-2xl border border-gray-200/70 bg-white shadow-[0_1px_2px_rgba(33,37,41,0.04),0_18px_44px_-20px_rgba(33,37,41,0.28)]">
+      <div className="relative overflow-hidden bg-gradient-to-br from-[#1f4d2f] via-[#3C5940] to-[#16331f] p-5 text-white sm:p-6">
+        <div className="pointer-events-none absolute -right-10 -top-12 h-40 w-40 rounded-full bg-brand-green/25 blur-3xl" />
+        <h2 className="relative text-2xl font-black sm:text-3xl">Rastrea tu encomienda</h2>
+        <p className="relative mt-2 max-w-xl text-sm font-semibold leading-6 text-[#F8F9FA] sm:text-base">
           Ingresa tu codigo de envio y conoce el estado actual de tu encomienda.
         </p>
 
@@ -82,7 +83,7 @@ function TrackingCard({ initialCode = '' }) {
             />
           </label>
           <button
-            className="inline-flex min-h-12 w-full items-center justify-center gap-2 rounded-md bg-[#28A745] px-4 text-sm font-black text-white transition hover:bg-[#3C5940] disabled:cursor-not-allowed disabled:opacity-70 sm:w-auto"
+            className="inline-flex min-h-12 w-full items-center justify-center gap-2 rounded-xl bg-gradient-to-b from-[#28A745] to-[#1f8f3a] px-4 text-sm font-black text-white shadow-[0_6px_16px_-4px_rgba(40,167,69,0.45)] transition hover:from-[#2fb850] hover:to-[#3C5940] disabled:cursor-not-allowed disabled:opacity-70 sm:w-auto"
             type="submit"
             disabled={loading}
           >

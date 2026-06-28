@@ -188,7 +188,7 @@ function PublicQuoteCard() {
   };
 
   return (
-    <article className="w-full min-w-0 overflow-hidden rounded-lg border border-[#E4ECE2] bg-white p-5 shadow-[0_18px_40px_rgba(33,37,41,0.09)] sm:p-6 lg:p-7">
+    <article className="w-full min-w-0 overflow-hidden rounded-2xl border border-[#E4ECE2] bg-white p-5 shadow-[0_1px_2px_rgba(33,37,41,0.04),0_18px_44px_-20px_rgba(33,37,41,0.28)] sm:p-6 lg:p-7">
       <div className="flex flex-col gap-2 sm:flex-row sm:items-end sm:justify-between">
         <div>
           <p className="text-sm font-black uppercase text-[#28A745]">Ruta referencial</p>
@@ -336,7 +336,7 @@ function PublicQuoteCard() {
             {error && <p className="mt-3 rounded-md border border-red-300 bg-red-50 px-3 py-2 text-sm font-semibold text-red-700">{error}</p>}
 
             <button
-              className="mt-5 flex min-h-12 w-full items-center justify-center rounded-lg bg-[#28A745] px-6 text-base font-black text-white shadow-[0_12px_24px_rgba(40,167,69,0.28)] transition hover:-translate-y-0.5 hover:bg-[#3C5940] hover:shadow-[0_14px_28px_rgba(60,89,64,0.24)] disabled:translate-y-0 disabled:cursor-not-allowed disabled:bg-white disabled:text-[#6C757D] disabled:shadow-none disabled:ring-1 disabled:ring-[#A3CF84] sm:max-w-[180px]"
+              className="mt-5 flex min-h-12 w-full items-center justify-center rounded-xl bg-gradient-to-b from-[#28A745] to-[#1f8f3a] px-6 text-base font-black text-white shadow-[0_12px_24px_-6px_rgba(40,167,69,0.45)] transition hover:-translate-y-0.5 hover:from-[#2fb850] hover:to-[#3C5940] hover:shadow-[0_16px_30px_-8px_rgba(60,89,64,0.4)] disabled:translate-y-0 disabled:cursor-not-allowed disabled:bg-white disabled:bg-none disabled:text-[#6C757D] disabled:shadow-none disabled:ring-1 disabled:ring-[#A3CF84] sm:max-w-[180px]"
               type="submit"
               disabled={!isComplete}
             >
@@ -356,14 +356,15 @@ function PublicQuoteCard() {
           </section>
 
           <aside className="grid gap-4 lg:sticky lg:top-24 lg:pt-12">
-            <div className="rounded-lg bg-[#E4ECE2] px-5 py-5 text-center ring-1 ring-[#A3CF84]/45">
+            <div className="rounded-2xl bg-[#E4ECE2] px-5 py-5 text-center ring-1 ring-[#A3CF84]/45">
               <p className="text-sm font-bold text-[#3C5940]">Tiempo estimado de entrega</p>
               <p className="mt-2 text-xl font-black text-[#212529]">12 a 24 horas</p>
             </div>
 
-            <div className="min-w-0 rounded-lg bg-[#3C5940] px-5 py-5 text-white shadow-[0_12px_24px_rgba(60,89,64,0.16)]">
-              <p className="text-sm font-bold text-[#F8F9FA]">Precio estimado</p>
-              <p className="mt-2 break-words text-3xl font-black">S/ {quote ? quote.toFixed(2) : '0.00'}</p>
+            <div className="relative min-w-0 overflow-hidden rounded-2xl bg-gradient-to-br from-[#1f4d2f] via-[#3C5940] to-[#16331f] px-5 py-5 text-white shadow-[0_16px_34px_-16px_rgba(60,89,64,0.5)]">
+              <div className="pointer-events-none absolute -right-8 -top-10 h-32 w-32 rounded-full bg-brand-green/25 blur-3xl" />
+              <p className="relative text-sm font-bold text-[#F8F9FA]">Precio estimado</p>
+              <p className="relative mt-2 break-words text-3xl font-black">S/ {quote ? quote.toFixed(2) : '0.00'}</p>
             </div>
 
             {quote && (
@@ -376,7 +377,7 @@ function PublicQuoteCard() {
                   },
                 }}
                 onClick={saveQuoteForRegistration}
-                className="inline-flex min-h-14 w-full items-center justify-center gap-3 rounded-lg bg-[#28A745] px-5 text-base font-black text-white shadow-lg shadow-black/10 transition hover:-translate-y-0.5 hover:bg-[#3C5940]"
+                className="inline-flex min-h-14 w-full items-center justify-center gap-3 rounded-xl bg-gradient-to-b from-[#28A745] to-[#1f8f3a] px-5 text-base font-black text-white shadow-[0_8px_20px_-6px_rgba(40,167,69,0.5)] transition hover:-translate-y-0.5 hover:from-[#2fb850] hover:to-[#3C5940]"
               >
                 <img src={packageIcon} alt="" className="h-7 w-7 brightness-0 invert" />
                 Registro de envio

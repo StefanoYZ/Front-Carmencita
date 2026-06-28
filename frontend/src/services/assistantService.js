@@ -5,6 +5,11 @@ export async function sendChatMessage(payload) {
   return response.data;
 }
 
+export async function validarCoherenciaPaquete(payload) {
+  const response = await apiClient.post('/asistente/validar-coherencia', payload);
+  return response.data;
+}
+
 export async function createRecojoExterno(payload) {
   const response = await apiClient.post('/asistente/recojo-externo', payload);
   return response.data;
@@ -48,6 +53,7 @@ export async function getTiposContenido(activo = true) {
 
 export const assistantService = {
   sendChatMessage,
+  validarCoherenciaPaquete,
   createRecojoExterno,
   getRecojoExternoList,
   updateRecojoExternoEstado,

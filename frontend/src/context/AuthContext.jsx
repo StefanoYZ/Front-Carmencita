@@ -51,7 +51,12 @@ export function AuthProvider({ children }) {
   }, [logout, navigate]);
 
   useEffect(() => {
-    if (!isAuthenticated || location.pathname.startsWith('/admin') || location.pathname === '/login') {
+    if (
+      !isAuthenticated
+      || location.pathname.startsWith('/admin')
+      || location.pathname.startsWith('/secretaria')
+      || location.pathname === '/login'
+    ) {
       return;
     }
     logout();

@@ -41,7 +41,8 @@ function LoginPage() {
       const session = await login(form);
       const fallbackPath = getRoleHomePath(session.user);
       const requestedPath = location.state?.from?.pathname;
-      navigate(requestedPath?.startsWith('/admin') ? requestedPath : fallbackPath, { replace: true });
+      const allowedRequestedPath = requestedPath?.startsWith('/admin') || requestedPath?.startsWith('/secretaria');
+      navigate(allowedRequestedPath ? requestedPath : fallbackPath, { replace: true });
     } catch (authError) {
       setError(getApiErrorMessage(authError, 'Usuario o contrasena incorrectos.'));
     } finally {

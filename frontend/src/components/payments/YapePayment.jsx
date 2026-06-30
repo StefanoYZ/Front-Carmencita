@@ -39,6 +39,8 @@ function validateYapePhone(value) {
 export default function YapePayment({
   amount = 100,
   email = 'test@test.com',
+  encomiendaId = null,
+  usuario = '',
   onApproved,
   onPending,
   onRejected,
@@ -111,6 +113,8 @@ export default function YapePayment({
           token: yapeToken.id,
           amount: Number(amount),
           email,
+          ...(usuario ? { usuario } : {}),
+          ...(encomiendaId ? { encomienda_id: Number(encomiendaId) } : {}),
         }),
       });
 

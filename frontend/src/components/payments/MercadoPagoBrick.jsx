@@ -31,6 +31,8 @@ export default function MercadoPagoBrick({
   amount = 100,
   payerEmail = 'test@test.com',
   payerName = 'Cliente',
+  encomiendaId = null,
+  usuario = '',
   onApproved,
   onPending,
   onRejected,
@@ -160,7 +162,8 @@ export default function MercadoPagoBrick({
                 const paymentPayload = {
                   ...formData,
                   description: formData.description || 'Pago encomienda - Carmencita Express',
-                  usuario: String(payerEmail || '').trim() || effectivePayerEmail,
+                  usuario: String(usuario || payerEmail || '').trim() || effectivePayerEmail,
+                  ...(encomiendaId ? { encomienda_id: Number(encomiendaId) } : {}),
                   payer: {
                     ...(formData.payer || {}),
                     email: effectivePayerEmail || formData.payer?.email,
@@ -236,7 +239,7 @@ export default function MercadoPagoBrick({
         container.innerHTML = '';
       }
     };
-  }, [amount, containerId, payerEmail, payerName]);
+  }, [amount, containerId, encomiendaId, payerEmail, payerName, usuario]);
 
   return (
     <div className="min-h-[328px] rounded-md bg-white">

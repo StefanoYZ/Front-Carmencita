@@ -49,7 +49,15 @@ function FormSection({ title, children }) {
   );
 }
 
-function EncomiendaForm({ form, errors = {}, onChange, onSubmit, loading = false, mode = 'create', codigoEncomienda = '' }) {
+function EncomiendaForm({
+  form,
+  errors = {},
+  onChange,
+  onSubmit,
+  loading = false,
+  mode = 'create',
+  codigoEncomienda = '',
+}) {
   const isEnvelope = form.tipo_contenido === 'DOCUMENTOS';
   const [reniecStatus, setReniecStatus] = React.useState({
     remitente: null,

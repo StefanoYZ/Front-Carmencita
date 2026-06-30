@@ -1,0 +1,98 @@
+/* ==========================================================================
+   Clases globales del Menu de Accesibilidad (Carmencita Express)
+   Se activan agregando clases a <html> desde accessibilityPreferences.js
+   ========================================================================== */
+
+/* 2. Resaltar enlaces y botones interactivos */
+html.a11y-highlight-links a,
+html.a11y-highlight-links button,
+html.a11y-highlight-links [role='button'],
+html.a11y-highlight-links [role='tab'] {
+  outline: 2px solid #1f4d2f !important;
+  outline-offset: 2px;
+  border-radius: 6px;
+}
+html.a11y-highlight-links a {
+  text-decoration: underline !important;
+  text-underline-offset: 3px;
+}
+
+/* 5. Aumentar espaciado de texto */
+html.a11y-text-spacing p,
+html.a11y-text-spacing span,
+html.a11y-text-spacing li,
+html.a11y-text-spacing a,
+html.a11y-text-spacing label,
+html.a11y-text-spacing td,
+html.a11y-text-spacing th,
+html.a11y-text-spacing h1,
+html.a11y-text-spacing h2,
+html.a11y-text-spacing h3,
+html.a11y-text-spacing h4 {
+  letter-spacing: 0.05em !important;
+  word-spacing: 0.12em !important;
+}
+
+/* 6. Aumentar altura de linea */
+html.a11y-line-height p,
+html.a11y-line-height span,
+html.a11y-line-height li,
+html.a11y-line-height label,
+html.a11y-line-height td,
+html.a11y-line-height th {
+  line-height: 1.9 !important;
+}
+
+/* 7. Detener o reducir animaciones */
+html.a11y-no-animations *,
+html.a11y-no-animations *::before,
+html.a11y-no-animations *::after {
+  animation-duration: 0.001ms !important;
+  animation-iteration-count: 1 !important;
+  transition-duration: 0.001ms !important;
+  scroll-behavior: auto !important;
+}
+
+/* 8. Ocultar imagenes decorativas (alt vacio o marcadas como decorativas) */
+html.a11y-hide-images img[alt=''],
+html.a11y-hide-images img:not([alt]),
+html.a11y-hide-images [aria-hidden='true'] > img {
+  display: none !important;
+}
+
+/* 9. Modo apto para dislexia: tipografia mas legible + mayor espaciado */
+html.a11y-dyslexia,
+html.a11y-dyslexia * {
+  font-family: 'Atkinson Hyperlegible', 'Comic Sans MS', Verdana, Tahoma, sans-serif !important;
+  letter-spacing: 0.06em !important;
+  word-spacing: 0.16em !important;
+}
+html.a11y-dyslexia p,
+html.a11y-dyslexia li {
+  line-height: 1.9 !important;
+}
+
+/* 10. Cursor grande / resaltado del puntero */
+html.a11y-big-cursor,
+html.a11y-big-cursor * {
+  cursor:
+    url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='48' height='48' viewBox='0 0 48 48'%3E%3Cpath d='M6 3l30 16-13 3-3 13z' fill='%23ffffff' stroke='%23212529' stroke-width='2.5' stroke-linejoin='round'/%3E%3C/svg%3E")
+      4 4,
+    auto !important;
+}
+
+/* 11. Alinear texto a la izquierda para mejorar lectura */
+html.a11y-align-left p,
+html.a11y-align-left h1,
+html.a11y-align-left h2,
+html.a11y-align-left h3,
+html.a11y-align-left li,
+html.a11y-align-left .text-center {
+  text-align: left !important;
+}
+
+/* Refuerzo de foco visible cuando se resaltan controles o en alto contraste */
+html.a11y-contrast :focus-visible {
+  outline: 3px solid #1f4d2f;
+  outline-offset: 2px;
+}

@@ -3,7 +3,9 @@ import {
   validateDocumentNumber,
   validateEmail,
   validateFragility,
+  validateContentDescriptionCoherence,
   validateContentType,
+  validatePackageBaseOrientation,
   validatePhone,
   validatePositiveNumber,
 } from './shipmentValidation.js';
@@ -87,6 +89,24 @@ export function buildEncomiendaPayload(form) {
 
 export function getDimensions(encomienda) {
   return `${encomienda.largo_cm || '-'} x ${encomienda.ancho_cm || '-'} x ${encomienda.alto_cm || '-'} cm`;
+}
+
+// Estados en los que la encomienda ya NO se puede editar (a partir de transito).
+const NON_EDITABLE_STATES = new Set(['EN_TRANSITO', 'EN_RUTA', 'ENTREGADA', 'ANULADA']);
+
+/** Solo se permite editar mientras la encomienda no haya pasado a transito o mas alla. */
+export function canEditEncomienda(estado) {
+  return !NON_EDITABLE_STATES.has(String(estado || '').trim().toUpperCase());
+}
+
+/** Ordena de mas reciente a mas antiguo (por fecha de creacion, luego id). */
+export function sortEncomiendasByRecent(items) {
+  return [...items].sort((a, b) => {
+    const at = new Date(a.fecha_creacion || a.created_at || 0).getTime();
+    const bt = new Date(b.fecha_creacion || b.created_at || 0).getTime();
+    if (bt !== at) return bt - at;
+    return Number(b.id || 0) - Number(a.id || 0);
+  });
 }
 
 export function validateEncomiendaForm(form, { includeEstado = false } = {}) {
@@ -173,6 +193,9 @@ export function validateEncomiendaFormFields(form, { includeEstado = false } = {
   const contentTypeError = validateContentType(form.tipo_contenido);
   if (contentTypeError) errors.tipo_contenido = contentTypeError;
 
+  const coherenceError = validateContentDescriptionCoherence(form.tipo_contenido, form.descripcion);
+  if (coherenceError) errors.tipo_contenido = coherenceError;
+
   const numericMessages = { peso_kg: 'El peso debe ser mayor a 0.' };
   if (!isEnvelopeContent(form.tipo_contenido)) {
     numericMessages.largo_cm = 'Las dimensiones deben ser mayores a 0.';
@@ -190,6 +213,17 @@ export function validateEncomiendaFormFields(form, { includeEstado = false } = {
     if (fragilityError) errors.fragilidad = fragilityError;
     if (!String(form.orientacion_base || '').trim()) {
       errors.orientacion_base = 'Selecciona la cara que ira hacia abajo.';
+    } else {
+      const orientationError = validatePackageBaseOrientation({
+        contentType: form.tipo_contenido,
+        description: form.descripcion,
+        fragility: form.fragilidad,
+        baseOrientation: form.orientacion_base,
+        lengthCm: form.largo_cm,
+        widthCm: form.ancho_cm,
+        heightCm: form.alto_cm,
+      });
+      if (orientationError) errors.orientacion_base = orientationError;
     }
   }
 

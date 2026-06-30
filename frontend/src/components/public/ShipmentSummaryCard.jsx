@@ -27,6 +27,18 @@ function SummaryIcon({ src, className = '' }) {
   );
 }
 
+function DetailItem({ icon, label, value }) {
+  return (
+    <div className="flex min-w-0 items-start gap-3 rounded-xl bg-[#F8F9FA] p-3 ring-1 ring-[#E4ECE2]">
+      <SummaryIcon src={icon} />
+      <div className="min-w-0">
+        <p className="text-xs font-bold uppercase tracking-wide text-[#6C757D]">{label}</p>
+        <p className="mt-0.5 break-words font-semibold text-[#212529]">{value || '-'}</p>
+      </div>
+    </div>
+  );
+}
+
 function ShipmentDetailSummary({ items }) {
   const sideItems = [
     { icon: pesoIcon, label: 'Peso', value: itemValue(items, 'Peso') },
@@ -36,25 +48,13 @@ function ShipmentDetailSummary({ items }) {
 
   return (
     <div className="grid gap-5 lg:grid-cols-[minmax(0,1fr)_minmax(260px,360px)] lg:items-start">
-      <div className="grid gap-4">
-        <div className="flex min-w-0 items-center gap-3">
-          <SummaryIcon src={locationIcon} />
-          <span className="font-semibold text-[#212529]">Origen</span>
-          <strong className="ml-auto break-words text-right text-[#212529]">{itemValue(items, 'Origen')}</strong>
-        </div>
-        <div className="flex min-w-0 items-center gap-3">
-          <SummaryIcon src={locationIcon} />
-          <span className="font-semibold text-[#212529]">Destino</span>
-          <strong className="ml-auto break-words text-right text-[#212529]">{itemValue(items, 'Destino')}</strong>
-        </div>
-        <div className="flex min-w-0 items-start gap-3">
-          <SummaryIcon src={taskIcon} />
-          <span className="font-semibold text-[#212529]">Descripcion</span>
-          <strong className="ml-auto max-w-[55%] break-words text-right text-[#212529]">{itemValue(items, 'Descripcion')}</strong>
-        </div>
+      <div className="grid gap-3">
+        <DetailItem icon={locationIcon} label="Origen" value={itemValue(items, 'Origen')} />
+        <DetailItem icon={locationIcon} label="Destino" value={itemValue(items, 'Destino')} />
+        <DetailItem icon={taskIcon} label="Descripcion" value={itemValue(items, 'Descripcion')} />
       </div>
 
-      <div className="rounded-lg border border-[#E4ECE2] bg-white p-4 shadow-[0_14px_26px_rgba(33,37,41,0.16)]">
+      <div className="rounded-xl border border-[#E4ECE2] bg-white p-4 shadow-[0_1px_2px_rgba(33,37,41,0.04),0_12px_24px_-14px_rgba(33,37,41,0.22)]">
         {sideItems.map((item, index) => (
           <div key={item.label} className={`flex items-center gap-3 py-3 ${index > 0 ? 'border-t border-[#E4ECE2]' : ''}`}>
             <SummaryIcon src={item.icon} />
@@ -71,7 +71,7 @@ function ShipmentSummaryCard({ title, items, onEdit }) {
   const isShipmentDetail = title === 'Datos de la encomienda';
 
   return (
-    <section className={`h-fit min-w-0 self-start rounded-lg border border-[#E4ECE2] bg-white p-5 shadow-[0_14px_32px_rgba(33,37,41,0.07)] ${isShipmentDetail ? 'border-t-4 border-t-[#28A745]' : ''}`}>
+    <section className={`h-fit min-w-0 self-start rounded-2xl border border-[#E4ECE2] bg-white p-5 shadow-[0_1px_2px_rgba(33,37,41,0.04),0_16px_38px_-18px_rgba(33,37,41,0.22)] ${isShipmentDetail ? 'border-t-4 border-t-[#28A745]' : ''}`}>
       <div className="mb-4 flex items-start justify-between gap-3">
         <div className="flex min-w-0 items-center gap-3">
           {isShipmentDetail && <SummaryIcon src={packageIcon} className="bg-white" />}

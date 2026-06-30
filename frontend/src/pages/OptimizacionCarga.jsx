@@ -17,8 +17,15 @@ import {
 import PackingScene3D from '../components/optimization-poc/PackingScene3D.jsx';
 import MetricCard from '../components/optimization-poc/MetricCard.jsx';
 import { getApiErrorMessage } from '../services/apiClient.js';
+import { finalizarCargaServicio } from '../services/measurementLogsService.js';
+import { iniciarOrdenCarga, siguienteSimulado } from '../services/cargaLogsService.js';
 import { optimizationPocService } from '../services/optimizationPocService.js';
-import { getOptimizationAlgorithm } from '../config/optimizationPocAlgorithms.js';
+import {
+  getOptimizationAlgorithm,
+  OPTIMIZATION_ALGORITHMS,
+  AVAILABLE_OPTIMIZATION_ALGORITHM_IDS,
+  ACTIVE_OPTIMIZATION_ALGORITHM_ID,
+} from '../config/optimizationPocAlgorithms.js';
 
 const STATUS_LABELS = {
   IDLE: 'Sin ordenar',
@@ -45,7 +52,11 @@ function formatDimensions(item) {
 
 export default function OptimizacionCarga() {
   const [scenario, setScenario] = useState(null);
-  const activeAlgorithm = useMemo(() => getOptimizationAlgorithm(), []);
+  const [selectedAlgorithmId, setSelectedAlgorithmId] = useState(ACTIVE_OPTIMIZATION_ALGORITHM_ID);
+  const activeAlgorithm = useMemo(
+    () => getOptimizationAlgorithm(selectedAlgorithmId),
+    [selectedAlgorithmId],
+  );
   const [selectedTruckId, setSelectedTruckId] = useState('CAMION_A');
   const [viewMode, setViewMode] = useState('isometric');
   const [status, setStatus] = useState('IDLE');
@@ -53,6 +64,8 @@ export default function OptimizacionCarga() {
   const [placementCursor, setPlacementCursor] = useState(0);
   const [isSceneExpanded, setIsSceneExpanded] = useState(false);
   const [handoffPrompt, setHandoffPrompt] = useState(null);
+  const [closedLoadingLogs, setClosedLoadingLogs] = useState(false);
+  const [ordenCargaId, setOrdenCargaId] = useState(null);
   const [error, setError] = useState('');
 
   useEffect(() => {
@@ -176,6 +189,8 @@ export default function OptimizacionCarga() {
     setPlacementCursor(0);
     setStatus('IDLE');
     setHandoffPrompt(null);
+    setClosedLoadingLogs(false);
+    setOrdenCargaId(null);
     setError('');
   };
 
@@ -245,9 +260,20 @@ export default function OptimizacionCarga() {
         return;
       }
       setSimulation(result);
+      setClosedLoadingLogs(false);
       setPlacementCursor(1);
       setStatus('ORDERED');
       showHandoffPromptIfNeeded(result, selectedTruckId);
+
+      const sortedIds = [...(result.placements || [])]
+        .sort((a, b) => a.loading_sequence - b.loading_sequence)
+        .map((p) => p.package_id)
+        .filter(Boolean);
+      if (sortedIds.length) {
+        iniciarOrdenCarga({ encomienda_ids: sortedIds, modo_prueba: true })
+          .then((logs) => setOrdenCargaId(logs[0]?.orden_carga_id || null))
+          .catch(() => {});
+      }
     } catch (runError) {
       setError(getApiErrorMessage(runError, 'No se pudo ejecutar la simulacion PoC.'));
       setStatus('ERROR');
@@ -278,6 +304,7 @@ export default function OptimizacionCarga() {
       };
       setSelectedTruckId(handoffPrompt.targetTruckId);
       setSimulation(mergedResult);
+      setClosedLoadingLogs(false);
       setPlacementCursor(mergedResult?.placements?.length ? 1 : pendingDocuments.length ? 1 : 0);
       setStatus(mergedResult?.placements?.length || pendingDocuments.length ? 'ORDERED' : 'ERROR');
       setHandoffPrompt(null);
@@ -308,11 +335,30 @@ export default function OptimizacionCarga() {
   const goToNextPlacement = () => {
     if (!simulation) return;
     if (handoffPrompt && placementCursor >= orderedPlacements.length) return;
+
+    if (ordenCargaId && currentPlacement) {
+      siguienteSimulado(ordenCargaId, currentPlacement.package_id).catch(() => {});
+    }
+
     setPlacementCursor((current) => {
       const next = Math.min(workflowEndCursor, current + 1);
-      setStatus(next >= workflowEndCursor ? 'COMPLETED' : 'LOADING');
+      if (next >= workflowEndCursor) {
+        setStatus('COMPLETED');
+        closeLoadingLogs();
+      } else {
+        setStatus('LOADING');
+      }
       return next;
     });
+  };
+
+  const closeLoadingLogs = async () => {
+    if (!simulation || closedLoadingLogs) return;
+    setClosedLoadingLogs(true);
+    const shipmentIds = (simulation.ordered_packages || []).map((item) => item.id).filter(Boolean);
+    await Promise.allSettled(
+      shipmentIds.map((encomienda_id) => finalizarCargaServicio({ encomienda_id })),
+    );
   };
 
   return (
@@ -338,7 +384,7 @@ export default function OptimizacionCarga() {
       </header>
 
       <main className="mt-5 grid gap-5 xl:grid-cols-[420px_minmax(0,1fr)_370px]">
-        <section className="rounded-xl border border-[#E4ECE2] bg-white p-5 shadow-soft">
+        <section className="rounded-2xl border border-[#E4ECE2] bg-white p-5 shadow-[0_1px_2px_rgba(33,37,41,0.04),0_16px_38px_-18px_rgba(33,37,41,0.22)]">
           <div className="flex items-center justify-between gap-3">
             <h2 className="flex items-center gap-2 text-lg font-black">
               <PackageOpen className="h-5 w-5 text-[#28A745]" />
@@ -360,9 +406,22 @@ export default function OptimizacionCarga() {
                 </option>
               ))}
             </select>
-            <div className="flex min-h-11 items-center rounded-md border border-[#A3CF84] bg-[#E4ECE2] px-3 text-sm font-black text-[#3C5940]">
-              {activeAlgorithm.label}
-            </div>
+            <label className="grid gap-1">
+              <span className="text-xs font-black uppercase text-[#3C5940]">Modelo de optimización</span>
+              <select
+                className="min-h-11 rounded-md border border-[#A3CF84] bg-[#E4ECE2] px-3 text-sm font-black text-[#3C5940]"
+                value={selectedAlgorithmId}
+                onChange={(event) => setSelectedAlgorithmId(event.target.value)}
+                disabled={status === 'ORDERING'}
+              >
+                {AVAILABLE_OPTIMIZATION_ALGORITHM_IDS.map((id) => (
+                  <option key={id} value={id}>
+                    {OPTIMIZATION_ALGORITHMS[id]?.rank ? `${OPTIMIZATION_ALGORITHMS[id].rank}º ` : ''}
+                    {OPTIMIZATION_ALGORITHMS[id]?.label || id}
+                  </option>
+                ))}
+              </select>
+            </label>
             <div className="rounded-md border border-[#d9e7d4] bg-white px-3 py-2">
               <p className="text-xs font-black uppercase text-[#3C5940]">Encomiendas registradas hoy</p>
               <p className="mt-1 text-sm font-bold text-[#212529]">{scenario?.packages?.length || 0}</p>
@@ -407,7 +466,7 @@ export default function OptimizacionCarga() {
           </div>
         </section>
 
-        <section className="rounded-xl border border-[#E4ECE2] bg-white p-5 shadow-soft">
+        <section className="rounded-2xl border border-[#E4ECE2] bg-white p-5 shadow-[0_1px_2px_rgba(33,37,41,0.04),0_16px_38px_-18px_rgba(33,37,41,0.22)]">
           <div className="flex flex-col gap-3 md:flex-row md:items-center md:justify-between">
             <h2 className="flex items-center gap-2 text-lg font-black">
               <Box className="h-5 w-5 text-[#28A745]" />
@@ -475,7 +534,7 @@ export default function OptimizacionCarga() {
             onOpenHandoff={() => setStatus('COMPLETED')}
           />
 
-          <section className="rounded-xl border border-[#E4ECE2] bg-white p-5 shadow-soft">
+          <section className="rounded-2xl border border-[#E4ECE2] bg-white p-5 shadow-[0_1px_2px_rgba(33,37,41,0.04),0_16px_38px_-18px_rgba(33,37,41,0.22)]">
             <h2 className="mb-4 flex items-center gap-2 text-lg font-black">
               <Flag className="h-5 w-5 text-[#28A745]" />
               Metricas
@@ -508,7 +567,16 @@ export default function OptimizacionCarga() {
           <ActionButton icon={RefreshCw} label="Restablecer" onClick={resetSimulation} />
           <ActionButton icon={PackageCheck} label={status === 'ORDERING' ? 'Ordenando...' : 'Ordenar'} onClick={runSimulation} primary disabled={status === 'ORDERING'} />
           <ActionButton icon={Clock} label="Simular cierre automatico" onClick={runSimulation} disabled={status === 'ORDERING'} />
-          <ActionButton icon={Flag} label="Finalizar" onClick={() => setStatus('COMPLETED')} disabled={!simulation} primary />
+          <ActionButton
+            icon={Flag}
+            label="Finalizar"
+            onClick={() => {
+              setStatus('COMPLETED');
+              closeLoadingLogs();
+            }}
+            disabled={!simulation}
+            primary
+          />
         </div>
       </footer>
 
@@ -632,7 +700,7 @@ function ProgressPanel({
   onOpenHandoff,
 }) {
   return (
-    <section className="rounded-xl border border-[#E4ECE2] bg-white p-5 shadow-soft">
+    <section className="rounded-2xl border border-[#E4ECE2] bg-white p-5 shadow-[0_1px_2px_rgba(33,37,41,0.04),0_16px_38px_-18px_rgba(33,37,41,0.22)]">
       <h2 className="mb-4 flex items-center gap-2 text-lg font-black">
         <PackageCheck className="h-5 w-5 text-[#28A745]" />
         Avance de acomodo

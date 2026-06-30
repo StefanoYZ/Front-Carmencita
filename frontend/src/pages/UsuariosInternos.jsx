@@ -1,9 +1,12 @@
 import React, { useEffect, useMemo, useState } from 'react';
+import { Power, PowerOff } from 'lucide-react';
 import Alert from '../components/common/Alert.jsx';
+import Badge from '../components/common/Badge.jsx';
 import Button from '../components/common/Button.jsx';
 import Card from '../components/common/Card.jsx';
 import Input from '../components/common/Input.jsx';
 import Loader from '../components/common/Loader.jsx';
+import StatusBadge from '../components/common/StatusBadge.jsx';
 import DataTable from '../components/tables/DataTable.jsx';
 import { useAuth } from '../context/AuthContext.jsx';
 import { getApiErrorMessage } from '../services/apiClient.js';
@@ -129,18 +132,19 @@ function UsuariosInternos() {
   };
 
   const columns = [
-    { header: 'Usuario', accessor: 'username' },
+    { header: 'Usuario', accessor: 'username', cell: (row) => <span className="font-black text-brand-black">{row.username}</span> },
     { header: 'Nombre', accessor: 'full_name' },
-    { header: 'Estado', accessor: 'is_active', cell: (row) => (row.is_active ? 'Activo' : 'Inactivo') },
+    { header: 'Estado', accessor: 'is_active', cell: (row) => <StatusBadge value={row.is_active ? 'ACTIVO' : 'INACTIVO'} /> },
     {
       header: 'Rol',
       accessor: 'roles',
       cell: (row) => (
         <select
-          className="min-h-9 rounded-md border border-gray-200 bg-white px-2 text-sm text-brand-black outline-none transition hover:border-brand-lime focus:border-brand-green focus:ring-2 focus:ring-brand-lime/50"
+          className="min-h-9 rounded-lg border border-gray-200 bg-white px-2.5 text-sm font-semibold text-brand-black outline-none transition hover:border-brand-lime focus:border-brand-green focus:ring-2 focus:ring-brand-lime/50 disabled:cursor-not-allowed disabled:opacity-60"
           value={rolesByName[row.roles?.[0]]?.id || ''}
           onChange={(event) => handleRoleChange(row, event.target.value)}
           disabled={!row.is_active}
+          aria-label={`Rol de ${row.username}`}
         >
           <option value="">Sin rol</option>
           {roles.map((role) => (
@@ -154,25 +158,35 @@ function UsuariosInternos() {
     {
       header: 'Accion',
       accessor: 'accion',
+      align: 'right',
       cell: (row) => {
         const isCurrentSession = row.id === currentUser?.id;
         const isUpdating = statusLoadingId === row.id;
+        if (isCurrentSession) {
+          return (
+            <div className="flex justify-end">
+              <Badge tone="green">Sesion actual</Badge>
+            </div>
+          );
+        }
+        const Icon = row.is_active ? PowerOff : Power;
         return (
-          <button
-            type="button"
-            className={`font-semibold transition ${
-              isCurrentSession
-                ? 'cursor-not-allowed text-brand-gray'
-                : row.is_active
-                  ? 'text-red-700 hover:text-red-900'
-                  : 'text-brand-green hover:text-brand-dark'
-            }`}
-            disabled={isCurrentSession || isUpdating}
-            title={isCurrentSession ? 'No puedes desactivar la cuenta de tu sesion actual.' : undefined}
-            onClick={() => handleToggleUser(row)}
-          >
-            {isUpdating ? 'Actualizando...' : isCurrentSession ? 'Sesion actual' : row.is_active ? 'Desactivar' : 'Activar'}
-          </button>
+          <div className="flex justify-end">
+            <button
+              type="button"
+              disabled={isUpdating}
+              onClick={() => handleToggleUser(row)}
+              aria-label={`${row.is_active ? 'Desactivar' : 'Activar'} a ${row.username}`}
+              className={`inline-flex min-h-9 items-center gap-2 rounded-lg border px-3 text-sm font-bold transition focus:outline-none focus-visible:ring-2 focus-visible:ring-offset-1 disabled:cursor-not-allowed disabled:opacity-50 ${
+                row.is_active
+                  ? 'border-red-200 text-red-600 hover:border-red-400 hover:bg-red-50 focus-visible:ring-red-300'
+                  : 'border-brand-green/40 text-brand-green hover:border-brand-green hover:bg-brand-lime/15 focus-visible:ring-brand-green'
+              }`}
+            >
+              <Icon size={15} aria-hidden="true" />
+              {isUpdating ? 'Actualizando...' : row.is_active ? 'Desactivar' : 'Activar'}
+            </button>
+          </div>
         );
       },
     },

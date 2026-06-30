@@ -281,6 +281,38 @@ textarea {
   font: inherit;
 }
 
+/* Accesibilidad: indicador de foco visible solo para navegacion por teclado.
+   Se excluyen inputs/select/textarea porque ya tienen su propio anillo de foco
+   (evita el doble borde en campos envueltos con focus-within). */
+:focus-visible {
+  outline: 2px solid #1f8f3a;
+  outline-offset: 2px;
+  border-radius: 6px;
+}
+
+input:focus-visible,
+select:focus-visible,
+textarea:focus-visible {
+  outline: none;
+}
+
+:focus:not(:focus-visible) {
+  outline: none;
+}
+
+/* Accesibilidad: respeta la preferencia de movimiento reducido del sistema.
+   Neutraliza animaciones/transiciones globales (Tailwind y Framer Motion CSS). */
+@media (prefers-reduced-motion: reduce) {
+  *,
+  *::before,
+  *::after {
+    animation-duration: 0.01ms !important;
+    animation-iteration-count: 1 !important;
+    transition-duration: 0.01ms !important;
+    scroll-behavior: auto !important;
+  }
+}
+
 @layer components {
   .page-title {
     @apply text-3xl font-black tracking-tight text-brand-black;

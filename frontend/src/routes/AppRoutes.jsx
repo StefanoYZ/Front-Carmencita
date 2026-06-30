@@ -17,6 +17,7 @@ import Encomiendas from '../pages/Encomiendas.jsx';
 import NotFound from '../pages/NotFound.jsx';
 import OptimizacionCarga from '../pages/OptimizacionCarga.jsx';
 import ReniecConsulta from '../pages/ReniecConsulta.jsx';
+import SecretariaDashboard from '../pages/SecretariaDashboard.jsx';
 import SunatBoletas from '../pages/SunatBoletas.jsx';
 import Tracking from '../pages/Tracking.jsx';
 import CotizarPublicPage from '../pages/public/CotizarPublicPage.jsx';
@@ -49,6 +50,15 @@ function AppRoutes() {
     <Routes>
       <Route path="/login" element={<LoginPage />} />
 
+      <Route
+        path="/secretaria"
+        element={
+          <ProtectedRoute roles={['SECRETARIA']} strict>
+            <SecretariaDashboard />
+          </ProtectedRoute>
+        }
+      />
+
       <Route element={<PublicLayout />}>
         <Route path="/" element={<HomePublicPage />} />
         <Route path="/registrar-envio" element={<RegistrarEnvioPage />} />
@@ -71,7 +81,7 @@ function AppRoutes() {
 
         <Route
           element={
-            <ProtectedRoute roles={['ADMINISTRADOR', 'SECRETARIA']} strict>
+            <ProtectedRoute roles={['ADMINISTRADOR']} strict>
               <AdminLayout />
             </ProtectedRoute>
           }

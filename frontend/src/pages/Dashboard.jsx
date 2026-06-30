@@ -1,5 +1,6 @@
 import React, { useEffect, useMemo, useState } from 'react';
 import { Link } from 'react-router-dom';
+import { ArrowUpRight, CheckCircle2, ClipboardList, Package, Truck } from 'lucide-react';
 import { getAllowedNavigation } from '../auth/accessControl.js';
 import Alert from '../components/common/Alert.jsx';
 import Badge from '../components/common/Badge.jsx';
@@ -60,10 +61,10 @@ function Dashboard() {
     const delivered = shipments.filter((shipment) => shipment.estado === 'ENTREGADA').length;
     const preRegistered = shipments.filter((shipment) => shipment.estado === 'PRE_REGISTRADA').length;
     return [
-      { label: 'Encomiendas totales', value: shipments.length, accent: 'bg-brand-green' },
-      { label: 'En proceso', value: active, accent: 'bg-brand-dark' },
-      { label: 'Entregadas', value: delivered, accent: 'bg-brand-lime' },
-      { label: 'Pre-registros', value: preRegistered, accent: 'bg-brand-gray' },
+      { label: 'Encomiendas totales', value: shipments.length, accent: 'bg-brand-green', icon: Package, ring: 'from-brand-green/15 to-brand-green/5 text-brand-green' },
+      { label: 'En proceso', value: active, accent: 'bg-brand-dark', icon: Truck, ring: 'from-brand-dark/15 to-brand-dark/5 text-brand-dark' },
+      { label: 'Entregadas', value: delivered, accent: 'bg-brand-lime', icon: CheckCircle2, ring: 'from-brand-lime/30 to-brand-lime/10 text-brand-dark' },
+      { label: 'Pre-registros', value: preRegistered, accent: 'bg-brand-gray', icon: ClipboardList, ring: 'from-brand-gray/15 to-brand-gray/5 text-brand-gray' },
     ];
   }, [shipments]);
   const statusDistribution = useMemo(() => {
@@ -105,32 +106,42 @@ function Dashboard() {
 
   return (
     <div className="space-y-6">
-      <div className="overflow-hidden rounded-lg border border-gray-200 bg-white shadow-[0_12px_30px_rgba(33,37,41,0.06)]">
-        <div className="flex flex-col gap-4 border-l-4 border-brand-green px-5 py-5 lg:flex-row lg:items-center lg:justify-between">
+      <div className="relative overflow-hidden rounded-2xl border border-white/10 bg-gradient-to-br from-[#1f4d2f] via-brand-dark to-[#16331f] px-6 py-7 shadow-[0_20px_50px_-20px_rgba(33,37,41,0.5)]">
+        <div className="pointer-events-none absolute -right-12 -top-12 h-44 w-44 rounded-full bg-brand-green/25 blur-3xl" />
+        <div className="pointer-events-none absolute -bottom-16 right-1/3 h-44 w-44 rounded-full bg-brand-lime/15 blur-3xl" />
+        <div className="relative flex flex-col gap-4 lg:flex-row lg:items-center lg:justify-between">
           <div>
-            <p className="text-xs font-bold uppercase tracking-wide text-brand-green">Panel operativo</p>
-            <h2 className="mt-1 text-3xl font-black tracking-tight text-brand-black">Dashboard</h2>
-            <p className="mt-2 max-w-3xl text-sm leading-6 text-brand-gray">
+            <p className="text-xs font-black uppercase tracking-[0.18em] text-brand-lime">Panel operativo</p>
+            <h2 className="mt-1.5 text-3xl font-black tracking-tight text-white">Dashboard</h2>
+            <p className="mt-2 max-w-3xl text-sm leading-6 text-white/75">
               Resumen operativo para {user?.full_name || user?.username || 'usuario interno'}.
             </p>
           </div>
-          <div className="rounded-lg border border-gray-200 bg-brand-surface px-4 py-3 text-sm">
-            <p className="font-bold text-brand-black">{(user?.roles || []).join(', ') || 'Sin rol asignado'}</p>
-            <p className="mt-1 text-brand-gray">{user?.permissions?.length || 0} permisos habilitados</p>
+          <div className="rounded-2xl border border-white/15 bg-white/10 px-4 py-3 text-sm backdrop-blur">
+            <p className="font-bold text-white">{(user?.roles || []).join(', ') || 'Sin rol asignado'}</p>
+            <p className="mt-1 text-brand-lime/90">{user?.permissions?.length || 0} permisos habilitados</p>
           </div>
         </div>
       </div>
 
       <div className="grid gap-4 md:grid-cols-2 xl:grid-cols-4">
-        {dashboardStats.map((stat) => (
-          <Card key={stat.label} className="relative overflow-hidden">
-            <div className={`absolute left-0 top-0 h-full w-1 ${stat.accent}`} />
-            <p className="pl-2 text-sm font-semibold text-brand-gray">{stat.label}</p>
-            <div className="mt-4 pl-2">
-              <strong className="text-4xl font-black tracking-tight text-brand-black">{stat.value}</strong>
-            </div>
-          </Card>
-        ))}
+        {dashboardStats.map((stat) => {
+          const Icon = stat.icon;
+          return (
+            <Card key={stat.label} hover className="relative overflow-hidden">
+              <div className={`absolute left-0 top-0 h-full w-1 ${stat.accent}`} />
+              <div className="flex items-start justify-between gap-3 pl-2">
+                <div>
+                  <p className="text-sm font-semibold text-brand-gray">{stat.label}</p>
+                  <strong className="mt-3 block text-4xl font-black tracking-tight text-brand-black">{stat.value}</strong>
+                </div>
+                <span className={`flex h-11 w-11 shrink-0 items-center justify-center rounded-xl bg-gradient-to-br ${stat.ring}`}>
+                  <Icon size={20} />
+                </span>
+              </div>
+            </Card>
+          );
+        })}
       </div>
 
       <div className="grid gap-4 xl:grid-cols-[1.35fr_0.65fr]">
@@ -190,10 +201,15 @@ function Dashboard() {
             <Link
               key={item.path}
               to={item.path}
-              className="group rounded-lg border border-gray-200 bg-brand-surface p-4 text-sm font-bold text-brand-black transition hover:-translate-y-0.5 hover:border-brand-lime hover:bg-brand-lime/20 hover:shadow-sm"
+              className="group flex items-center justify-between gap-3 rounded-xl border border-gray-200 bg-brand-surface p-4 text-sm font-bold text-brand-black transition duration-200 hover:-translate-y-0.5 hover:border-brand-lime hover:bg-brand-lime/15 hover:shadow-[0_12px_26px_-14px_rgba(33,37,41,0.3)]"
             >
-              <span>{item.label}</span>
-              <span className="mt-3 block text-xs font-semibold text-brand-gray group-hover:text-brand-dark">Abrir modulo</span>
+              <span>
+                <span className="block">{item.label}</span>
+                <span className="mt-2 block text-xs font-semibold text-brand-gray group-hover:text-brand-dark">Abrir modulo</span>
+              </span>
+              <span className="flex h-9 w-9 shrink-0 items-center justify-center rounded-full bg-white text-brand-gray shadow-sm transition group-hover:bg-brand-green group-hover:text-white">
+                <ArrowUpRight size={17} />
+              </span>
             </Link>
           ))}
         </div>
@@ -208,7 +224,7 @@ function Dashboard() {
         {loadingShipments ? (
           <Loader label="Cargando ultimas encomiendas..." />
         ) : (
-          <DataTable columns={columns} data={latestShipments} emptyMessage="Aun no hay encomiendas registradas." />
+          <DataTable columns={columns} data={latestShipments} emptyMessage="Aun no hay encomiendas registradas." caption="Ultimas encomiendas registradas en el sistema" />
         )}
       </Card>
     </div>

@@ -1,7 +1,12 @@
 import React from 'react';
 
 function normalizeOption(option) {
-  return typeof option === 'string' ? option : option?.nombre || option?.name || '';
+  if (typeof option === 'string') {
+    return { label: option, value: option };
+  }
+  const value = option?.value || option?.nombre || option?.name || '';
+  const label = option?.label || option?.nombre || option?.name || value;
+  return value ? { label, value } : null;
 }
 
 function LocationInput({ label, name, value, onChange, error, options = [], required = false }) {
@@ -19,8 +24,8 @@ function LocationInput({ label, name, value, onChange, error, options = [], requ
       >
         <option value="">Seleccionar</option>
         {normalizedOptions.map((option) => (
-          <option key={option} value={option}>
-            {option}
+          <option key={option.value} value={option.value}>
+            {option.label}
           </option>
         ))}
       </select>

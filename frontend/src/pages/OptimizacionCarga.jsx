@@ -20,7 +20,12 @@ import { getApiErrorMessage } from '../services/apiClient.js';
 import { finalizarCargaServicio } from '../services/measurementLogsService.js';
 import { iniciarOrdenCarga, siguienteSimulado } from '../services/cargaLogsService.js';
 import { optimizationPocService } from '../services/optimizationPocService.js';
-import { getOptimizationAlgorithm } from '../config/optimizationPocAlgorithms.js';
+import {
+  getOptimizationAlgorithm,
+  OPTIMIZATION_ALGORITHMS,
+  AVAILABLE_OPTIMIZATION_ALGORITHM_IDS,
+  ACTIVE_OPTIMIZATION_ALGORITHM_ID,
+} from '../config/optimizationPocAlgorithms.js';
 
 const STATUS_LABELS = {
   IDLE: 'Sin ordenar',
@@ -47,7 +52,11 @@ function formatDimensions(item) {
 
 export default function OptimizacionCarga() {
   const [scenario, setScenario] = useState(null);
-  const activeAlgorithm = useMemo(() => getOptimizationAlgorithm(), []);
+  const [selectedAlgorithmId, setSelectedAlgorithmId] = useState(ACTIVE_OPTIMIZATION_ALGORITHM_ID);
+  const activeAlgorithm = useMemo(
+    () => getOptimizationAlgorithm(selectedAlgorithmId),
+    [selectedAlgorithmId],
+  );
   const [selectedTruckId, setSelectedTruckId] = useState('CAMION_A');
   const [viewMode, setViewMode] = useState('isometric');
   const [status, setStatus] = useState('IDLE');
@@ -397,9 +406,22 @@ export default function OptimizacionCarga() {
                 </option>
               ))}
             </select>
-            <div className="flex min-h-11 items-center rounded-md border border-[#A3CF84] bg-[#E4ECE2] px-3 text-sm font-black text-[#3C5940]">
-              {activeAlgorithm.label}
-            </div>
+            <label className="grid gap-1">
+              <span className="text-xs font-black uppercase text-[#3C5940]">Modelo de optimización</span>
+              <select
+                className="min-h-11 rounded-md border border-[#A3CF84] bg-[#E4ECE2] px-3 text-sm font-black text-[#3C5940]"
+                value={selectedAlgorithmId}
+                onChange={(event) => setSelectedAlgorithmId(event.target.value)}
+                disabled={status === 'ORDERING'}
+              >
+                {AVAILABLE_OPTIMIZATION_ALGORITHM_IDS.map((id) => (
+                  <option key={id} value={id}>
+                    {OPTIMIZATION_ALGORITHMS[id]?.rank ? `${OPTIMIZATION_ALGORITHMS[id].rank}º ` : ''}
+                    {OPTIMIZATION_ALGORITHMS[id]?.label || id}
+                  </option>
+                ))}
+              </select>
+            </label>
             <div className="rounded-md border border-[#d9e7d4] bg-white px-3 py-2">
               <p className="text-xs font-black uppercase text-[#3C5940]">Encomiendas registradas hoy</p>
               <p className="mt-1 text-sm font-bold text-[#212529]">{scenario?.packages?.length || 0}</p>

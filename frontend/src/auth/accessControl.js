@@ -28,6 +28,12 @@ export const adminNavigationItems = [
     anyOf: ['users.read'],
     roles: ['ADMINISTRADOR'],
   },
+  {
+    label: 'Vista Developer',
+    path: '/admin/developer',
+    anyOf: ['developer.read'],
+    roles: ['ADMINISTRADOR', 'DEVELOPER'],
+  },
 ];
 
 export function normalizeRole(role) {
@@ -73,6 +79,9 @@ export function getAllowedNavigation(user) {
 export function getRoleHomePath(user) {
   if (hasRole(user, ['ESTIBA']) && hasAnyPermission(user, ['optimization.read'])) {
     return '/admin/optimizacion-carga';
+  }
+  if (hasRole(user, ['DEVELOPER']) && !hasRole(user, ['ADMINISTRADOR', 'SECRETARIA'])) {
+    return '/admin/developer';
   }
   if (hasRole(user, ['SECRETARIA']) && canAccess(user, { anyOf: ['encomiendas.write'] })) {
     return '/secretaria';

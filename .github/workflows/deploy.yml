@@ -28,6 +28,9 @@ jobs:
       - name: Instalar dependencias
         run: npm ci
 
+      - name: Fix rollup optional dependency en Linux (npm/cli#4828)
+        run: npm install --no-save @rollup/rollup-linux-x64-gnu@4.60.2
+
       - name: Ejecutar pruebas unitarias
         run: npm run test
 

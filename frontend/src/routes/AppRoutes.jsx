@@ -9,6 +9,7 @@ import StowageLayout from '../layouts/StowageLayout.jsx';
 import Clientes from '../pages/Clientes.jsx';
 import Dashboard from '../pages/Dashboard.jsx';
 import Destinos from '../pages/Destinos.jsx';
+import DeveloperView from '../pages/DeveloperView.jsx';
 import EncomiendaBuscar from '../pages/EncomiendaBuscar.jsx';
 import EncomiendaDetalle from '../pages/EncomiendaDetalle.jsx';
 import EncomiendaEditar from '../pages/EncomiendaEditar.jsx';
@@ -81,12 +82,27 @@ function AppRoutes() {
 
         <Route
           element={
-            <ProtectedRoute roles={['ADMINISTRADOR']} strict>
+            <ProtectedRoute roles={['ADMINISTRADOR', 'DEVELOPER']} strict>
               <AdminLayout />
             </ProtectedRoute>
           }
         >
-          <Route path="dashboard" element={<Dashboard />} />
+          <Route
+            path="dashboard"
+            element={
+              <ProtectedRoute roles={['ADMINISTRADOR']} strict>
+                <Dashboard />
+              </ProtectedRoute>
+            }
+          />
+          <Route
+            path="developer"
+            element={
+              <ProtectedRoute anyOf={['developer.read']} roles={['ADMINISTRADOR', 'DEVELOPER']}>
+                <DeveloperView />
+              </ProtectedRoute>
+            }
+          />
           <Route
             path="clientes"
             element={

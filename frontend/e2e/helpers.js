@@ -36,6 +36,58 @@ export async function mockCommonApi(page) {
   }));
 }
 
+// Perfiles de usuario por rol para login mockeado (misma forma que devuelve
+// /api/v1/auth/login). Los permisos son los mínimos que getRoleHomePath()
+// evalúa para decidir el panel de aterrizaje de cada rol.
+export const roleUsers = {
+  admin: {
+    username: 'qa_admin',
+    full_name: 'TEST QA ADMIN',
+    roles: ['ADMINISTRADOR'],
+    permissions: ['users.read', 'encomiendas.read', 'encomiendas.write'],
+  },
+  secretaria: {
+    username: 'qa_secretaria',
+    full_name: 'TEST QA SECRETARIA',
+    roles: ['SECRETARIA'],
+    permissions: ['encomiendas.read', 'encomiendas.write', 'cotizaciones.read'],
+  },
+  estiba: {
+    username: 'qa_estiba',
+    full_name: 'TEST QA ESTIBA',
+    roles: ['ESTIBA'],
+    permissions: ['optimization.read', 'optimization.run'],
+  },
+};
+
+// Intercepta /auth/login devolviendo el usuario indicado (sin tocar el backend).
+export async function mockLoginResponse(page, user) {
+  await page.route('**/api/v1/auth/login', (route) => route.fulfill({
+    status: 200,
+    contentType: 'application/json',
+    body: JSON.stringify({
+      access_token: `TEST_TOKEN_${user.username}`,
+      token_type: 'bearer',
+      user,
+    }),
+  }));
+}
+
+// Login por la UI real (formulario de LoginPage). Usa selectores por name, que
+// son estables aunque cambie el texto del label. Deja la sesión iniciada.
+export async function loginAs(page, user, { submitWithEnter = false } = {}) {
+  await mockLoginResponse(page, user);
+  await page.goto('/login', { waitUntil: 'domcontentloaded' });
+  await page.locator('input[name="username"]').fill(user.username);
+  const password = page.locator('input[name="password"]');
+  await password.fill('QaPassword123');
+  if (submitWithEnter) {
+    await password.press('Enter');
+  } else {
+    await page.getByRole('button', { name: 'Ingresar' }).click();
+  }
+}
+
 export async function fillShipmentForm(page) {
   const documentInputs = page.getByLabel('Numero de documento');
   await documentInputs.nth(0).fill('70123456');
@@ -68,12 +120,8 @@ export async function fillShipmentForm(page) {
   await destination.getByLabel('Distrito').selectOption('Angasmarca');
 
   await page.getByLabel('Tipo de contenido').selectOption('DOCUMENTOS');
-  await page.getByLabel('Fragilidad').selectOption('MEDIA');
-  await page.getByLabel('Peso total (kg)').fill('10');
-  await page.getByLabel('Largo (cm)').fill('40');
-  await page.getByLabel('Ancho (cm)').fill('30');
-  await page.getByLabel('Alto (cm)').fill('20');
-  await page.getByLabel('Descripcion').fill('Paquete funcional TEST QA');
+  await page.getByLabel('Peso total (kg)').fill('1');
+  await page.getByLabel('Descripcion').fill('Documentos funcionales TEST QA');
 
   await page.getByRole('button', { name: 'Continuar' }).click();
   await expect(page.getByText('Detalle de pago')).toBeVisible();

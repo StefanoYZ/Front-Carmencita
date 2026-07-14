@@ -5,6 +5,9 @@ import Input from '../components/common/Input.jsx';
 import { cotizacionService } from '../services/cotizacion.service.js';
 import MercadoPagoBrick from '../components/payments/MercadoPagoBrick.jsx';
 import YapePayment from '../components/payments/YapePayment.jsx';
+import { sanitizeDecimal, validateDimension, validateShipmentNumericField, validateWeight } from '../utils/shipmentValidation.js';
+
+const NUMERIC_FIELDS = ['peso', 'largo', 'ancho', 'alto'];
 
 function Cotizacion() {
   const [form, setForm] = useState({
@@ -16,17 +19,39 @@ function Cotizacion() {
   });
 
   const [result, setResult] = useState(null);
+  const [errors, setErrors] = useState({});
   const [metodoPago, setMetodoPago] = useState('tarjeta');
 
   const updateField = (event) => {
-    setForm((current) => ({
-      ...current,
-      [event.target.name]: event.target.value,
-    }));
+    const { name, value } = event.target;
+    // Misma sanitizacion que el resto de vistas: solo digitos y un punto decimal.
+    const nextValue = NUMERIC_FIELDS.includes(name) ? sanitizeDecimal(value) : value;
+    setForm((current) => ({ ...current, [name]: nextValue }));
+    // Valida el limite logico EN VIVO: el error de peso/dimension aparece al escribir.
+    setErrors((current) => ({ ...current, [name]: validateShipmentNumericField(name, nextValue) || undefined }));
+  };
+
+  const validate = () => {
+    const nextErrors = {};
+    const weightError = validateWeight(form.peso);
+    if (weightError) nextErrors.peso = weightError;
+    ['largo', 'ancho', 'alto'].forEach((field) => {
+      const dimensionError = validateDimension(form[field]);
+      if (dimensionError) nextErrors[field] = dimensionError;
+    });
+    if (!String(form.destino || '').trim()) nextErrors.destino = 'El destino es obligatorio.';
+    return nextErrors;
   };
 
   const handleSubmit = async (event) => {
     event.preventDefault();
+    const nextErrors = validate();
+    if (Object.keys(nextErrors).length > 0) {
+      setErrors(nextErrors);
+      setResult(null);
+      return;
+    }
+    setErrors({});
     setResult(await cotizacionService.calcular(form));
   };
 
@@ -43,11 +68,11 @@ function Cotizacion() {
           <p className="mt-1 text-sm text-brand-gray">Ingresa medidas y destino para calcular la tarifa.</p>
         </div>
         <form className="grid gap-4 md:grid-cols-2 xl:grid-cols-5" onSubmit={handleSubmit}>
-          <Input label="Peso (kg)" name="peso" type="number" min="0" step="0.1" value={form.peso} onChange={updateField} required />
-          <Input label="Largo (cm)" name="largo" type="number" min="0" value={form.largo} onChange={updateField} required />
-          <Input label="Ancho (cm)" name="ancho" type="number" min="0" value={form.ancho} onChange={updateField} required />
-          <Input label="Alto (cm)" name="alto" type="number" min="0" value={form.alto} onChange={updateField} required />
-          <Input label="Destino" name="destino" value={form.destino} onChange={updateField} required />
+          <Input label="Peso (kg)" name="peso" inputMode="decimal" value={form.peso} onChange={updateField} error={errors.peso} required />
+          <Input label="Largo (cm)" name="largo" inputMode="decimal" value={form.largo} onChange={updateField} error={errors.largo} required />
+          <Input label="Ancho (cm)" name="ancho" inputMode="decimal" value={form.ancho} onChange={updateField} error={errors.ancho} required />
+          <Input label="Alto (cm)" name="alto" inputMode="decimal" value={form.alto} onChange={updateField} error={errors.alto} required />
+          <Input label="Destino" name="destino" value={form.destino} onChange={updateField} error={errors.destino} required />
 
           <div className="md:col-span-2 xl:col-span-5">
             <Button type="submit">Calcular tarifa</Button>

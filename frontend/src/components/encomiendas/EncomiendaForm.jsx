@@ -21,7 +21,6 @@ function DocumentTypeSelect({ label, name, value, onChange, error }) {
         className="min-h-10 w-full rounded-md border border-gray-200 bg-white px-3 py-2 text-sm text-brand-black outline-none transition hover:border-brand-lime focus:border-brand-green focus:ring-2 focus:ring-brand-lime/50"
       >
         <option>DNI</option>
-        <option>RUC</option>
       </select>
       {error && <span className="mt-1 block text-xs font-semibold text-brand-dark">{error}</span>}
     </label>
@@ -235,6 +234,7 @@ function EncomiendaForm({
               <option value="DOCUMENTOS">Documentos</option>
               <option value="ROPA">Ropa</option>
               <option value="ELECTRONICOS">Electronicos</option>
+              <option value="ELECTRODOMESTICOS">Electrodomesticos</option>
               <option value="ALIMENTOS">Alimentos</option>
               <option value="OTROS">Otros</option>
             </select>
@@ -292,6 +292,13 @@ function EncomiendaForm({
           />
         )}
       </FormSection>
+
+      {/* Explicacion del siguiente paso segun el modo del formulario. */}
+      <p className="rounded-md border border-brand-lime/60 bg-brand-lime/15 px-4 py-3 text-sm font-semibold text-brand-dark">
+        {mode === 'edit'
+          ? 'Siguiente paso: al guardar cambios se actualiza la encomienda. Si ya fue pagada o entregada, algunos campos no podran modificarse.'
+          : 'Siguiente paso: al registrar la encomienda se genera su codigo automaticamente. Luego podras cobrar el envio y emitir la boleta electronica desde el detalle.'}
+      </p>
 
       <Button type="submit" disabled={loading}>
         {loading ? 'Guardando...' : mode === 'edit' ? 'Guardar cambios' : 'Registrar encomienda'}

@@ -59,7 +59,7 @@ export async function getEtiquetaPdf(id) {
 }
 
 export async function exportarReporteEncomiendas(formato, filtros = {}) {
-  const extension = formato === 'excel' ? 'xls' : 'pdf';
+  const extension = formato === 'excel' ? 'xlsx' : 'pdf';
   const response = await apiClient.get(`/encomiendas/reportes/operativo.${extension}`, {
     params: {
       fecha: filtros.fecha || undefined,

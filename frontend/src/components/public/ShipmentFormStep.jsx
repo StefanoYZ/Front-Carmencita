@@ -25,7 +25,7 @@ function FieldError({ children }) {
   );
 }
 
-function Field({ label, name, value, onChange, error, warning, alertMode = 'chat', type = 'text', as = 'input', children, ...props }) {
+function Field({ label, name, value, onChange, error, warning, alertMode = 'chat', type = 'text', as = 'input', required = false, children, ...props }) {
   const Control = as;
   const controlProps = {
     className: inputClass,
@@ -41,7 +41,9 @@ function Field({ label, name, value, onChange, error, warning, alertMode = 'chat
 
   return (
     <label className="grid self-start content-start gap-1.5">
-      <span className="text-sm font-black text-[#3C5940]">{label}</span>
+      <span className="text-sm font-black text-[#3C5940]">
+        {label}{required && <span className="text-red-600" aria-hidden="true"> *</span>}
+      </span>
       <div className="relative">
         <Control {...controlProps}>
           {children}
@@ -77,7 +79,7 @@ function SectionTitle({ icon, title }) {
   );
 }
 
-function PersonFields({ prefix, form, errors, onChange, onReniecLookup, reniecStatus }) {
+function PersonFields({ prefix, form, errors, onChange, onReniecLookup, reniecStatus, requiredDocument = false }) {
   const label = prefix === 'remitente' ? 'remitente' : 'destinatario';
 
   return (
@@ -91,13 +93,12 @@ function PersonFields({ prefix, form, errors, onChange, onReniecLookup, reniecSt
         error={errors[`${prefix}_tipo_documento`]}
       >
         <option value="DNI">DNI</option>
-        <option value="RUC">RUC</option>
-        <option value="CE">CE</option>
       </Field>
 
       <div className="grid gap-1.5">
         <Field
           label="Numero de documento"
+          required={requiredDocument}
           name={`${prefix}_numero_documento`}
           value={form[`${prefix}_numero_documento`]}
           onChange={onChange}
@@ -118,6 +119,7 @@ function PersonFields({ prefix, form, errors, onChange, onReniecLookup, reniecSt
 
       <Field
         label="Nombre completo"
+        required
         name={`${prefix}_nombre`}
         value={form[`${prefix}_nombre`]}
         onChange={onChange}
@@ -155,7 +157,7 @@ function PersonFields({ prefix, form, errors, onChange, onReniecLookup, reniecSt
   );
 }
 
-function LocationField({ label, name, value, onChange, error, options }) {
+function LocationField({ label, name, value, onChange, error, options, required = false }) {
   const [province, setProvince] = useState(() => (value ? getProvinceForLocation(value) : ''));
   const districtOptions = useMemo(
     () => getLocationOptionsByProvince(options, province),
@@ -182,7 +184,9 @@ function LocationField({ label, name, value, onChange, error, options }) {
 
   return (
     <fieldset className="grid min-w-0 self-start content-start gap-3">
-      <legend className="text-sm font-black text-[#3C5940]">{label}</legend>
+      <legend className="text-sm font-black text-[#3C5940]">
+        {label}{required && <span className="text-red-600" aria-hidden="true"> *</span>}
+      </legend>
       <label className="grid gap-1.5">
         <span className="text-xs font-bold text-[#6C757D]">Provincia</span>
         <select className={inputClass} value={province} onChange={handleProvinceChange}>
@@ -235,6 +239,7 @@ function ShipmentFormStep({ form, errors, reniecStatus, locationOptions = [], on
             onChange={onChange}
             onReniecLookup={onReniecLookup}
             reniecStatus={reniecStatus}
+            requiredDocument
           />
         </section>
 
@@ -254,9 +259,9 @@ function ShipmentFormStep({ form, errors, reniecStatus, locationOptions = [], on
       <section className="min-w-0 rounded-2xl border border-[#A3CF84]/60 bg-gradient-to-b from-[#F4F8F1] to-white p-5 shadow-[0_1px_2px_rgba(33,37,41,0.04),0_16px_38px_-18px_rgba(33,37,41,0.22)] sm:p-6">
         <SectionTitle icon={packageIcon} title="Datos de la encomienda" />
         <div className="grid min-w-0 items-start gap-4 md:grid-cols-2 xl:grid-cols-4">
-          <LocationField label="Origen" name="origen" value={form.origen} onChange={onChange} error={errors.origen} options={locationOptions} />
-          <LocationField label="Destino" name="destino" value={form.destino} onChange={onChange} error={errors.destino} options={locationOptions} />
-          <Field as="select" label="Tipo de contenido" name="tipo_contenido" value={form.tipo_contenido} onChange={onChange} error={errors.tipo_contenido} warning={coherenceWarnings.tipo_contenido} alertMode={alertMode}>
+          <LocationField label="Origen" required name="origen" value={form.origen} onChange={onChange} error={errors.origen} options={locationOptions} />
+          <LocationField label="Destino" required name="destino" value={form.destino} onChange={onChange} error={errors.destino} options={locationOptions} />
+          <Field as="select" label="Tipo de contenido" required name="tipo_contenido" value={form.tipo_contenido} onChange={onChange} error={errors.tipo_contenido} warning={coherenceWarnings.tipo_contenido} alertMode={alertMode}>
             <option value="">Seleccionar</option>
             <option value="DOCUMENTOS">Documentos</option>
             <option value="ROPA">Ropa</option>
@@ -266,23 +271,23 @@ function ShipmentFormStep({ form, errors, reniecStatus, locationOptions = [], on
             <option value="OTROS">Otros</option>
           </Field>
           {!isEnvelope && (
-            <Field as="select" label="Fragilidad" name="fragilidad" value={form.fragilidad} onChange={onChange} error={errors.fragilidad}>
+            <Field as="select" label="Fragilidad" required name="fragilidad" value={form.fragilidad} onChange={onChange} error={errors.fragilidad}>
               <option value="">Seleccionar</option>
               <option value="BAJA">Baja</option>
               <option value="MEDIA">Media</option>
               <option value="ALTA">Alta</option>
             </Field>
           )}
-          <Field label="Peso total (kg)" name="peso_kg" inputMode="decimal" value={form.peso_kg} onChange={onChange} error={errors.peso_kg} warning={coherenceWarnings.peso_kg} alertMode={alertMode} />
+          <Field label="Peso total (kg)" required name="peso_kg" inputMode="decimal" value={form.peso_kg} onChange={onChange} error={errors.peso_kg} warning={coherenceWarnings.peso_kg} alertMode={alertMode} />
           {!isEnvelope && (
             <>
-              <Field label="Largo (cm)" name="largo_cm" inputMode="decimal" value={form.largo_cm} onChange={onChange} error={errors.largo_cm} warning={coherenceWarnings.largo_cm} alertMode={alertMode} />
-              <Field label="Ancho (cm)" name="ancho_cm" inputMode="decimal" value={form.ancho_cm} onChange={onChange} error={errors.ancho_cm} warning={coherenceWarnings.ancho_cm} alertMode={alertMode} />
-              <Field label="Alto (cm)" name="alto_cm" inputMode="decimal" value={form.alto_cm} onChange={onChange} error={errors.alto_cm} warning={coherenceWarnings.alto_cm} alertMode={alertMode} />
+              <Field label="Largo (cm)" required name="largo_cm" inputMode="decimal" value={form.largo_cm} onChange={onChange} error={errors.largo_cm} warning={coherenceWarnings.largo_cm} alertMode={alertMode} />
+              <Field label="Ancho (cm)" required name="ancho_cm" inputMode="decimal" value={form.ancho_cm} onChange={onChange} error={errors.ancho_cm} warning={coherenceWarnings.ancho_cm} alertMode={alertMode} />
+              <Field label="Alto (cm)" required name="alto_cm" inputMode="decimal" value={form.alto_cm} onChange={onChange} error={errors.alto_cm} warning={coherenceWarnings.alto_cm} alertMode={alertMode} />
             </>
           )}
           <label className="grid gap-1.5 md:col-span-2 xl:col-span-4">
-            <span className="text-sm font-black text-[#3C5940]">Descripcion</span>
+            <span className="text-sm font-black text-[#3C5940]">Descripcion<span className="text-red-600" aria-hidden="true"> *</span></span>
             <div className="relative">
               <textarea
                 className={`${inputClass} min-h-28 resize-y`}
@@ -315,7 +320,13 @@ function ShipmentFormStep({ form, errors, reniecStatus, locationOptions = [], on
 
       {errors.general && <div className="rounded-md border border-red-300 bg-red-50 p-3 text-sm font-semibold text-red-700 shadow-sm">{errors.general}</div>}
 
-      <div className="sticky bottom-3 z-20 mt-6 flex flex-col-reverse gap-3 rounded-2xl border border-[#A3CF84]/70 bg-white/90 p-3 shadow-[0_16px_40px_-16px_rgba(33,37,41,0.3)] backdrop-blur sm:flex-row sm:justify-end">
+      {/* Explicacion del siguiente paso: que hara el boton Continuar. */}
+      <p className="mt-4 rounded-md border border-[#A3CF84]/60 bg-[#F4F8F1] px-4 py-3 text-sm font-semibold text-[#3C5940]">
+        Siguiente paso: al presionar <strong>Continuar</strong> revisaras el resumen del envio y elegiras
+        el metodo de pago para confirmar la encomienda.
+      </p>
+
+      <div className="sticky bottom-3 z-20 mt-3 flex flex-col-reverse gap-3 rounded-2xl border border-[#A3CF84]/70 bg-white/90 p-3 shadow-[0_16px_40px_-16px_rgba(33,37,41,0.3)] backdrop-blur sm:flex-row sm:justify-end">
         <button
           type="button"
           className="min-h-12 rounded-xl border border-[#A3CF84]/70 bg-white px-6 text-sm font-black text-[#3C5940] shadow-sm transition hover:border-[#28A745] hover:bg-[#F8F9FA]"

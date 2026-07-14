@@ -168,19 +168,21 @@ export default function YapePayment({
       <input
         type="text"
         value={otp}
-        onChange={(event) => setOtp(event.target.value)}
+        onChange={(event) => setOtp(sanitizeDigits(event.target.value, 6))}
         placeholder="Ej: 123456"
+        inputMode="numeric"
+        maxLength={6}
         className="mb-4 min-h-11 w-full rounded-md border border-gray-200 px-3 py-2 text-sm text-brand-black outline-none transition hover:border-brand-lime focus:border-brand-green focus:ring-2 focus:ring-brand-lime/50"
       />
 
       <p className="mb-4 text-sm leading-6 text-brand-gray">
-        Abre tu app Yape, genera tu codigo de aprobacion e ingresalo aqui.
+        Abre tu app Yape, genera tu codigo de aprobacion (6 digitos) e ingresalo aqui.
       </p>
 
       <button
         type="button"
         onClick={handleYapePayment}
-        disabled={loading || !phoneNumber || Boolean(phoneError) || !otp}
+        disabled={loading || !phoneNumber || Boolean(phoneError) || otp.length !== 6}
         className="min-h-11 w-full rounded-md bg-brand-green px-4 py-2 text-sm font-black text-white transition hover:bg-brand-dark disabled:cursor-not-allowed disabled:opacity-60"
       >
         {loading ? 'Procesando...' : 'Pagar con Yape'}

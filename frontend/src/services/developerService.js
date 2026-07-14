@@ -38,6 +38,18 @@ export async function deleteRow(name, pk) {
   });
 }
 
+export async function getOptimizationTestMode() {
+  const response = await apiClient.get('/developer/optimizacion/modo-prueba');
+  return response.data;
+}
+
+export async function setOptimizationTestMode(active, count = null) {
+  // count null -> el backend elige cantidad y semilla al azar (lote distinto cada vez).
+  const payload = count != null ? { active, count } : { active };
+  const response = await apiClient.post('/developer/optimizacion/modo-prueba', payload);
+  return response.data;
+}
+
 export async function exportTable(name, format) {
   const extension = format === 'excel' ? 'xls' : 'csv';
   const response = await apiClient.get(
@@ -55,4 +67,6 @@ export const developerService = {
   updateRow,
   deleteRow,
   exportTable,
+  getOptimizationTestMode,
+  setOptimizationTestMode,
 };

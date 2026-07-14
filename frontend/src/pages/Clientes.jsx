@@ -1,5 +1,4 @@
 import React, { useEffect, useState } from 'react';
-import Button from '../components/common/Button.jsx';
 import Card from '../components/common/Card.jsx';
 import DataTable from '../components/tables/DataTable.jsx';
 import Alert from '../components/common/Alert.jsx';
@@ -53,7 +52,6 @@ function Clientes() {
           <h2 className="page-title">Clientes</h2>
           <p className="page-subtitle">Clientes guardados desde registros y pre-registros.</p>
         </div>
-        <Button>Nuevo cliente</Button>
       </div>
 
       {error && <Alert tone="error">{error}</Alert>}

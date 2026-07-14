@@ -1,117 +1,64 @@
-# Reporte de ejecución QA
+# Reporte de ejecucion QA
 
-Fecha: 19 de junio de 2026
+Fecha: 7 de julio de 2026
 
 ## Resultado general
 
-La lógica principal de registro, pagos controlados, encomiendas, clientes, roles, optimización, etiquetas y persistencia fue validada. No se dejaron registros `TEST_QA` en PostgreSQL.
+Se reviso el tooling existente antes de agregar pruebas. El proyecto ya tenia cobertura con Vitest, Playwright y pytest, por lo que se agregaron escenarios nuevos sobre brechas concretas: coherencia entre tipo de contenido y descripcion, sobres sin cubicaje, base/orientacion de paquetes, origen y destino iguales, y validaciones equivalentes en backend.
 
-## Validación Lycet del 19 de junio de 2026
-
-- Se levantó `Lycet-Carmencita` en Docker sobre `http://localhost:8001`.
-- Se usó el RUC de pruebas `20161515648`, documento `03`, serie `B001`.
-- La boleta beta `B001-180745` fue aceptada.
-- `/invoice/send` devolvió XML firmado, hash y CDR.
-- `sunatResponse.success` fue `true`.
-- El código CDR fue `0`.
-- La descripción recibida fue: `La Boleta numero B001-180745, ha sido aceptada`.
-- `/invoice/status` respondió error SOL `00103`; por ello el backend conserva como fuente principal el CDR retornado durante `/invoice/send`.
-- La tabla `boletas_electronicas` fue creada en PostgreSQL mediante SQLAlchemy.
-- PDF, XML y CDR se reutilizan desde la misma emisión persistida por encomienda.
-
-## Ejecuciones
-
-| Comando o comprobación | Resultado |
-|---|---|
-| `pytest -q` | 30 aprobadas, 0 fallidas |
-| `python -m compileall -q app` | Aprobado |
-| `npm test` | 6 archivos, 15 pruebas aprobadas |
-| `npm run lint` | 0 errores, 86 advertencias |
-| `npm run build` | Aprobado |
-| Playwright escritorio | 10 escenarios aprobados en ejecución estable |
-| Playwright móvil | 10 escenarios aprobados en ejecuciones estables |
-| `docker build` backend | Aprobado |
-| `docker build` frontend | Aprobado después de corregir Rollup para Alpine |
-| PostgreSQL mediante SQLAlchemy | Encomienda, dos clientes y log persistidos y verificados |
-| Rollback QA PostgreSQL | Encomienda y log eliminados; base sin contaminación |
-| Lycet beta | Bloqueado por `ConnectionError` |
-
-## Cobertura implementada
-
-Backend:
-
-- Validaciones Pydantic.
-- Repositorios y servicios de clientes y encomiendas.
-- Creación, confirmación, actualización, anulación y entrega.
-- Etiqueta PDF y QR.
-- Registro de logs de cobro.
-- Pagos con respuestas aprobadas y fallidas controladas.
-- SUNAT mock/beta a nivel de contrato.
-- Roles, permisos y rutas de optimización.
-- Restricciones geométricas y capacidad de carga.
+## Cambios de cobertura agregados
 
 Frontend:
 
-- Validación de formularios.
-- Jerarquía de ubicaciones.
-- Acceso por rol y sesión por pestaña.
-- Confirmación, tracking y etiqueta.
-- Flujos de agencia, tarjeta y Yape.
-- Navegación pública y administrativa.
-- Optimización 3D, cámaras y carga progresiva.
-- Escritorio y viewport móvil.
+- 30 escenarios unitarios de coherencia tipo/descripcion con casos validos e invalidos.
+- Casos unitarios para sobres que ignoran dimensiones, fragilidad y orientacion residual.
+- Casos unitarios para paquetes que exigen orientacion/base y bloquean electrodomesticos mal orientados.
+- Casos E2E de caja negra para cotizacion publica con origen/destino iguales.
+- Casos E2E de caja negra para cotizacion de sobres sin medidas ni selector 3D.
+- Casos E2E de caja negra para registro publico con origen/destino iguales.
+- Casos E2E de caja negra para registro publico con tipo de contenido incoherente.
+- Se corrigio una brecha real detectada por las pruebas: `conservas`, `galletas`, `fideos`, `huevos` y otros plurales de alimentos no se inferian como alimentos.
 
-## Persistencia PostgreSQL
+Backend:
 
-Se ejecutó una transacción real con SQLAlchemy sobre la base configurada:
+- Casos de schema para rechazar dimensiones 0 en paquetes no documentarios.
+- Caso de schema para rechazar paquetes sin `orientacion_base`.
+- Caso de schema para normalizar `orientacion_base` a `None` en documentos/sobres.
+- Casos de schema para rechazar o aceptar orientacion de electrodomesticos segun la base seleccionada.
 
-1. Se creó una encomienda QA.
-2. Se verificó el alta o actualización de remitente y destinatario.
-3. Se creó un registro en `logs_de_cobro` con tiempo en milisegundos.
-4. Se consultaron los cuatro registros dentro de la transacción.
-5. Se ejecutó rollback.
-6. Se comprobó que la encomienda y el log ya no existían.
+## Ejecuciones realizadas
 
-Resultado: persistencia y rollback aprobados.
+| Comando | Resultado |
+|---|---|
+| `npm run test -- shipmentValidation publicShipment` | 49 pruebas aprobadas |
+| `npm run test` | 65 pruebas aprobadas |
+| `npm run test:e2e -- validacion-entradas.spec.js` | 12 escenarios aprobados |
+| `npm run test:e2e` | 30 escenarios aprobados |
+| `npm run build` | Aprobado |
+| `npm run lint` | 0 errores, 104 advertencias preexistentes |
+| `compileall` sobre archivos backend tocados | Aprobado |
+| `pytest app/tests/test_validations.py app/tests/test_optimization_restrictions.py` | Bloqueado por venv backend rota |
 
-## Incidencias detectadas
+## Bloqueos tecnicos
 
-### Playwright agregado
+La ejecucion de pytest backend no pudo completarse porque la venv de `C:\Users\angel\Desktop\CarmencitaExpress` apunta a:
 
-Una repetición que intentó ejecutar todos los escenarios con servidor Vite y WebGL en una sola invocación quedó abierta hasta timeout. Las mismas pruebas aprobaron al ejecutarse en lotes estables por viewport. La incidencia corresponde al cierre del runner/Chromium, no a una aserción funcional.
+```text
+C:\Users\angel\AppData\Local\Programs\Python\Python311\python.exe
+```
 
-### Dependencia Rollup en Docker
+Ese ejecutable no esta disponible en esta sesion. Tambien fallo `python` en PATH y el launcher `py` no encontro versiones instaladas. Para validar sintaxis se ejecuto `compileall` con el Python empaquetado de Codex.
 
-El lockfile creado en Windows no incluía `@rollup/rollup-linux-x64-musl`. El Dockerfile ahora instala el binario en la etapa Alpine antes de compilar.
+## Observaciones
 
-### Advertencias técnicas
+- Playwright levanto y ejecuto el flujo de validaciones correctamente.
+- Vite build conserva la advertencia de chunk grande por Three.js/React Three Fiber.
+- ESLint no arrojo errores; las advertencias son principalmente imports `React` no usados y variables `error` no usadas ya existentes.
+- No se tocaron pagos, Yape, RENIEC, SUNAT ni Lycet en esta pasada QA.
 
-- ESLint reporta 86 advertencias, principalmente imports `React` no usados y variables de excepciones.
-- Vite genera un chunk JavaScript de aproximadamente 1.31 MB por React Three Fiber/Three.js.
-- FastAPI advierte que `on_event("startup")` está deprecado y recomienda lifespan.
-- `npm audit` informa 13 vulnerabilidades: 1 baja, 4 moderadas, 7 altas y 1 crítica. No se aplicó `--force` porque podría introducir cambios incompatibles.
+## Pendientes recomendados
 
-## Servicios externos
-
-Mercado Pago:
-
-- Las credenciales configuradas son de prueba.
-- Los estados aprobado, pendiente, rechazado y error están cubiertos con respuestas controladas.
-- La ejecución real completa del Brick contra sandbox queda pendiente de una sesión interactiva estable.
-
-SUNAT/Lycet:
-
-- El entorno configurado es `beta`.
-- La emisión real está deshabilitada por configuración.
-- El host Lycet no respondió durante esta ejecución.
-- PDF/XML y contrato de emisión están cubiertos por pytest.
-
-## Alembic y SQLAlchemy
-
-- SQLAlchemy permanece como ORM y capa de persistencia.
-- Alembic fue retirado del repositorio y del Dockerfile.
-- No se ejecutaron migraciones Alembic.
-
-## Criterio de cierre
-
-El sistema queda con pruebas automatizadas reproducibles y documentación QA. Antes de una liberación productiva deben resolverse las vulnerabilidades npm, repetir Mercado Pago sandbox sin mocks y validar Lycet beta disponible.
+- Reparar o recrear la venv backend con Python 3.11 para ejecutar `pytest` completo.
+- Ejecutar `pytest` backend completo cuando la venv este disponible.
+- Ejecutar Playwright completo si se necesita certificacion total de flujo, no solo validaciones.
+- Revisar advertencias ESLint en una tarea separada para no mezclar QA con refactor de estilo.

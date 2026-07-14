@@ -111,7 +111,7 @@ function Encomiendas() {
       setError('');
       const blob = await exportarReporteEncomiendas(format, filters);
       const dateSuffix = filters.fecha || new Date().toISOString().slice(0, 10);
-      downloadBlob(blob, `reporte_encomiendas_${dateSuffix}.${format === 'excel' ? 'xls' : 'pdf'}`);
+      downloadBlob(blob, `reporte_encomiendas_${dateSuffix}.${format === 'excel' ? 'xlsx' : 'pdf'}`);
       setMessage(`Reporte ${format === 'excel' ? 'Excel' : 'PDF'} descargado correctamente.`);
     } catch (exportError) {
       setError(getApiErrorMessage(exportError, 'No se pudo exportar el reporte.'));

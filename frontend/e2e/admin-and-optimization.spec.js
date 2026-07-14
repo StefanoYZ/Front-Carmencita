@@ -29,8 +29,8 @@ test('administrador entra al dashboard y no ve optimizacion', async ({ page }) =
     body: '[]',
   }));
   await page.goto('/login', { waitUntil: 'domcontentloaded' });
-  await page.getByLabel('Usuario o correo').fill('qa_admin');
-  await page.getByLabel('Contrasena').fill('QaPassword123');
+  await page.locator('input[name="username"]').fill('qa_admin');
+  await page.locator('input[name="password"]').fill('QaPassword123');
   await page.getByRole('button', { name: 'Ingresar' }).click();
 
   await expect(page).toHaveURL(/admin\/dashboard/);
@@ -47,8 +47,8 @@ test('una pestaña nueva no reutiliza sessionStorage', async ({ page, context })
     body: '[]',
   }));
   await page.goto('/login', { waitUntil: 'domcontentloaded' });
-  await page.getByLabel('Usuario o correo').fill('qa_admin');
-  await page.getByLabel('Contrasena').fill('QaPassword123');
+  await page.locator('input[name="username"]').fill('qa_admin');
+  await page.locator('input[name="password"]').fill('QaPassword123');
   await page.getByRole('button', { name: 'Ingresar' }).click();
   await expect(page).toHaveURL(/admin\/dashboard/);
 

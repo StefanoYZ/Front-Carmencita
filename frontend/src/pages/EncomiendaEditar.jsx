@@ -9,12 +9,14 @@ import { getApiErrorMessage } from '../services/apiClient.js';
 import { getEncomiendaById, updateEncomienda } from '../services/encomiendasService.js';
 import {
   buildEncomiendaPayload,
+  isEnvelopeContent,
   normalizeEncomiendaForForm,
   sanitizeEncomiendaField,
   validateEncomiendaForm,
   validateEncomiendaFormFields,
 } from '../utils/encomiendas.js';
 import { formatShipmentCode } from '../utils/formatShipmentCode.js';
+import { isShipmentNumericField, validateShipmentNumericField } from '../utils/shipmentValidation.js';
 
 function EncomiendaEditar() {
   const { id } = useParams();
@@ -56,9 +58,16 @@ function EncomiendaEditar() {
       return next;
     });
     setFieldErrors((current) => {
-      if (!current[name]) return current;
       const next = { ...current };
-      delete next[name];
+      // Valida el limite logico EN VIVO: el error de peso/dimension aparece al escribir.
+      if (isShipmentNumericField(name)) {
+        const error = validateShipmentNumericField(name, sanitizeEncomiendaField(name, value, current), {
+          isEnvelope: isEnvelopeContent(form.tipo_contenido),
+        });
+        if (error) next[name] = error; else delete next[name];
+      } else {
+        delete next[name];
+      }
       return next;
     });
   };

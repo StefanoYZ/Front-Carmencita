@@ -9,7 +9,7 @@ import { getDestinos } from '../../services/destinosService.js';
 import { crearEncomienda, crearPreRegistro } from '../../services/encomiendasService.js';
 import { consultarDni } from '../../services/reniecService.js';
 import { extractNombreFromReniecResponse, normalizeLocalClient } from '../../utils/reniec.js';
-import { sanitizeShipmentField } from '../../utils/shipmentValidation.js';
+import { isShipmentNumericField, sanitizeShipmentField, validateShipmentNumericField } from '../../utils/shipmentValidation.js';
 import { DEFAULT_LOCATION_NAMES } from '../../utils/locationHierarchy.js';
 import {
   PUBLIC_QUOTE_STORAGE_KEY,
@@ -18,6 +18,7 @@ import {
   buildPublicShipmentPayload,
   clearSessionKey,
   emptyPublicShipmentForm,
+  isEnvelopeContent,
   mapQuoteToShipmentForm,
   readSessionJSON,
   validatePublicShipmentForm,
@@ -119,10 +120,23 @@ function RegistrarEnvioPage() {
       return next;
     });
     setErrors((current) => {
-      if (!current[name] && !current.general) return current;
       const next = { ...current };
-      delete next[name];
       delete next.general;
+      // Si es peso/dimension, valida el limite logico EN VIVO al escribir; al pasar a
+      // DOCUMENTOS (sobre) limpia los errores de las medidas junto con sus valores.
+      if (name === 'tipo_contenido' && value === 'DOCUMENTOS') {
+        delete next.largo_cm;
+        delete next.ancho_cm;
+        delete next.alto_cm;
+      }
+      if (isShipmentNumericField(name)) {
+        const error = validateShipmentNumericField(name, sanitizeShipmentField(name, value, current), {
+          isEnvelope: isEnvelopeContent(form.tipo_contenido),
+        });
+        if (error) next[name] = error; else delete next[name];
+      } else {
+        delete next[name];
+      }
       return next;
     });
     setApiError('');

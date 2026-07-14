@@ -1,81 +1,84 @@
 # Checklist de pruebas del sistema completo
 
-Fecha de ejecución: 19 de junio de 2026
+Fecha de revision: 7 de julio de 2026
 
 ## Convenciones
 
-- `APROBADA`: comprobación automatizada ejecutada correctamente.
-- `PARCIAL`: la lógica local fue comprobada, pero depende de un proveedor externo.
-- `BLOQUEADA`: no se pudo ejecutar por indisponibilidad externa.
-- `MANUAL`: requiere inspección humana o credenciales/datos operativos.
+- `APROBADA`: prueba automatizada ejecutada correctamente en esta pasada o cubierta por suite existente.
+- `PARCIAL`: existe cobertura local/controlada, pero falta proveedor externo o entorno real.
+- `BLOQUEADA`: no se pudo ejecutar por entorno.
+- `MANUAL`: requiere revision humana, credenciales o dispositivo fisico.
 
-## Matriz funcional
+## Frontend
 
-| Área | Control o flujo | Resultado esperado | Evidencia | Estado |
-|---|---|---|---|---|
-| Landing | Menú Inicio, Servicios, Destinos, Nosotros y Contacto | Navega a la sección correcta | Playwright escritorio/móvil | APROBADA |
-| Landing | Mapa de sede principal | Carga la ubicación configurada | Inspección de interfaz E2E | APROBADA |
-| Landing | Registro de envío | Abre `/registrar-envio` | Playwright | APROBADA |
-| Cotización | Origen y destino progresivos | Solo muestra distritos de la provincia elegida | Vitest + Playwright | APROBADA |
-| Cotización | Peso, dimensiones y fragilidad | Valida valores y habilita Cotizar | Vitest + Playwright | APROBADA |
-| Registro | DNI, teléfono, correo y medidas | Bloquea datos inválidos sin desplazar controles | Vitest + pytest + Playwright | APROBADA |
-| Registro | Consulta RENIEC no disponible | Permite continuar con ingreso manual | Prueba de contrato backend | APROBADA |
-| Registro | Cliente recurrente | Recupera y actualiza datos sin duplicar DNI | pytest + SQLAlchemy | APROBADA |
-| Registro | Volver, continuar, cancelar y editar | Conserva estado y cambia de paso una sola vez | Playwright | APROBADA |
-| Pago en agencia | Confirmar pre-registro | Crea únicamente una encomienda `PRE_REGISTRADA` | Playwright + pytest | APROBADA |
-| Tarjeta | Pago aprobado | Crea una encomienda y habilita etiqueta | Playwright con SDK controlado + pytest | APROBADA |
-| Tarjeta | Rechazado, pendiente y error | No duplica encomienda y muestra estado | Playwright/pytest con respuestas controladas | APROBADA |
-| Tarjeta | Mercado Pago sandbox real | Procesa mediante proveedor externo | Credenciales TEST detectadas; falta ejecución interactiva estable | PARCIAL |
-| Yape | Pago aprobado | Crea una encomienda y registra resultado | Playwright + pytest | APROBADA |
-| Yape | Rechazado y error | No crea encomienda y muestra alerta | Playwright/pytest con respuestas controladas | APROBADA |
-| Cobros | Log de tarjeta/Yape | Guarda usuario, modalidad, resultado y milisegundos | pytest + transacción PostgreSQL real | APROBADA |
-| Confirmación | Tracking | Consulta el código y muestra estado | Playwright + pytest | APROBADA |
-| Confirmación | Etiqueta PDF y QR | Descarga etiqueta de la encomienda correcta | Vitest + pytest | APROBADA |
-| Login | Credenciales válidas e inválidas | Autoriza o muestra error | pytest + Playwright | APROBADA |
-| Sesión | Cierre de sesión | Limpia token y usuario de la pestaña | Vitest + Playwright | APROBADA |
-| Sesión | Nueva pestaña | No reutiliza `sessionStorage` | Playwright | APROBADA |
-| Sesión | Inactividad de 5 minutos | Bloquea y solicita credenciales | Vitest de sesión | APROBADA |
-| Roles | Administrador | Accede solo a módulos administrativos | pytest + Playwright | APROBADA |
-| Roles | Estiba | Accede únicamente a optimización | pytest + Playwright | APROBADA |
-| Dashboard | Últimas encomiendas | Muestra datos del endpoint, no datos simulados | Prueba de interfaz con API controlada | APROBADA |
-| Clientes | Crear, consultar y actualizar | Persiste sin duplicados por DNI | pytest + PostgreSQL transaccional | APROBADA |
-| Encomiendas | Crear, editar, buscar y listar | Actualiza interfaz y persistencia | pytest + Playwright | APROBADA |
-| Encomiendas | Anular | Conserva motivo y evita entrega posterior | pytest | APROBADA |
-| Encomiendas | Confirmar pre-registro | Cambia a `REGISTRADA` una sola vez | pytest | APROBADA |
-| Encomiendas | Entregar | Valida DNI y registra entrega | pytest | APROBADA |
-| Destinos | Crear y listar | Persiste y respeta permisos | pytest | APROBADA |
-| Usuarios | Crear, activar, desactivar y asignar roles | Persiste permisos y estado | pytest | APROBADA |
-| SUNAT | Generar PDF/XML local | Produce contenido para la encomienda | pytest | APROBADA |
-| SUNAT | Enviar a Lycet beta | Recibe XML firmado, hash y CDR | Boleta B001-180745 aceptada, CDR 0 | APROBADA |
-| SUNAT | Reutilizar comprobante | PDF/XML conservan serie y correlativo | pytest + PostgreSQL | APROBADA |
-| Optimización | Ejecutar algoritmos | Devuelve coordenadas dentro del box | pytest + Playwright | APROBADA |
-| Optimización | Cambiar camión y cámara | Actualiza escena sin perder estado | Playwright | APROBADA |
-| Optimización | Siguiente, anterior y reiniciar | Controla la carga progresiva | Playwright | APROBADA |
-| Optimización | Pantalla completa y finalizar | Cambia presentación y termina simulación | Playwright | APROBADA |
-| Optimización | Sin espacio o sobrepeso | Reporta paquetes no acomodados | pytest | APROBADA |
-| Responsive | Landing, registro, pagos y administración | No oculta acciones principales | Playwright Pixel 7 | APROBADA |
-| Errores HTTP | 401, 403, 404 y 422 | Respuesta y mensaje coherentes | pytest + Playwright | APROBADA |
-| Errores de red | Backend apagado, timeout y 500 | Muestra error sin doble envío | Playwright con red controlada | APROBADA |
+| Area | Escenario | Evidencia | Estado |
+|---|---|---|---|
+| Landing | Navegacion por menu y CTA de registro | Playwright existente | APROBADA |
+| Landing | Mapa y seccion contacto | Checklist funcional | MANUAL |
+| Cotizacion publica | Peso 0 | `validacion-entradas.spec.js` | APROBADA |
+| Cotizacion publica | Peso mayor a 5470 kg | `validacion-entradas.spec.js` | APROBADA |
+| Cotizacion publica | Origen y destino iguales | `validacion-entradas.spec.js` | APROBADA |
+| Cotizacion publica | Sobres sin dimensiones ni base 3D | `validacion-entradas.spec.js` | APROBADA |
+| Registro publico | Peso 0 | `validacion-entradas.spec.js` | APROBADA |
+| Registro publico | Peso mayor a 5470 kg | `validacion-entradas.spec.js` | APROBADA |
+| Registro publico | Origen y destino iguales | `validacion-entradas.spec.js` | APROBADA |
+| Registro publico | Tipo/descripcion incoherente | `validacion-entradas.spec.js` + Vitest | APROBADA |
+| Registro publico | DNI, telefono, correo | Vitest `shipmentValidation` | APROBADA |
+| Registro publico | Sobres ignoran dimensiones/base residual | Vitest `publicShipment` | APROBADA |
+| Registro publico | Paquetes exigen base/orientacion | Vitest `publicShipment` | APROBADA |
+| Registro publico | Electrodomestico con base insegura | Vitest `publicShipment` | APROBADA |
+| Registro exitoso | Etiqueta PDF para encomienda formal | Vitest existente | APROBADA |
+| Registro exitoso | Boleta Lycet para encomienda formal | Vitest existente | APROBADA |
+| Registro exitoso | Pre-registro no imprime etiqueta | Vitest existente | APROBADA |
+| Pagos | Mercado Pago Brick solo tarjeta | Vitest existente | APROBADA |
+| Pagos | Pago sandbox real tarjeta | Requiere proveedor externo | PARCIAL |
+| Yape | Flujo controlado aprobado/rechazado | Playwright/pytest existentes | PARCIAL |
+| Admin/Secretaria | Peso 0 y maximo | `validacion-entradas.spec.js` | APROBADA |
+| Roles | Admin/secretaria/estiba | Playwright existente | APROBADA |
+| Optimizacion | Render 3D y avance | Playwright existente | APROBADA |
+| Responsive | Escritorio y movil | Pendiente de pasada completa | MANUAL |
 
-## Validación común de botones
+## Backend
 
-Para cada botón cubierto por Playwright se verificó:
+| Area | Escenario | Evidencia | Estado |
+|---|---|---|---|
+| Schemas encomiendas | DNI, telefono, correo, fragilidad, limites | pytest existente | APROBADA |
+| Schemas encomiendas | Paquete no-documento rechaza dimension 0 | Test agregado | BLOQUEADA por venv |
+| Schemas encomiendas | Paquete exige `orientacion_base` | Test agregado | BLOQUEADA por venv |
+| Schemas encomiendas | Documento normaliza `orientacion_base` | Test agregado | BLOQUEADA por venv |
+| Schemas encomiendas | Electrodomestico rechaza base insegura | Test agregado | BLOQUEADA por venv |
+| Clientes | Upsert sin duplicados | pytest existente | BLOQUEADA por venv |
+| Pagos | Logs de cobro aprobados/fallidos | pytest existente | BLOQUEADA por venv |
+| SUNAT/Lycet | PDF/XML/CDR mock/beta | pytest existente + proveedor | PARCIAL |
+| Asistente | Intenciones y wizards principales | pytest existente | BLOQUEADA por venv |
+| Optimizacion | Restricciones de electrodomesticos | pytest existente | BLOQUEADA por venv |
+| Accesos | 401/403 por rol | pytest existente | BLOQUEADA por venv |
 
-1. Visibilidad según estado y rol.
-2. Estado habilitado o deshabilitado.
-3. Una sola solicitud por clic.
-4. Método, endpoint y payload esperado.
-5. Estado visual durante el procesamiento.
-6. Prevención de doble envío.
-7. Confirmación o mensaje de error.
-8. Actualización de la interfaz.
-9. Resultado persistente cubierto por pytest/SQLAlchemy.
-10. Estado coherente después de recargar cuando aplica.
+## Ejecucion de esta pasada
 
-## Pendientes manuales
+| Comando | Estado |
+|---|---|
+| `npm run test` | APROBADA, 65/65 |
+| `npm run test:e2e -- validacion-entradas.spec.js` | APROBADA, 12/12 |
+| `npm run test:e2e` | APROBADA, 30/30 |
+| `npm run build` | APROBADA |
+| `npm run lint` | APROBADA con 104 warnings, 0 errores |
+| `compileall` backend focalizado | APROBADA |
+| `pytest` backend focalizado | BLOQUEADA por Python 3.11 no disponible en la venv |
 
-- Ejecutar una transacción completa con Mercado Pago sandbox sin interceptar el SDK.
-- Repetir emisión SUNAT cuando Lycet beta esté disponible.
-- Confirmar impresión física cuando el navegador bloquee ventanas emergentes.
-- Revisar visualmente PDF/XML con datos fiscales definitivos.
-- Ejecutar pruebas exploratorias con usuarios reales de cada rol.
+## Checklist manual recomendado
+
+- [ ] Flujo completo con pago en agencia desde cliente hasta secretaria.
+- [ ] Flujo completo con tarjeta sandbox real.
+- [ ] Flujo completo con Yape sandbox/controlado.
+- [ ] Emision Lycet beta contra servicio desplegado.
+- [ ] Impresion real de etiqueta con QR.
+- [ ] Impresion real de boleta.
+- [ ] Registro de paquete electrodomestico con seleccion manual de base.
+- [ ] Optimizacion con paquetes reales del dia.
+- [ ] Vista de estiba en pantalla completa.
+- [ ] Login y logout por cada rol.
+- [ ] Busqueda de encomienda por DNI/nombre/codigo en secretaria.
+- [ ] Entrega solo para encomiendas en destino.
+- [ ] Exportacion de reportes.
+- [ ] Validacion visual en movil.

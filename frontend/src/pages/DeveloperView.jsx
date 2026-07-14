@@ -1,5 +1,6 @@
 import React, { useEffect, useMemo, useState } from 'react';
 import {
+  Boxes,
   Database,
   FileDown,
   FileSpreadsheet,
@@ -25,9 +26,11 @@ import {
   createRow,
   deleteRow,
   exportTable,
+  getOptimizationTestMode,
   getTableData,
   getTableSchema,
   getTables,
+  setOptimizationTestMode,
   updateRow,
 } from '../services/developerService.js';
 import { downloadBlob } from '../utils/downloadBlob.js';
@@ -163,6 +166,86 @@ function RowFormPanel({ schema, mode, initialValues, onCancel, onSubmit, saving 
           </Button>
         </div>
       </form>
+    </Card>
+  );
+}
+
+function OptimizationTestModeCard({ canWrite, onNotify }) {
+  const [status, setStatus] = useState(null); // { active, count }
+  const [loading, setLoading] = useState(true);
+  const [saving, setSaving] = useState(false);
+
+  useEffect(() => {
+    let cancelled = false;
+    getOptimizationTestMode()
+      .then((data) => { if (!cancelled) setStatus(data); })
+      .catch(() => { if (!cancelled) setStatus({ active: false, count: 0 }); })
+      .finally(() => { if (!cancelled) setLoading(false); });
+    return () => { cancelled = true; };
+  }, []);
+
+  const handleToggle = async () => {
+    if (!canWrite || saving || !status) return;
+    const nextActive = !status.active;
+    try {
+      setSaving(true);
+      const data = await setOptimizationTestMode(nextActive);
+      setStatus(data);
+      onNotify?.(
+        'success',
+        nextActive
+          ? `Modo prueba ACTIVADO: se generaron ${data.count} paquetes variados para la optimizacion.`
+          : 'Modo prueba APAGADO: la optimizacion usa las encomiendas reales de la web.',
+      );
+    } catch (toggleError) {
+      onNotify?.('error', getApiErrorMessage(toggleError, 'No se pudo cambiar el modo prueba.'));
+    } finally {
+      setSaving(false);
+    }
+  };
+
+  const active = Boolean(status?.active);
+
+  return (
+    <Card>
+      <div className="flex flex-col gap-4 sm:flex-row sm:items-center sm:justify-between">
+        <div className="flex min-w-0 items-start gap-3">
+          <span className="flex h-10 w-10 shrink-0 items-center justify-center rounded-xl bg-brand-lime/20 text-brand-green">
+            <Boxes size={20} aria-hidden="true" />
+          </span>
+          <div className="min-w-0">
+            <h3 className="text-base font-black text-brand-black">Modo prueba de optimizacion</h3>
+            <p className="mt-0.5 text-sm text-brand-gray">
+              {active
+                ? `Activo: la optimizacion 3D usa ${status?.count ?? 0} paquetes de prueba generados.`
+                : 'Apagado: la optimizacion 3D usa las encomiendas reales registradas por la web.'}
+            </p>
+          </div>
+        </div>
+
+        <button
+          type="button"
+          role="switch"
+          aria-checked={active}
+          aria-label="Activar modo prueba de optimizacion"
+          onClick={handleToggle}
+          disabled={!canWrite || loading || saving}
+          className={`relative inline-flex h-7 w-12 shrink-0 items-center rounded-full transition disabled:cursor-not-allowed disabled:opacity-50 ${
+            active ? 'bg-brand-green' : 'bg-gray-300'
+          }`}
+        >
+          <span
+            className={`inline-block h-5 w-5 transform rounded-full bg-white shadow transition ${
+              active ? 'translate-x-6' : 'translate-x-1'
+            }`}
+          />
+        </button>
+      </div>
+      {!canWrite && (
+        <p className="mt-3 text-xs font-semibold text-brand-gray">
+          Necesitas permiso de escritura para cambiar el modo prueba.
+        </p>
+      )}
     </Card>
   );
 }
@@ -397,6 +480,21 @@ function DeveloperView() {
 
       {error && <Alert tone="error">{error}</Alert>}
       {message && <Alert tone="success">{message}</Alert>}
+
+      <OptimizationTestModeCard
+        canWrite={canWrite}
+        onNotify={(tone, text) => {
+          if (tone === 'success') {
+            setError('');
+            setMessage(text);
+            loadTables();
+            if (selected) loadTableData(selected, page);
+          } else {
+            setMessage('');
+            setError(text);
+          }
+        }}
+      />
 
       <div className="grid gap-5 lg:grid-cols-[290px_minmax(0,1fr)] lg:items-start">
         {/* Catalogo de tablas */}

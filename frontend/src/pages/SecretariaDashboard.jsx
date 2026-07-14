@@ -35,11 +35,12 @@ import {
 } from '../services/sunatService.js';
 import { consultarDni } from '../services/reniecService.js';
 import { extractNombreFromReniecResponse, normalizeLocalClient } from '../utils/reniec.js';
-import { sanitizeShipmentField, validatePackageBaseOrientation } from '../utils/shipmentValidation.js';
+import { isShipmentNumericField, sanitizeShipmentField, validatePackageBaseOrientation, validateShipmentNumericField } from '../utils/shipmentValidation.js';
 import { DEFAULT_LOCATION_NAMES } from '../utils/locationHierarchy.js';
 import {
   buildPublicShipmentPayload,
   emptyPublicShipmentForm,
+  isEnvelopeContent,
   quoteEstimateFromForm,
   validatePublicShipmentForm,
 } from '../utils/publicShipment.js';
@@ -157,7 +158,7 @@ function SecretariaDashboard() {
   );
 }
 
-function RegistroPresencial() {
+export function RegistroPresencial() {
   const { user } = useAuth();
   const [flowStep, setFlowStep] = useState('form');
   const [form, setForm] = useState({ ...emptyPublicShipmentForm, origen: 'Trujillo' });
@@ -189,10 +190,23 @@ function RegistroPresencial() {
       return next;
     });
     setErrors((current) => {
-      if (!current[name] && !current.general) return current;
       const next = { ...current };
-      delete next[name];
       delete next.general;
+      // Si es peso/dimension, valida el limite logico EN VIVO al escribir; al pasar a
+      // DOCUMENTOS (sobre) limpia los errores de las medidas junto con sus valores.
+      if (name === 'tipo_contenido' && value === 'DOCUMENTOS') {
+        delete next.largo_cm;
+        delete next.ancho_cm;
+        delete next.alto_cm;
+      }
+      if (isShipmentNumericField(name)) {
+        const error = validateShipmentNumericField(name, sanitizeShipmentField(name, value, current), {
+          isEnvelope: isEnvelopeContent(form.tipo_contenido),
+        });
+        if (error) next[name] = error; else delete next[name];
+      } else {
+        delete next[name];
+      }
       return next;
     });
     setApiError('');

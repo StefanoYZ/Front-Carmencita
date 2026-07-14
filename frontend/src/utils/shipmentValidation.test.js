@@ -1,11 +1,18 @@
 import { describe, expect, it } from 'vitest';
 import {
+  MAX_DIMENSION_CM,
+  MAX_WEIGHT_KG,
   sanitizeShipmentField,
+  validateContentDescriptionCoherence,
+  validateDimension,
   validateDocumentNumber,
   validateEmail,
   validatePackageBaseOrientation,
   validatePhone,
   validatePositiveNumber,
+  validateShipmentNumericFields,
+  validateWeight,
+  validateDistinctContact,
 } from './shipmentValidation.js';
 
 describe('shipmentValidation', () => {
@@ -32,6 +39,74 @@ describe('shipmentValidation', () => {
     expect(validateEmail('qa-test')).toContain('correo');
     expect(validatePositiveNumber('10', 'El peso debe ser mayor a 0.')).toBe('');
     expect(validatePositiveNumber('0', 'El peso debe ser mayor a 0.')).toBe('El peso debe ser mayor a 0.');
+  });
+
+  describe('limites min/max de peso y dimensiones', () => {
+    it('peso: rechaza 0, negativo, no numerico y sobre el maximo; acepta limites', () => {
+      expect(validateWeight('0')).toContain('mayor a 0');
+      expect(validateWeight('-1')).toContain('numeros');
+      expect(validateWeight('abc')).toContain('numeros');
+      expect(validateWeight('0.01')).toBe('');                 // limite inferior valido
+      expect(validateWeight(String(MAX_WEIGHT_KG))).toBe('');   // limite superior valido
+      expect(validateWeight(String(MAX_WEIGHT_KG + 0.01))).toContain('no debe superar');
+      expect(validateWeight('999999')).toContain('no debe superar');
+    });
+
+    it('dimension: rechaza 0 y sobre el maximo; acepta limites', () => {
+      expect(validateDimension('0')).toContain('mayores a 0');
+      expect(validateDimension('1')).toBe('');
+      expect(validateDimension(String(MAX_DIMENSION_CM))).toBe('');       // limite superior valido
+      expect(validateDimension(String(MAX_DIMENSION_CM + 0.01))).toContain('no deben superar');
+      expect(validateDimension('50000')).toContain('no deben superar');
+    });
+
+    it('validatePositiveNumber respeta la cota superior opcional', () => {
+      expect(validatePositiveNumber('12', 'msg', { max: 10, maxMessage: 'tope' })).toBe('tope');
+      expect(validatePositiveNumber('8', 'msg', { max: 10 })).toBe('');
+    });
+
+    it('validateShipmentNumericFields: sobre solo valida peso; paquete valida dimensiones', () => {
+      const sobre = validateShipmentNumericFields(
+        { peso_kg: '0', largo_cm: '0', ancho_cm: '0', alto_cm: '0' },
+        { isEnvelope: true },
+      );
+      expect(sobre.peso_kg).toContain('mayor a 0');
+      expect(sobre.largo_cm).toBeUndefined();
+
+      const paquete = validateShipmentNumericFields(
+        { peso_kg: '10', largo_cm: '999', ancho_cm: '30', alto_cm: '20' },
+        { isEnvelope: false },
+      );
+      expect(paquete.peso_kg).toBeUndefined();
+      expect(paquete.largo_cm).toContain('no deben superar');
+    });
+  });
+
+  describe('validateDistinctContact', () => {
+    it('personas distintas no pueden compartir celular ni correo', () => {
+      const errors = validateDistinctContact({
+        remitente_numero_documento: '70123456',
+        destinatario_numero_documento: '70876543',
+        remitente_telefono: '987654321',
+        destinatario_telefono: '987654321',
+        remitente_correo: 'a@test.com',
+        destinatario_correo: 'A@test.com',
+      });
+      expect(errors.destinatario_telefono).toContain('mismo celular');
+      expect(errors.destinatario_correo).toContain('mismo correo');
+    });
+
+    it('misma persona (mismo DNI) si puede compartir contacto', () => {
+      const errors = validateDistinctContact({
+        remitente_numero_documento: '70123456',
+        destinatario_numero_documento: '70123456',
+        remitente_telefono: '987654321',
+        destinatario_telefono: '987654321',
+        remitente_correo: 'a@test.com',
+        destinatario_correo: 'a@test.com',
+      });
+      expect(errors).toEqual({});
+    });
   });
 
   describe('validatePackageBaseOrientation', () => {
@@ -85,5 +160,57 @@ describe('shipmentValidation', () => {
     it('devuelve vacio si la orientacion no esta seleccionada', () => {
       expect(validatePackageBaseOrientation({ ...tallFridge, baseOrientation: '' })).toBe('');
     });
+  });
+
+  describe('validateContentDescriptionCoherence', () => {
+    const validCases = [
+      ['DOCUMENTOS', 'un sobre con contratos y facturas'],
+      ['DOCUMENTOS', 'papeles de la universidad'],
+      ['ROPA', 'dos casacas y un pantalon jean'],
+      ['ROPA', 'zapatos y prendas de vestir'],
+      ['ELECTRONICOS', 'televisor smart con parlante'],
+      ['ELECTRONICOS', 'laptop con cargador y mouse'],
+      ['ELECTRODOMESTICOS', 'una refrigeradora familiar'],
+      ['ELECTRODOMESTICOS', 'cocina y microondas'],
+      ['ALIMENTOS', 'saco de papas'],
+      ['ALIMENTOS', 'canasta de frutas'],
+      ['OTROS', 'herramientas de trabajo'],
+      ['OTROS', 'repuestos varios para taller'],
+      ['ROPA', 'una chompa y tres polos'],
+      ['DOCUMENTOS', 'libros y cuadernos'],
+      ['ALIMENTOS', 'arroz azucar y fideos'],
+    ];
+
+    it.each(validCases)('acepta descripcion coherente para %s: %s', (contentType, description) => {
+      expect(validateContentDescriptionCoherence(contentType, description)).toBe('');
+    });
+
+    const invalidCases = [
+      ['ROPA', 'refrigeradora nueva', 'Electrodomesticos'],
+      ['ALIMENTOS', 'televisor de 32 pulgadas', 'Electronicos'],
+      ['DOCUMENTOS', 'saco de arroz', 'Alimentos'],
+      ['ROPA', 'olla arrocera', 'Electrodomesticos'],
+      ['DOCUMENTOS', 'pantalones y casacas', 'Ropa'],
+      ['ELECTRODOMESTICOS', 'papeles de contrato', 'Documentos'],
+      ['ALIMENTOS', 'celular y audifonos', 'Electronicos'],
+      ['ELECTRONICOS', 'canasta de verduras', 'Alimentos'],
+      ['ROPA', 'microondas pequeno', 'Electrodomesticos'],
+      ['DOCUMENTOS', 'zapatillas deportivas', 'Ropa'],
+      ['ALIMENTOS', 'monitor de computadora', 'Electronicos'],
+      ['ELECTRODOMESTICOS', 'folder con boletas', 'Documentos'],
+      ['DOCUMENTOS', 'licuadora y tostadora', 'Electrodomesticos'],
+      ['ROPA', 'conservas y galletas', 'Alimentos'],
+      ['ALIMENTOS', 'router inalambrico', 'Electronicos'],
+    ];
+
+    it.each(invalidCases)(
+      'detecta incoherencia entre %s y "%s"',
+      (contentType, description, expectedCategory) => {
+        const error = validateContentDescriptionCoherence(contentType, description);
+
+        expect(error).toContain('no coincide');
+        expect(error).toContain(expectedCategory);
+      },
+    );
   });
 });

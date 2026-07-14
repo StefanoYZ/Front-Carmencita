@@ -1,6 +1,11 @@
 import React, { useEffect, useState } from 'react';
 import { getEncomiendaByCodigo } from '../../services/encomiendasService.js';
-import { formatShipmentCode, parseShipmentCode } from '../../utils/formatShipmentCode.js';
+import {
+  formatShipmentCode,
+  isCompleteTrackingCode,
+  parseShipmentCode,
+  sanitizeTrackingCode,
+} from '../../utils/formatShipmentCode.js';
 import TrackingProgress from './TrackingProgress.jsx';
 import searchIcon from '../../assets/icons/lupa.svg';
 import packageIcon from '../../assets/icons/paquete.svg';
@@ -28,6 +33,12 @@ function TrackingCard({ initialCode = '' }) {
     if (!cleanCode) {
       setResult(null);
       setMessage('Ingresa un codigo de envio.');
+      return;
+    }
+
+    if (!isCompleteTrackingCode(cleanCode)) {
+      setResult(null);
+      setMessage('Codigo invalido: debe ser una letra (L, M, X, J, V, S o D) seguida de 9 numeros. Ej: D000000001.');
       return;
     }
 
@@ -78,7 +89,9 @@ function TrackingCard({ initialCode = '' }) {
             <input
               className="min-h-12 min-w-0 rounded-md border-0 px-4 text-base font-bold uppercase text-gray-800 outline-none transition placeholder:normal-case placeholder:text-gray-400 focus:ring-2 focus:ring-[#A3CF84]"
               value={codigo}
-              onChange={(event) => setCodigo(event.target.value)}
+              onChange={(event) => setCodigo(sanitizeTrackingCode(event.target.value))}
+              inputMode="text"
+              maxLength={10}
               placeholder="Ejemplo: D000000001"
             />
           </label>

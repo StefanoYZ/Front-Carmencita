@@ -98,7 +98,7 @@ function AppRoutes() {
           <Route
             path="developer"
             element={
-              <ProtectedRoute anyOf={['developer.read']} roles={['ADMINISTRADOR', 'DEVELOPER']}>
+              <ProtectedRoute roles={['DEVELOPER']} strict>
                 <DeveloperView />
               </ProtectedRoute>
             }

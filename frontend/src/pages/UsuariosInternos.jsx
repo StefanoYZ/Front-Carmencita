@@ -44,7 +44,9 @@ function UsuariosInternos() {
       setError('');
       const [usersResult, rolesResult] = await Promise.all([getUsuarios(), getRoles()]);
       setUsuarios(usersResult);
-      setRoles(rolesResult.filter((role) => role.is_active));
+      // El rol DEVELOPER no se ofrece en la administracion de usuarios (cuenta
+      // tecnica del equipo); ademas el backend oculta esos usuarios del listado.
+      setRoles(rolesResult.filter((role) => role.is_active && role.name !== 'DEVELOPER'));
     } catch (loadError) {
       setError(getApiErrorMessage(loadError, 'No se pudo cargar usuarios internos.'));
     } finally {

@@ -49,8 +49,8 @@ test('estibador ejecuta simulacion y controla vistas y avance', async ({ page })
   }));
 
   await page.goto('/login', { waitUntil: 'domcontentloaded' });
-  await page.getByLabel('Usuario o correo').fill('qa_estiba');
-  await page.getByLabel('Contrasena').fill('QaPassword123');
+  await page.locator('input[name="username"]').fill('qa_estiba');
+  await page.locator('input[name="password"]').fill('QaPassword123');
   await page.getByRole('button', { name: 'Ingresar' }).click();
   await expect(page).toHaveURL(/admin\/optimizacion-carga/);
 

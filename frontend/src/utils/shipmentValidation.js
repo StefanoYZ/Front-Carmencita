@@ -1,6 +1,14 @@
 const EMAIL_PATTERN = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
 const VALID_FRAGILITY_VALUES = ['BAJA', 'MEDIA', 'ALTA'];
 
+// Limites fisicos del servicio (camion 491x210x220 cm, 5470 kg). Cota superior de
+// sanidad: un peso o dimension por encima no puede transportarse y suele ser un
+// error de tipeo. Deben coincidir con app/modules/shipments/constants.py del backend.
+export const MAX_WEIGHT_KG = 5470;
+export const MAX_DIMENSION_CM = 491;
+// Un sobre (DOCUMENTOS) no puede pesar mas de 1.5 kg; por encima es un paquete.
+export const MAX_ENVELOPE_WEIGHT_KG = 1.5;
+
 const CONTENT_TYPE_LABELS = {
   DOCUMENTOS: 'Documentos',
   ROPA: 'Ropa',
@@ -15,7 +23,7 @@ const CONTENT_KEYWORDS = {
   ROPA: ['ropa', 'ropas', 'polo', 'polos', 'camisa', 'camisas', 'pantalon', 'pantalones', 'vestido', 'casaca', 'chompa', 'zapato', 'zapatos', 'calzado', 'zapatilla', 'zapatillas', 'prenda', 'prendas', 'abrigo', 'jean', 'jeans', 'short', 'falda', 'blusa', 'tela', 'buzo', 'terno', 'gorro'],
   ELECTRONICOS: ['televisor', 'tele', 'tv', 'laptop', 'computadora', 'pc', 'celular', 'telefono', 'radio', 'parlante', 'monitor', 'tablet', 'camara', 'consola', 'electronico', 'electronicos', 'audifono', 'cargador', 'impresora', 'router', 'mouse', 'teclado'],
   ELECTRODOMESTICOS: ['refrigeradora', 'refrigerador', 'refri', 'congeladora', 'congelador', 'frigobar', 'cocina', 'cocinas', 'horno', 'hornos', 'microondas', 'licuadora', 'licuadoras', 'lavadora', 'secadora', 'aspiradora', 'plancha', 'ventilador', 'batidora', 'tostadora', 'hervidor', 'extractor', 'campana', 'terma', 'calentador', 'freidora', 'olla', 'arrocera', 'electrodomestico', 'electrodomesticos'],
-  ALIMENTOS: ['papa', 'papas', 'arroz', 'azucar', 'harina', 'fruta', 'frutas', 'verdura', 'verduras', 'comida', 'alimento', 'alimentos', 'grano', 'menestra', 'conserva', 'fideo', 'aceite', 'cereal', 'cafe', 'cacao', 'quinua', 'maiz', 'trigo', 'pan', 'queso', 'huevo', 'leche', 'galleta', 'chocolate', 'miel', 'snack'],
+  ALIMENTOS: ['papa', 'papas', 'arroz', 'azucar', 'harina', 'fruta', 'frutas', 'verdura', 'verduras', 'comida', 'alimento', 'alimentos', 'grano', 'menestra', 'menestras', 'conserva', 'conservas', 'fideo', 'fideos', 'aceite', 'cereal', 'cafe', 'cacao', 'quinua', 'maiz', 'trigo', 'pan', 'queso', 'huevo', 'huevos', 'leche', 'galleta', 'galletas', 'chocolate', 'miel', 'snack'],
 };
 
 const COMPATIBLE_CONTENT_TYPES = [
@@ -103,11 +111,99 @@ export function validateEmail(value, { required = false } = {}) {
   return EMAIL_PATTERN.test(email) ? '' : 'Ingrese un correo valido.';
 }
 
-export function validatePositiveNumber(value, message = 'Debe ser mayor a 0.') {
+export function validatePositiveNumber(value, message = 'Debe ser mayor a 0.', { max = null, maxMessage = null } = {}) {
   const text = String(value ?? '').trim();
   if (!text) return message;
   if (!/^\d+(\.\d+)?$/.test(text)) return 'Solo se permiten numeros.';
-  return Number(text) > 0 ? '' : message;
+  const num = Number(text);
+  if (!(num > 0)) return message;
+  if (max != null && num > max) return maxMessage || `No debe superar ${max}.`;
+  return '';
+}
+
+// Validadores de peso y dimension con cota superior (min > 0, max = limite fisico).
+export function validateWeight(value) {
+  return validatePositiveNumber(value, 'El peso debe ser mayor a 0.', {
+    max: MAX_WEIGHT_KG,
+    maxMessage: `El peso no debe superar ${MAX_WEIGHT_KG} kg.`,
+  });
+}
+
+export function validateDimension(value) {
+  return validatePositiveNumber(value, 'Las dimensiones deben ser mayores a 0.', {
+    max: MAX_DIMENSION_CM,
+    maxMessage: `Las dimensiones no deben superar ${MAX_DIMENSION_CM} cm.`,
+  });
+}
+
+// Peso de un sobre (DOCUMENTOS): > 0 y con cota superior de 1.5 kg.
+export function validateEnvelopeWeight(value) {
+  return validatePositiveNumber(value, 'El peso debe ser mayor a 0.', {
+    max: MAX_ENVELOPE_WEIGHT_KG,
+    maxMessage: `Un sobre no puede pesar mas de ${MAX_ENVELOPE_WEIGHT_KG} kg.`,
+  });
+}
+
+// Fuente unica de validacion numerica de encomiendas: peso siempre; dimensiones
+// solo si no es sobre (DOCUMENTOS). La usan TODAS las vistas (registro publico,
+// registro interno y cotizacion) para garantizar reglas y mensajes identicos.
+export function validateShipmentNumericFields(form, { isEnvelope = false } = {}) {
+  const errors = {};
+  const weightValue = form.peso_kg ?? form.peso;
+  const weightError = isEnvelope ? validateEnvelopeWeight(weightValue) : validateWeight(weightValue);
+  if (weightError) errors.peso_kg = weightError;
+  if (!isEnvelope) {
+    ['largo_cm', 'ancho_cm', 'alto_cm'].forEach((field) => {
+      const error = validateDimension(form[field]);
+      if (error) errors[field] = error;
+    });
+  }
+  return errors;
+}
+
+// Validacion EN VIVO de un unico campo numerico (peso o dimension) mientras el
+// usuario escribe: devuelve el mensaje de limite logico apenas se supera la cota
+// (o el valor no es valido), o '' cuando esta vacio o no aplica. Reconoce los dos
+// sufijos usados en el frontend (peso/peso_kg, largo/largo_cm, ...) para que todas
+// las vistas muestren el mismo aviso sin esperar al submit.
+const WEIGHT_FIELD_NAMES = ['peso', 'peso_kg'];
+const DIMENSION_FIELD_NAMES = ['largo', 'ancho', 'alto', 'largo_cm', 'ancho_cm', 'alto_cm'];
+
+export function isShipmentNumericField(name) {
+  return WEIGHT_FIELD_NAMES.includes(name) || DIMENSION_FIELD_NAMES.includes(name);
+}
+
+export function validateShipmentNumericField(name, value, { isEnvelope = false } = {}) {
+  if (!String(value ?? '').trim()) return '';
+  if (WEIGHT_FIELD_NAMES.includes(name)) {
+    return isEnvelope ? validateEnvelopeWeight(value) : validateWeight(value);
+  }
+  // Los sobres no llevan dimensiones: no se valida su cota.
+  if (DIMENSION_FIELD_NAMES.includes(name)) return isEnvelope ? '' : validateDimension(value);
+  return '';
+}
+
+// Regla de negocio: remitente y destinatario solo pueden compartir celular/correo
+// si son la MISMA persona (mismo DNI). Si el DNI difiere (o el destinatario no
+// tiene DNI), no se permite el mismo celular ni el mismo correo.
+export function validateDistinctContact(form, prefixes = ['remitente', 'destinatario']) {
+  const errors = {};
+  const [a, b] = prefixes;
+  const docA = String(form[`${a}_numero_documento`] || '').trim();
+  const docB = String(form[`${b}_numero_documento`] || '').trim();
+  if (docA && docB && docA === docB) return errors; // misma persona: permitido
+
+  const phoneA = String(form[`${a}_telefono`] || '').trim();
+  const phoneB = String(form[`${b}_telefono`] || '').trim();
+  if (phoneA && phoneB && phoneA === phoneB) {
+    errors[`${b}_telefono`] = 'El destinatario no puede tener el mismo celular que el remitente (solo si es la misma persona).';
+  }
+  const emailA = String(form[`${a}_correo`] || '').trim().toLowerCase();
+  const emailB = String(form[`${b}_correo`] || '').trim().toLowerCase();
+  if (emailA && emailB && emailA === emailB) {
+    errors[`${b}_correo`] = 'El destinatario no puede tener el mismo correo que el remitente (solo si es la misma persona).';
+  }
+  return errors;
 }
 
 export function validateFragility(value) {

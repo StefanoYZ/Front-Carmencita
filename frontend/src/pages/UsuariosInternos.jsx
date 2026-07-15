@@ -6,6 +6,7 @@ import Button from '../components/common/Button.jsx';
 import Card from '../components/common/Card.jsx';
 import Input from '../components/common/Input.jsx';
 import Loader from '../components/common/Loader.jsx';
+import PasswordInput from '../components/common/PasswordInput.jsx';
 import StatusBadge from '../components/common/StatusBadge.jsx';
 import DataTable from '../components/tables/DataTable.jsx';
 import { useAuth } from '../context/AuthContext.jsx';
@@ -206,7 +207,7 @@ function UsuariosInternos() {
         <form className="grid gap-4 lg:grid-cols-4 lg:items-end" onSubmit={handleCreateUser}>
           <Input label="Usuario" name="username" value={form.username} onChange={updateField} required />
           <Input label="Nombre completo" name="full_name" value={form.full_name} onChange={updateField} required />
-          <Input label="Contraseña" name="password" type="password" value={form.password} onChange={updateField} required />
+          <PasswordInput label="Contraseña" name="password" value={form.password} onChange={updateField} required />
           <label className="block">
             <span className="mb-1.5 block text-sm font-medium text-gray-700">Rol inicial</span>
             <select

@@ -50,4 +50,81 @@ describe('public shipment validation', () => {
     expect(errors.ancho_cm).toBeTruthy();
     expect(errors.alto_cm).toBeTruthy();
   });
+
+  it('ignora medidas, fragilidad y base en sobres aunque el formulario tenga residuos', () => {
+    const form = validForm({
+      tipo_contenido: 'DOCUMENTOS',
+      descripcion: 'sobre con contratos',
+      largo_cm: '40',
+      ancho_cm: '30',
+      alto_cm: '20',
+      fragilidad: 'ALTA',
+      orientacion_base: 'LARGO_ALTO',
+    });
+
+    expect(validatePublicShipmentForm(form)).toEqual({});
+    expect(buildPublicShipmentPayload(form)).toMatchObject({
+      tipo_contenido: 'DOCUMENTOS',
+      largo_cm: 0,
+      ancho_cm: 0,
+      alto_cm: 0,
+      fragilidad: 'BAJA',
+      orientacion_base: null,
+    });
+  });
+
+  it('requiere base para paquetes y la normaliza al construir payload', () => {
+    const form = validForm({
+      tipo_contenido: 'ROPA',
+      descripcion: 'camisas',
+      peso_kg: '2',
+      largo_cm: '40',
+      ancho_cm: '30',
+      alto_cm: '20',
+      fragilidad: 'BAJA',
+      orientacion_base: '',
+    });
+
+    expect(validatePublicShipmentForm(form).orientacion_base).toContain('cara');
+
+    const validPackage = { ...form, orientacion_base: 'largo_ancho' };
+    expect(validatePublicShipmentForm(validPackage)).toEqual({});
+    expect(buildPublicShipmentPayload(validPackage)).toMatchObject({
+      tipo_contenido: 'ROPA',
+      largo_cm: 40,
+      ancho_cm: 30,
+      alto_cm: 20,
+      orientacion_base: 'LARGO_ANCHO',
+    });
+  });
+
+  it('bloquea descripcion incoherente con tipo de contenido', () => {
+    const errors = validatePublicShipmentForm(validForm({
+      tipo_contenido: 'ROPA',
+      descripcion: 'refrigeradora',
+      peso_kg: '80',
+      largo_cm: '70',
+      ancho_cm: '60',
+      alto_cm: '170',
+      fragilidad: 'MEDIA',
+      orientacion_base: 'LARGO_ANCHO',
+    }));
+
+    expect(errors.tipo_contenido).toContain('no coincide');
+  });
+
+  it('bloquea base insegura para electrodomesticos antes de pasar a pago', () => {
+    const errors = validatePublicShipmentForm(validForm({
+      tipo_contenido: 'ELECTRODOMESTICOS',
+      descripcion: 'refrigeradora',
+      peso_kg: '80',
+      largo_cm: '70',
+      ancho_cm: '60',
+      alto_cm: '170',
+      fragilidad: 'MEDIA',
+      orientacion_base: 'LARGO_ALTO',
+    }));
+
+    expect(errors.orientacion_base).toContain('acostado');
+  });
 });

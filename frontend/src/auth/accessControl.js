@@ -31,8 +31,8 @@ export const adminNavigationItems = [
   {
     label: 'Vista Developer',
     path: '/admin/developer',
-    anyOf: ['developer.read'],
-    roles: ['ADMINISTRADOR', 'DEVELOPER'],
+    anyOf: [],
+    roles: ['DEVELOPER'],
   },
 ];
 

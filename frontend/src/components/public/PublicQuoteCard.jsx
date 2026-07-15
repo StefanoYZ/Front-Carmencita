@@ -2,6 +2,7 @@ import React, { useEffect, useMemo, useState } from 'react';
 import { Link } from 'react-router-dom';
 import PackageBaseSelector from '../common/PackageBaseSelector.jsx';
 import { PUBLIC_QUOTE_STORAGE_KEY, quoteEstimateFromPublicQuote, writeSessionJSON } from '../../utils/publicShipment.js';
+import { sanitizeDecimal, validateDimension, validateShipmentNumericField, validateWeight } from '../../utils/shipmentValidation.js';
 import { getDestinos } from '../../services/destinosService.js';
 import {
   DEFAULT_LOCATION_NAMES,
@@ -75,6 +76,7 @@ function PublicQuoteCard() {
   });
   const [quote, setQuote] = useState(null);
   const [error, setError] = useState('');
+  const [fieldErrors, setFieldErrors] = useState({});
   const [destinations, setDestinations] = useState(DEFAULT_LOCATION_NAMES);
   const [originProvince, setOriginProvince] = useState('');
   const [destinationProvince, setDestinationProvince] = useState('');
@@ -88,6 +90,11 @@ function PublicQuoteCard() {
   );
   const isEnvelope = form.tipo === 'Sobres';
   const hasDifferentRoute = Boolean(form.origen && form.destino && form.origen !== form.destino);
+  // Medidas listas: las tres dimensiones tienen valor y ninguna supera el limite logico.
+  // Sirve para avisar, justo debajo de las medidas, que falta elegir la cara del paquete.
+  const dimensionsComplete = !isEnvelope
+    && Boolean(form.largo && form.ancho && form.alto)
+    && !fieldErrors.largo && !fieldErrors.ancho && !fieldErrors.alto;
 
   const isComplete = useMemo(
     () => hasDifferentRoute
@@ -114,15 +121,27 @@ function PublicQuoteCard() {
 
   const updateField = (event) => {
     const { name, value } = event.target;
-    const nextRoute = { ...form, [name]: value };
+    const isNumericField = ['peso', 'largo', 'ancho', 'alto'].includes(name);
+    // Misma sanitizacion numerica que el resto de vistas (solo digitos y un punto).
+    const nextValue = isNumericField ? sanitizeDecimal(value) : value;
+    const nextRoute = { ...form, [name]: nextValue };
     setForm((current) => ({
       ...current,
-      [name]: value,
-      ...(name === 'tipo' && value === 'Sobres'
+      [name]: nextValue,
+      ...(name === 'tipo' && nextValue === 'Sobres'
         ? { largo: '', ancho: '', alto: '', fragilidad: '', orientacion_base: '' }
         : {}),
     }));
     setQuote(null);
+    // Valida el limite logico EN VIVO conforme el usuario escribe: peso y dimensiones
+    // muestran su error apenas se supera la cota (o queda vacio), sin esperar a COTIZAR.
+    setFieldErrors((current) => {
+      if (name === 'tipo' && nextValue === 'Sobres') {
+        return { ...current, largo: undefined, ancho: undefined, alto: undefined };
+      }
+      if (!isNumericField) return { ...current, [name]: undefined };
+      return { ...current, [name]: validateShipmentNumericField(name, nextValue, { isEnvelope }) || undefined };
+    });
     setError(
       nextRoute.origen && nextRoute.destino && nextRoute.origen === nextRoute.destino
         ? 'El origen y el destino deben ser diferentes.'
@@ -167,14 +186,26 @@ function PublicQuoteCard() {
       return;
     }
 
-    const weight = Number(form.peso);
-    const volume = isEnvelope ? 0 : Number(form.largo) * Number(form.ancho) * Number(form.alto);
-
-    if (!Number.isFinite(weight) || weight <= 0 || (!isEnvelope && (!Number.isFinite(volume) || volume <= 0))) {
-      setError(isEnvelope ? 'Ingresa un peso mayor a cero.' : 'Ingresa medidas y peso mayores a cero.');
+    // Validacion numerica por campo con la fuente unica (min > 0 y cota superior),
+    // igual que registro publico, registro interno y cotizacion interna.
+    const numericErrors = {};
+    const weightError = validateWeight(form.peso);
+    if (weightError) numericErrors.peso = weightError;
+    if (!isEnvelope) {
+      ['largo', 'ancho', 'alto'].forEach((field) => {
+        const dimensionError = validateDimension(form[field]);
+        if (dimensionError) numericErrors[field] = dimensionError;
+      });
+    }
+    if (Object.keys(numericErrors).length > 0) {
+      setFieldErrors(numericErrors);
+      setError('');
       return;
     }
+    setFieldErrors({});
 
+    const weight = Number(form.peso);
+    const volume = isEnvelope ? 0 : Number(form.largo) * Number(form.ancho) * Number(form.alto);
     const estimate = quoteEstimateFromPublicQuote(form);
     const fallback = Math.max((form.tipo === 'Sobres' ? 8 : 12) + weight * 2.4 + volume / 6500, 10);
     setQuote(Number((estimate.total || fallback).toFixed(2)));
@@ -289,16 +320,15 @@ function PublicQuoteCard() {
                   <div className="grid min-w-0 grid-cols-[minmax(0,1fr)_64px] overflow-hidden rounded-md bg-white shadow-sm ring-1 ring-[#A3CF84]/50">
                     <input
                       className="min-h-11 min-w-0 border-0 px-3 text-sm font-semibold text-[#212529] outline-none placeholder:text-[#6C757D]/70 focus:ring-2 focus:ring-inset focus:ring-[#A3CF84]"
-                      min="0"
+                      inputMode="decimal"
                       name="peso"
                       placeholder="Ingrese peso"
-                      step="0.1"
-                      type="number"
                       value={form.peso}
                       onChange={updateField}
                     />
                     <span className="flex items-center justify-center border-l border-[#A3CF84]/60 bg-[#F8F9FA] text-sm font-bold text-[#3C5940]">Kg</span>
                   </div>
+                  {fieldErrors.peso && <span className="mt-1 block text-xs font-semibold text-red-600">{fieldErrors.peso}</span>}
                 </label>
 
                 {!isEnvelope && (
@@ -325,10 +355,16 @@ function PublicQuoteCard() {
                     ].map(([name, label]) => (
                       <label key={name} className="grid min-w-0 gap-1.5">
                         <span className="text-sm font-bold text-[#3C5940]">{label}</span>
-                        <input className={inputClass} min="0" name={name} step="0.1" type="number" value={form[name]} onChange={updateField} />
+                        <input className={inputClass} inputMode="decimal" name={name} value={form[name]} onChange={updateField} />
+                        {fieldErrors[name] && <span className="text-xs font-semibold text-red-600">{fieldErrors[name]}</span>}
                       </label>
                     ))}
                   </div>
+                  {dimensionsComplete && !form.orientacion_base && (
+                    <p className="mt-3 rounded-md border border-red-300 bg-red-50 px-3 py-2 text-xs font-bold text-red-600">
+                      Selecciona la cara del paquete en la parte inferior para continuar.
+                    </p>
+                  )}
                 </div>
               )}
             </div>
@@ -345,13 +381,15 @@ function PublicQuoteCard() {
             </form>
 
             {!isEnvelope && (
-              <PackageBaseSelector
-                length={form.largo}
-                width={form.ancho}
-                height={form.alto}
-                value={form.orientacion_base}
-                onChange={updateBaseOrientation}
-              />
+              <div>
+                <PackageBaseSelector
+                  length={form.largo}
+                  width={form.ancho}
+                  height={form.alto}
+                  value={form.orientacion_base}
+                  onChange={updateBaseOrientation}
+                />
+              </div>
             )}
           </section>
 

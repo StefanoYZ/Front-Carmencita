@@ -1,5 +1,6 @@
 import {
   sanitizeShipmentField,
+  validateDistinctContact,
   validateDocumentNumber,
   validateEmail,
   validateFragility,
@@ -7,7 +8,7 @@ import {
   validateContentType,
   validatePackageBaseOrientation,
   validatePhone,
-  validatePositiveNumber,
+  validateShipmentNumericFields,
 } from './shipmentValidation.js';
 
 export const emptyEncomiendaForm = {
@@ -196,17 +197,11 @@ export function validateEncomiendaFormFields(form, { includeEstado = false } = {
   const coherenceError = validateContentDescriptionCoherence(form.tipo_contenido, form.descripcion);
   if (coherenceError) errors.tipo_contenido = coherenceError;
 
-  const numericMessages = { peso_kg: 'El peso debe ser mayor a 0.' };
-  if (!isEnvelopeContent(form.tipo_contenido)) {
-    numericMessages.largo_cm = 'Las dimensiones deben ser mayores a 0.';
-    numericMessages.ancho_cm = 'Las dimensiones deben ser mayores a 0.';
-    numericMessages.alto_cm = 'Las dimensiones deben ser mayores a 0.';
-  }
-
-  Object.entries(numericMessages).forEach(([field, message]) => {
-    const error = validatePositiveNumber(form[field], message);
-    if (error) errors[field] = error;
-  });
+  Object.assign(
+    errors,
+    validateShipmentNumericFields(form, { isEnvelope: isEnvelopeContent(form.tipo_contenido) }),
+  );
+  Object.assign(errors, validateDistinctContact(form));
 
   if (!isEnvelopeContent(form.tipo_contenido)) {
     const fragilityError = validateFragility(form.fragilidad);

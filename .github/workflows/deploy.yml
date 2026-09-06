@@ -1,4 +1,4 @@
-name: Test and Deploy Frontend
+name: Test, Build, and Deploy Frontend
 
 on:
   push:
@@ -8,6 +8,9 @@ on:
 concurrency:
   group: deploy-frontend
   cancel-in-progress: false
+
+permissions:
+  contents: read
 
 jobs:
   test:
@@ -22,7 +25,7 @@ jobs:
       - uses: actions/setup-node@v4
         with:
           node-version: "20"
-          cache: "npm"
+          cache: npm
           cache-dependency-path: frontend/package-lock.json
 
       - name: Instalar dependencias
@@ -34,60 +37,82 @@ jobs:
       - name: Ejecutar pruebas unitarias
         run: npm run test
 
-  deploy:
-    name: Deploy al Droplet
+  build:
+    name: Build
     needs: test
+    runs-on: ubuntu-latest
+    defaults:
+      run:
+        working-directory: frontend
+    env:
+      VITE_API_BASE_URL: ${{ vars.BACKEND_API_BASE_URL }}
+    steps:
+      - uses: actions/checkout@v4
+
+      - uses: actions/setup-node@v4
+        with:
+          node-version: "20"
+          cache: npm
+          cache-dependency-path: frontend/package-lock.json
+
+      - name: Validar URL publica del backend
+        run: test -n "$VITE_API_BASE_URL"
+
+      - name: Instalar dependencias
+        run: npm ci
+
+      - name: Fix rollup optional dependency en Linux (npm/cli#4828)
+        run: npm install --no-save @rollup/rollup-linux-x64-gnu@4.60.2
+
+      - name: Construir frontend
+        run: npm run build
+
+      - name: Guardar artefacto de produccion
+        uses: actions/upload-artifact@v4
+        with:
+          name: frontend-dist
+          path: frontend/dist
+          if-no-files-found: error
+          retention-days: 1
+
+  deploy:
+    name: Deploy to Firebase Hosting
+    needs: build
     if: github.ref == 'refs/heads/main'
     runs-on: ubuntu-latest
+    permissions:
+      contents: read
+      id-token: write
+    env:
+      GCP_PROJECT_ID: ${{ vars.GCP_PROJECT_ID }}
+      GCP_WORKLOAD_IDENTITY_PROVIDER: ${{ vars.GCP_WORKLOAD_IDENTITY_PROVIDER }}
+      GCP_DEPLOY_SERVICE_ACCOUNT: ${{ vars.GCP_DEPLOY_SERVICE_ACCOUNT }}
     steps:
-      - name: Actualizar .env y reconstruir solo "frontend"
-        uses: appleboy/ssh-action@v1
-        env:
-          ENV_FILE: ${{ secrets.ENV_FILE }}
+      - uses: actions/checkout@v4
+
+      - name: Validar configuracion de Google Cloud
+        shell: bash
+        run: |
+          set -euo pipefail
+          for name in GCP_PROJECT_ID GCP_WORKLOAD_IDENTITY_PROVIDER GCP_DEPLOY_SERVICE_ACCOUNT; do
+            if [[ -z "${!name}" ]]; then
+              echo "Missing required repository variable: ${name}" >&2
+              exit 1
+            fi
+          done
+
+      - name: Descargar artefacto de produccion
+        uses: actions/download-artifact@v4
         with:
-          host: ${{ secrets.DROPLET_HOST }}
-          username: ${{ secrets.DROPLET_USER }}
-          key: ${{ secrets.DROPLET_SSH_KEY }}
-          envs: ENV_FILE
-          script: |
-            set -euo pipefail
+          name: frontend-dist
+          path: frontend/dist
 
-            # Fusiona ENV_FILE con el .env existente en vez de sobreescribirlo
-            # entero: cualquier clave que NO venga en el secret (p. ej.
-            # LYCET_LOGO_BASE64, omitida por el limite de tamano de GitHub
-            # Secrets) se conserva tal cual esta en el Droplet.
-            python3 - /opt/carmencita/deploy/.env <<'PYEOF'
-            import os, sys
-            path = sys.argv[1]
-            new_content = os.environ["ENV_FILE"]
-            current, order = {}, []
-            if os.path.exists(path):
-                with open(path) as f:
-                    for line in f:
-                        stripped = line.rstrip("\n")
-                        if not stripped or stripped.startswith("#") or "=" not in stripped:
-                            continue
-                        key, _, value = stripped.partition("=")
-                        current[key] = value
-                        order.append(key)
-            for line in new_content.splitlines():
-                stripped = line.strip()
-                if not stripped or stripped.startswith("#") or "=" not in stripped:
-                    continue
-                key, _, value = stripped.partition("=")
-                if key not in current:
-                    order.append(key)
-                current[key] = value
-            with open(path, "w") as f:
-                for key in order:
-                    f.write(f"{key}={current[key]}\n")
-            PYEOF
+      - name: Autenticar con Google Cloud
+        uses: google-github-actions/auth@v3
+        with:
+          workload_identity_provider: ${{ env.GCP_WORKLOAD_IDENTITY_PROVIDER }}
+          service_account: ${{ env.GCP_DEPLOY_SERVICE_ACCOUNT }}
+          project_id: ${{ env.GCP_PROJECT_ID }}
 
-            # Clon dedicado a CI: siempre se alinea con origin/main, sin merges.
-            cd /opt/carmencita/Front-Carmencita
-            git fetch origin main
-            git reset --hard origin/main
-
-            cd /opt/carmencita/deploy
-            docker compose up --build -d --remove-orphans frontend
-            docker image prune -f
+      - name: Desplegar artefacto en Firebase Hosting
+        run: npx --yes firebase-tools@14 deploy --only hosting --project "$GCP_PROJECT_ID" --non-interactive

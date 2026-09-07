@@ -50,6 +50,16 @@ export async function setOptimizationTestMode(active, count = null) {
   return response.data;
 }
 
+export async function getIntegrationSettings() {
+  const response = await apiClient.get('/developer/integraciones');
+  return response.data;
+}
+
+export async function updateIntegrationSettings(settings) {
+  const response = await apiClient.put('/developer/integraciones', settings);
+  return response.data;
+}
+
 export async function exportTable(name, format) {
   const extension = format === 'excel' ? 'xls' : 'csv';
   const response = await apiClient.get(
@@ -69,4 +79,6 @@ export const developerService = {
   exportTable,
   getOptimizationTestMode,
   setOptimizationTestMode,
+  getIntegrationSettings,
+  updateIntegrationSettings,
 };

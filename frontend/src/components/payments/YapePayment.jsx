@@ -1,6 +1,7 @@
-import React, { useState } from 'react';
+import React, { useEffect, useState } from 'react';
 import { apiBaseURL } from '../../services/apiClient.js';
 import { sanitizeDigits } from '../../utils/shipmentValidation.js';
+import SimulatedPaymentForm from './SimulatedPaymentForm.jsx';
 
 function getPaymentErrorMessage(data, fallback) {
   if (Array.isArray(data?.detail)) {
@@ -51,7 +52,33 @@ export default function YapePayment({
   const [loading, setLoading] = useState(false);
   const [resultado, setResultado] = useState(null);
   const [message, setMessage] = useState('');
+  const [externalFlowEnabled, setExternalFlowEnabled] = useState(null);
   const phoneError = phoneNumber ? validateYapePhone(phoneNumber) : '';
+
+  useEffect(() => {
+    let cancelled = false;
+    fetch(`${apiBaseURL}/payments/mode`)
+      .then((response) => readPaymentResponse(response, 'No se pudo consultar el modo de pago.'))
+      .then((data) => { if (!cancelled) setExternalFlowEnabled(data.mercadopago_enabled !== false); })
+      .catch(() => { if (!cancelled) setExternalFlowEnabled(true); });
+    return () => { cancelled = true; };
+  }, []);
+
+  if (externalFlowEnabled === false) {
+    return (
+      <SimulatedPaymentForm
+        method="yape"
+        amount={amount}
+        email={email}
+        usuario={usuario}
+        encomiendaId={encomiendaId}
+        onApproved={onApproved}
+        onPending={onPending}
+        onRejected={onRejected}
+        onError={onError}
+      />
+    );
+  }
 
   const loadMercadoPagoSDK = () => {
     return new Promise((resolve, reject) => {

@@ -1,5 +1,6 @@
 import React, { useEffect, useId, useMemo, useRef, useState } from 'react';
 import { apiBaseURL } from '../../services/apiClient.js';
+import SimulatedPaymentForm from './SimulatedPaymentForm.jsx';
 
 function getPaymentErrorMessage(data, fallback) {
   if (Array.isArray(data?.detail)) {
@@ -31,7 +32,6 @@ export default function MercadoPagoBrick({
   amount = 100,
   payerEmail = 'test@test.com',
   payerName = 'Cliente',
-  payerDocument = '',
   encomiendaId = null,
   usuario = '',
   onApproved,
@@ -41,6 +41,7 @@ export default function MercadoPagoBrick({
 }) {
   const [status, setStatus] = useState('');
   const [message, setMessage] = useState('');
+  const [externalFlowEnabled, setExternalFlowEnabled] = useState(null);
   const isTestEnvironment = false;
   const callbacksRef = useRef({
     onApproved,
@@ -62,6 +63,21 @@ export default function MercadoPagoBrick({
       onError,
     };
   }, [onApproved, onError, onPending, onRejected]);
+
+  useEffect(() => {
+    let cancelled = false;
+    fetch(`${apiBaseURL}/payments/mode`)
+      .then((response) => readPaymentResponse(response, 'No se pudo consultar el modo de pago.'))
+      .then((data) => { if (!cancelled) setExternalFlowEnabled(data.mercadopago_enabled !== false); })
+      .catch((error) => {
+        if (!cancelled) {
+          setExternalFlowEnabled(true);
+          setStatus('error');
+          setMessage(error.message);
+        }
+      });
+    return () => { cancelled = true; };
+  }, []);
 
   useEffect(() => {
     let brickController = null;
@@ -96,6 +112,7 @@ export default function MercadoPagoBrick({
     };
 
     const loadBrick = async () => {
+      if (externalFlowEnabled !== true) return;
       try {
         const normalizedAmount = Number(amount);
         if (!Number.isFinite(normalizedAmount) || normalizedAmount <= 0) {
@@ -122,8 +139,6 @@ export default function MercadoPagoBrick({
 
         const bricksBuilder = mp.bricks();
         const normalizedName = String(payerName || 'Cliente').trim();
-        const normalizedDocument = String(payerDocument || '').trim();
-        const validPayerDocument = /^\d{8}$/.test(normalizedDocument) ? normalizedDocument : '';
         const [firstName, ...lastNameParts] = normalizedName.split(/\s+/);
         const activeContainer = document.getElementById(containerId);
         if (!mounted || !activeContainer) return;
@@ -135,10 +150,6 @@ export default function MercadoPagoBrick({
               email: effectivePayerEmail,
               firstName: firstName || 'Cliente',
               lastName: lastNameParts.join(' '),
-              entityType: 'individual',
-              ...(validPayerDocument
-                ? { identification: { type: 'DNI', number: validPayerDocument } }
-                : {}),
             },
           },
           customization: {
@@ -166,27 +177,12 @@ export default function MercadoPagoBrick({
                   throw new Error('Mercado Pago no genero el token de la tarjeta.');
                 }
 
-                const identification = formData?.payer?.identification || {};
-                const identificationType = String(identification.type || 'DNI').trim().toUpperCase();
-                const identificationNumber = validPayerDocument || String(identification.number || '').trim();
-                if (identificationType === 'DNI' && !/^\d{8}$/.test(identificationNumber)) {
-                  throw new Error('El DNI del titular debe tener exactamente 8 digitos.');
-                }
-
                 const paymentPayload = {
                   ...formData,
                   description: formData.description || 'Pago encomienda - Carmencita Express',
                   usuario: String(usuario || payerEmail || '').trim() || effectivePayerEmail,
                   ...(encomiendaId ? { encomienda_id: Number(encomiendaId) } : {}),
-                  payer: {
-                    ...(formData.payer || {}),
-                    email: effectivePayerEmail || formData.payer?.email,
-                    entity_type: 'individual',
-                    identification: {
-                      type: identificationType,
-                      number: identificationNumber,
-                    },
-                  },
+                  payer: { ...(formData.payer || {}), email: effectivePayerEmail || formData.payer?.email },
                 };
 
                 const response = await fetch(`${apiBaseURL}/payments/process-payment`, {
@@ -258,7 +254,23 @@ export default function MercadoPagoBrick({
         container.innerHTML = '';
       }
     };
-  }, [amount, containerId, encomiendaId, payerDocument, payerEmail, payerName, usuario]);
+  }, [amount, containerId, encomiendaId, externalFlowEnabled, payerEmail, payerName, usuario]);
+
+  if (externalFlowEnabled === false) {
+    return (
+      <SimulatedPaymentForm
+        method="card"
+        amount={amount}
+        email={payerEmail}
+        usuario={usuario}
+        encomiendaId={encomiendaId}
+        onApproved={onApproved}
+        onPending={onPending}
+        onRejected={onRejected}
+        onError={onError}
+      />
+    );
+  }
 
   return (
     <div className="min-h-[328px] rounded-md bg-white">

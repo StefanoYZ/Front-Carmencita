@@ -1,12 +1,14 @@
-import React, { useEffect, useMemo, useState } from 'react';
+import React, { useEffect, useMemo, useRef, useState } from 'react';
 import {
   Boxes,
+  CreditCard,
   Database,
   FileDown,
   FileSpreadsheet,
   Pencil,
   Plus,
   RefreshCw,
+  ReceiptText,
   Search,
   Table2,
   Trash2,
@@ -27,10 +29,12 @@ import {
   deleteRow,
   exportTable,
   getOptimizationTestMode,
+  getIntegrationSettings,
   getTableData,
   getTableSchema,
   getTables,
   setOptimizationTestMode,
+  updateIntegrationSettings,
   updateRow,
 } from '../services/developerService.js';
 import { downloadBlob } from '../utils/downloadBlob.js';
@@ -247,6 +251,96 @@ function OptimizationTestModeCard({ canWrite, onNotify }) {
         </p>
       )}
     </Card>
+  );
+}
+
+function IntegrationFlowsCard({ canWrite, onNotify }) {
+  const [settings, setSettings] = useState(null);
+  const [saving, setSaving] = useState('');
+  const notifyRef = useRef(onNotify);
+
+  useEffect(() => {
+    notifyRef.current = onNotify;
+  }, [onNotify]);
+
+  useEffect(() => {
+    let cancelled = false;
+    getIntegrationSettings()
+      .then((data) => { if (!cancelled) setSettings(data); })
+      .catch((error) => {
+        if (!cancelled) notifyRef.current?.('error', getApiErrorMessage(error, 'No se pudo cargar la configuracion de integraciones.'));
+      });
+    return () => { cancelled = true; };
+  }, []);
+
+  const toggle = async (field) => {
+    if (!settings || !canWrite || saving) return;
+    const next = { ...settings, [field]: !settings[field] };
+    try {
+      setSaving(field);
+      const data = await updateIntegrationSettings(next);
+      setSettings(data);
+      const provider = field === 'mercadopago_enabled' ? 'Mercado Pago y Yape' : 'Lycet / SUNAT beta';
+      onNotify?.('success', `${provider}: flujo externo ${data[field] ? 'ACTIVADO' : 'DESACTIVADO'}.`);
+    } catch (error) {
+      onNotify?.('error', getApiErrorMessage(error, 'No se pudo cambiar el flujo de integracion.'));
+    } finally {
+      setSaving('');
+    }
+  };
+
+  const options = [
+    {
+      field: 'mercadopago_enabled',
+      title: 'Flujo Mercado Pago y Yape',
+      icon: CreditCard,
+      activeText: 'Activo: procesa operaciones con Mercado Pago usando las credenciales configuradas.',
+      inactiveText: 'Apagado: usa escenarios locales APRO, OTHE, CONT y demas, sin llamar a Mercado Pago.',
+    },
+    {
+      field: 'lycet_enabled',
+      title: 'Flujo Lycet / SUNAT beta',
+      icon: ReceiptText,
+      activeText: 'Activo: envia la boleta al entorno beta mediante Lycet.',
+      inactiveText: 'Apagado: genera una boleta local de prueba, sin valor tributario.',
+    },
+  ];
+
+  return (
+    <div className="grid gap-5 lg:grid-cols-2">
+      {options.map((option) => {
+        const active = Boolean(settings?.[option.field]);
+        const Icon = option.icon;
+        return (
+          <Card key={option.field}>
+            <div className="flex items-start justify-between gap-4">
+              <div className="flex min-w-0 items-start gap-3">
+                <span className="flex h-10 w-10 shrink-0 items-center justify-center rounded-xl bg-brand-lime/20 text-brand-green">
+                  <Icon size={20} aria-hidden="true" />
+                </span>
+                <div>
+                  <h3 className="text-base font-black text-brand-black">{option.title}</h3>
+                  <p className="mt-1 text-sm leading-5 text-brand-gray">
+                    {settings ? (active ? option.activeText : option.inactiveText) : 'Cargando configuracion...'}
+                  </p>
+                </div>
+              </div>
+              <button
+                type="button"
+                role="switch"
+                aria-checked={active}
+                aria-label={`Activar ${option.title}`}
+                onClick={() => toggle(option.field)}
+                disabled={!settings || !canWrite || Boolean(saving)}
+                className={`relative inline-flex h-7 w-12 shrink-0 items-center rounded-full transition disabled:cursor-not-allowed disabled:opacity-50 ${active ? 'bg-brand-green' : 'bg-gray-300'}`}
+              >
+                <span className={`inline-block h-5 w-5 rounded-full bg-white shadow transition ${active ? 'translate-x-6' : 'translate-x-1'}`} />
+              </button>
+            </div>
+          </Card>
+        );
+      })}
+    </div>
   );
 }
 
@@ -489,6 +583,19 @@ function DeveloperView() {
             setMessage(text);
             loadTables();
             if (selected) loadTableData(selected, page);
+          } else {
+            setMessage('');
+            setError(text);
+          }
+        }}
+      />
+
+      <IntegrationFlowsCard
+        canWrite={canWrite}
+        onNotify={(tone, text) => {
+          if (tone === 'success') {
+            setError('');
+            setMessage(text);
           } else {
             setMessage('');
             setError(text);

@@ -1,4 +1,4 @@
-import React, { useEffect, useState } from 'react';
+import React, { useState } from 'react';
 import { apiBaseURL } from '../../services/apiClient.js';
 import { sanitizeDigits } from '../../utils/shipmentValidation.js';
 
@@ -51,17 +51,7 @@ export default function YapePayment({
   const [loading, setLoading] = useState(false);
   const [resultado, setResultado] = useState(null);
   const [message, setMessage] = useState('');
-  const [externalFlowEnabled, setExternalFlowEnabled] = useState(null);
   const phoneError = phoneNumber ? validateYapePhone(phoneNumber) : '';
-
-  useEffect(() => {
-    let cancelled = false;
-    fetch(`${apiBaseURL}/payments/mode`)
-      .then((response) => readPaymentResponse(response, 'No se pudo consultar el modo de pago.'))
-      .then((data) => { if (!cancelled) setExternalFlowEnabled(data.mercadopago_enabled !== false); })
-      .catch(() => { if (!cancelled) setExternalFlowEnabled(true); });
-    return () => { cancelled = true; };
-  }, []);
 
   const loadMercadoPagoSDK = () => {
     return new Promise((resolve, reject) => {
@@ -98,16 +88,12 @@ export default function YapePayment({
         return;
       }
 
-      let token = '';
-      if (externalFlowEnabled !== false) {
-        await loadMercadoPagoSDK();
-        const keyResponse = await fetch(`${apiBaseURL}/payments/public-key`);
-        const keyData = await readPaymentResponse(keyResponse, 'No se pudo obtener la Public Key.');
-        const mp = new window.MercadoPago(keyData.publicKey, { locale: 'es-PE' });
-        const yape = mp.yape({ otp, phoneNumber });
-        const yapeToken = await yape.create();
-        token = yapeToken.id;
-      }
+      await loadMercadoPagoSDK();
+      const keyResponse = await fetch(`${apiBaseURL}/payments/public-key`);
+      const keyData = await readPaymentResponse(keyResponse, 'No se pudo obtener la Public Key.');
+      const mp = new window.MercadoPago(keyData.publicKey, { locale: 'es-PE' });
+      const yape = mp.yape({ otp, phoneNumber });
+      const yapeToken = await yape.create();
 
       const response = await fetch(`${apiBaseURL}/yape/process-payment`, {
         method: 'POST',
@@ -115,7 +101,7 @@ export default function YapePayment({
           'Content-Type': 'application/json',
         },
         body: JSON.stringify({
-          token,
+          token: yapeToken.id,
           amount: Number(amount),
           email,
           phone_number: phoneNumber,
@@ -189,7 +175,7 @@ export default function YapePayment({
       <button
         type="button"
         onClick={handleYapePayment}
-        disabled={loading || externalFlowEnabled === null || !phoneNumber || Boolean(phoneError) || otp.length !== 6}
+        disabled={loading || !phoneNumber || Boolean(phoneError) || otp.length !== 6}
         className="min-h-11 w-full rounded-md bg-brand-green px-4 py-2 text-sm font-black text-white transition hover:bg-brand-dark disabled:cursor-not-allowed disabled:opacity-60"
       >
         {loading ? 'Procesando...' : 'Pagar con Yape'}

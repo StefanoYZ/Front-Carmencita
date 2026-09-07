@@ -40,7 +40,6 @@ export default function MercadoPagoBrick({
 }) {
   const [status, setStatus] = useState('');
   const [message, setMessage] = useState('');
-  const isTestEnvironment = false;
   const callbacksRef = useRef({
     onApproved,
     onPending,
@@ -151,7 +150,7 @@ export default function MercadoPagoBrick({
               updateStatus('', '');
             },
 
-            onSubmit: async ({ formData }) => {
+            onSubmit: async ({ formData }, additionalData = {}) => {
               try {
                 updateStatus('processing', 'Procesando pago con tarjeta...');
 
@@ -159,19 +158,10 @@ export default function MercadoPagoBrick({
                   throw new Error('Mercado Pago no genero el token de la tarjeta.');
                 }
 
-                const cardholderInput = activeContainer.querySelector(
-                  'input[name="cardholderName"], input[id*="cardholderName" i], input[autocomplete="cc-name"]',
-                );
-
                 const paymentPayload = {
                   ...formData,
                   description: formData.description || 'Pago encomienda - Carmencita Express',
-                  simulation_scenario:
-                    cardholderInput?.value
-                    || formData.payer?.first_name
-                    || formData.payer?.firstName
-                    || formData.cardholderName
-                    || '',
+                  cardholder_name: additionalData.cardholderName || formData.cardholderName || '',
                   usuario: String(usuario || payerEmail || '').trim() || effectivePayerEmail,
                   ...(encomiendaId ? { encomienda_id: Number(encomiendaId) } : {}),
                   payer: { ...(formData.payer || {}), email: effectivePayerEmail || formData.payer?.email },
@@ -251,12 +241,6 @@ export default function MercadoPagoBrick({
   return (
     <div className="min-h-[328px] rounded-md bg-white">
       <div id={containerId} className="min-h-[250px]" />
-
-      {isTestEnvironment && (
-        <p className="mt-3 rounded-md border border-amber-200 bg-amber-50 px-3 py-2 text-xs font-semibold text-amber-800">
-          Entorno de prueba: para simular aprobacion usa titular APRO y un DNI peruano de 8 digitos.
-        </p>
-      )}
 
       {status && (
         <div

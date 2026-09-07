@@ -1,7 +1,6 @@
-import React, { useEffect, useState } from 'react';
+import React, { useState } from 'react';
 import { apiBaseURL } from '../../services/apiClient.js';
 import { sanitizeDigits } from '../../utils/shipmentValidation.js';
-import SimulatedPaymentForm from './SimulatedPaymentForm.jsx';
 
 function getPaymentErrorMessage(data, fallback) {
   if (Array.isArray(data?.detail)) {
@@ -52,33 +51,7 @@ export default function YapePayment({
   const [loading, setLoading] = useState(false);
   const [resultado, setResultado] = useState(null);
   const [message, setMessage] = useState('');
-  const [externalFlowEnabled, setExternalFlowEnabled] = useState(null);
   const phoneError = phoneNumber ? validateYapePhone(phoneNumber) : '';
-
-  useEffect(() => {
-    let cancelled = false;
-    fetch(`${apiBaseURL}/payments/mode`)
-      .then((response) => readPaymentResponse(response, 'No se pudo consultar el modo de pago.'))
-      .then((data) => { if (!cancelled) setExternalFlowEnabled(data.mercadopago_enabled !== false); })
-      .catch(() => { if (!cancelled) setExternalFlowEnabled(true); });
-    return () => { cancelled = true; };
-  }, []);
-
-  if (externalFlowEnabled === false) {
-    return (
-      <SimulatedPaymentForm
-        method="yape"
-        amount={amount}
-        email={email}
-        usuario={usuario}
-        encomiendaId={encomiendaId}
-        onApproved={onApproved}
-        onPending={onPending}
-        onRejected={onRejected}
-        onError={onError}
-      />
-    );
-  }
 
   const loadMercadoPagoSDK = () => {
     return new Promise((resolve, reject) => {
@@ -116,19 +89,10 @@ export default function YapePayment({
       }
 
       await loadMercadoPagoSDK();
-
       const keyResponse = await fetch(`${apiBaseURL}/payments/public-key`);
       const keyData = await readPaymentResponse(keyResponse, 'No se pudo obtener la Public Key.');
-
-      const mp = new window.MercadoPago(keyData.publicKey, {
-        locale: 'es-PE',
-      });
-
-      const yape = mp.yape({
-        otp,
-        phoneNumber,
-      });
-
+      const mp = new window.MercadoPago(keyData.publicKey, { locale: 'es-PE' });
+      const yape = mp.yape({ otp, phoneNumber });
       const yapeToken = await yape.create();
 
       const response = await fetch(`${apiBaseURL}/yape/process-payment`, {
@@ -140,6 +104,8 @@ export default function YapePayment({
           token: yapeToken.id,
           amount: Number(amount),
           email,
+          phone_number: phoneNumber,
+          otp,
           ...(usuario ? { usuario } : {}),
           ...(encomiendaId ? { encomienda_id: Number(encomiendaId) } : {}),
         }),

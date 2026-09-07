@@ -1,6 +1,5 @@
 import React, { useEffect, useId, useMemo, useRef, useState } from 'react';
 import { apiBaseURL } from '../../services/apiClient.js';
-import SimulatedPaymentForm from './SimulatedPaymentForm.jsx';
 
 function getPaymentErrorMessage(data, fallback) {
   if (Array.isArray(data?.detail)) {
@@ -41,8 +40,6 @@ export default function MercadoPagoBrick({
 }) {
   const [status, setStatus] = useState('');
   const [message, setMessage] = useState('');
-  const [externalFlowEnabled, setExternalFlowEnabled] = useState(null);
-  const isTestEnvironment = false;
   const callbacksRef = useRef({
     onApproved,
     onPending,
@@ -63,21 +60,6 @@ export default function MercadoPagoBrick({
       onError,
     };
   }, [onApproved, onError, onPending, onRejected]);
-
-  useEffect(() => {
-    let cancelled = false;
-    fetch(`${apiBaseURL}/payments/mode`)
-      .then((response) => readPaymentResponse(response, 'No se pudo consultar el modo de pago.'))
-      .then((data) => { if (!cancelled) setExternalFlowEnabled(data.mercadopago_enabled !== false); })
-      .catch((error) => {
-        if (!cancelled) {
-          setExternalFlowEnabled(true);
-          setStatus('error');
-          setMessage(error.message);
-        }
-      });
-    return () => { cancelled = true; };
-  }, []);
 
   useEffect(() => {
     let brickController = null;
@@ -112,7 +94,6 @@ export default function MercadoPagoBrick({
     };
 
     const loadBrick = async () => {
-      if (externalFlowEnabled !== true) return;
       try {
         const normalizedAmount = Number(amount);
         if (!Number.isFinite(normalizedAmount) || normalizedAmount <= 0) {
@@ -169,7 +150,7 @@ export default function MercadoPagoBrick({
               updateStatus('', '');
             },
 
-            onSubmit: async ({ formData }) => {
+            onSubmit: async ({ formData }, additionalData = {}) => {
               try {
                 updateStatus('processing', 'Procesando pago con tarjeta...');
 
@@ -180,6 +161,7 @@ export default function MercadoPagoBrick({
                 const paymentPayload = {
                   ...formData,
                   description: formData.description || 'Pago encomienda - Carmencita Express',
+                  cardholder_name: additionalData.cardholderName || formData.cardholderName || '',
                   usuario: String(usuario || payerEmail || '').trim() || effectivePayerEmail,
                   ...(encomiendaId ? { encomienda_id: Number(encomiendaId) } : {}),
                   payer: { ...(formData.payer || {}), email: effectivePayerEmail || formData.payer?.email },
@@ -254,33 +236,11 @@ export default function MercadoPagoBrick({
         container.innerHTML = '';
       }
     };
-  }, [amount, containerId, encomiendaId, externalFlowEnabled, payerEmail, payerName, usuario]);
-
-  if (externalFlowEnabled === false) {
-    return (
-      <SimulatedPaymentForm
-        method="card"
-        amount={amount}
-        email={payerEmail}
-        usuario={usuario}
-        encomiendaId={encomiendaId}
-        onApproved={onApproved}
-        onPending={onPending}
-        onRejected={onRejected}
-        onError={onError}
-      />
-    );
-  }
+  }, [amount, containerId, encomiendaId, payerEmail, payerName, usuario]);
 
   return (
     <div className="min-h-[328px] rounded-md bg-white">
       <div id={containerId} className="min-h-[250px]" />
-
-      {isTestEnvironment && (
-        <p className="mt-3 rounded-md border border-amber-200 bg-amber-50 px-3 py-2 text-xs font-semibold text-amber-800">
-          Entorno de prueba: para simular aprobacion usa titular APRO y un DNI peruano de 8 digitos.
-        </p>
-      )}
 
       {status && (
         <div

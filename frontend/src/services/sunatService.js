@@ -7,7 +7,7 @@ function normalizePayload(payload) {
 }
 
 function buildPdfPath(serie, numero) {
-  return `/sunat/boletas/mock/${encodeURIComponent(serie)}/${encodeURIComponent(numero)}/pdf`;
+  return `/sunat/boletas/${encodeURIComponent(serie)}/${encodeURIComponent(numero)}/pdf`;
 }
 
 export function buildMockPdfURLFromResponse(pdfUrl) {
@@ -35,12 +35,8 @@ export async function descargarPdfMock(pdfUrl, serie, numero) {
 }
 
 export async function generarPdfBetaDesdeEncomienda(payload) {
-  const response = await apiClient.post(
-    '/sunat/boletas/beta/pdf-desde-encomienda',
-    normalizePayload(payload),
-    { responseType: 'blob' },
-  );
-  return response.data;
+  const receipt = await emitirBoletaDesdeEncomienda(payload);
+  return descargarPdfMock(receipt.pdf_url, receipt.serie, receipt.numero);
 }
 
 export async function generarXmlBetaDesdeEncomienda(payload) {

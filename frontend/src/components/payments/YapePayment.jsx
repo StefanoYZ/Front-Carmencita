@@ -1,7 +1,6 @@
 import React, { useEffect, useState } from 'react';
 import { apiBaseURL } from '../../services/apiClient.js';
 import { sanitizeDigits } from '../../utils/shipmentValidation.js';
-import SimulatedPaymentForm from './SimulatedPaymentForm.jsx';
 
 function getPaymentErrorMessage(data, fallback) {
   if (Array.isArray(data?.detail)) {
@@ -64,22 +63,6 @@ export default function YapePayment({
     return () => { cancelled = true; };
   }, []);
 
-  if (externalFlowEnabled === false) {
-    return (
-      <SimulatedPaymentForm
-        method="yape"
-        amount={amount}
-        email={email}
-        usuario={usuario}
-        encomiendaId={encomiendaId}
-        onApproved={onApproved}
-        onPending={onPending}
-        onRejected={onRejected}
-        onError={onError}
-      />
-    );
-  }
-
   const loadMercadoPagoSDK = () => {
     return new Promise((resolve, reject) => {
       if (window.MercadoPago) {
@@ -115,21 +98,16 @@ export default function YapePayment({
         return;
       }
 
-      await loadMercadoPagoSDK();
-
-      const keyResponse = await fetch(`${apiBaseURL}/payments/public-key`);
-      const keyData = await readPaymentResponse(keyResponse, 'No se pudo obtener la Public Key.');
-
-      const mp = new window.MercadoPago(keyData.publicKey, {
-        locale: 'es-PE',
-      });
-
-      const yape = mp.yape({
-        otp,
-        phoneNumber,
-      });
-
-      const yapeToken = await yape.create();
+      let token = '';
+      if (externalFlowEnabled !== false) {
+        await loadMercadoPagoSDK();
+        const keyResponse = await fetch(`${apiBaseURL}/payments/public-key`);
+        const keyData = await readPaymentResponse(keyResponse, 'No se pudo obtener la Public Key.');
+        const mp = new window.MercadoPago(keyData.publicKey, { locale: 'es-PE' });
+        const yape = mp.yape({ otp, phoneNumber });
+        const yapeToken = await yape.create();
+        token = yapeToken.id;
+      }
 
       const response = await fetch(`${apiBaseURL}/yape/process-payment`, {
         method: 'POST',
@@ -137,9 +115,11 @@ export default function YapePayment({
           'Content-Type': 'application/json',
         },
         body: JSON.stringify({
-          token: yapeToken.id,
+          token,
           amount: Number(amount),
           email,
+          phone_number: phoneNumber,
+          otp,
           ...(usuario ? { usuario } : {}),
           ...(encomiendaId ? { encomienda_id: Number(encomiendaId) } : {}),
         }),
@@ -209,7 +189,7 @@ export default function YapePayment({
       <button
         type="button"
         onClick={handleYapePayment}
-        disabled={loading || !phoneNumber || Boolean(phoneError) || otp.length !== 6}
+        disabled={loading || externalFlowEnabled === null || !phoneNumber || Boolean(phoneError) || otp.length !== 6}
         className="min-h-11 w-full rounded-md bg-brand-green px-4 py-2 text-sm font-black text-white transition hover:bg-brand-dark disabled:cursor-not-allowed disabled:opacity-60"
       >
         {loading ? 'Procesando...' : 'Pagar con Yape'}

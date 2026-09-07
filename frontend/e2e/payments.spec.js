@@ -7,6 +7,7 @@ async function installMercadoPagoStub(page) {
       bricks() {
         return {
           create: async (_type, containerId, config) => {
+            window.__paymentBrickConfig = config;
             const container = document.getElementById(containerId);
             const button = document.createElement('button');
             button.type = 'button';
@@ -52,7 +53,12 @@ test.beforeEach(async ({ page }) => {
 test('pago aprobado con tarjeta crea encomienda y habilita etiqueta', async ({ page }) => {
   let shipmentCalls = 0;
   await page.route('**/api/v1/payments/process-payment', async (route) => {
-    expect(route.request().postDataJSON().token).toBe('TEST_QA_CARD_TOKEN');
+    const payment = route.request().postDataJSON();
+    expect(payment.token).toBe('TEST_QA_CARD_TOKEN');
+    expect(payment.payer).toMatchObject({
+      entity_type: 'individual',
+      identification: { type: 'DNI', number: '70123456' },
+    });
     await route.fulfill({
       status: 200,
       contentType: 'application/json',
@@ -80,6 +86,13 @@ test('pago aprobado con tarjeta crea encomienda y habilita etiqueta', async ({ p
   await page.goto('/registrar-envio', { waitUntil: 'domcontentloaded' });
   await fillShipmentForm(page);
   await page.getByRole('button', { name: /tarjeta debito\/credito/i }).click();
+  await expect.poll(() => page.evaluate(() => ({
+    entityType: window.__paymentBrickConfig?.initialization?.payer?.entityType,
+    identification: window.__paymentBrickConfig?.initialization?.payer?.identification,
+  }))).toEqual({
+    entityType: 'individual',
+    identification: { type: 'DNI', number: '70123456' },
+  });
   await page.getByRole('button', { name: 'Simular pago tarjeta QA' }).click();
 
   await expect(page).toHaveURL(/registro-exitoso/);

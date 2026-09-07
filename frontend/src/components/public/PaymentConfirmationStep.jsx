@@ -191,6 +191,7 @@ function PaymentConfirmationStep({
               amount={quote.total}
               payerEmail={form.remitente_correo || 'test@test.com'}
               payerName={form.remitente_nombre || 'Cliente'}
+              payerDocument={form.remitente_numero_documento || ''}
               encomiendaId={encomiendaId}
               usuario={usuario}
               onApproved={(paymentResult) => onDigitalApproved?.('card', paymentResult)}

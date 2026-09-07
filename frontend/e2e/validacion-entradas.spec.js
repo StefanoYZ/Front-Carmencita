@@ -156,9 +156,8 @@ test.describe('Flujos ilogicos de UI', () => {
   test('el DNI descarta letras y se limita a 8 digitos', async ({ page }) => {
     await page.goto('/registrar-envio', { waitUntil: 'domcontentloaded' });
     const dni = page.getByLabel('Numero de documento').first();
-    await dni.fill('AB12CD34EF56');           // mezcla de letras y digitos
-    // El campo sanitiza a solo digitos y no supera 8 caracteres.
-    await expect(dni).toHaveValue(/^\d{1,8}$/);
+    await dni.pressSequentially('AB12CD34EF56789');
+    await expect(dni).toHaveValue('12345678');
   });
 
   test('el registro publico muestra la explicacion del siguiente paso', async ({ page }) => {

@@ -44,7 +44,7 @@ export async function getOptimizationTestMode() {
 }
 
 export async function setOptimizationTestMode(active, count = null) {
-  // count null -> el backend elige cantidad y semilla al azar (lote distinto cada vez).
+  // count null -> el backend carga el lote exacto de 25 paquetes.
   const payload = count != null ? { active, count } : { active };
   const response = await apiClient.post('/developer/optimizacion/modo-prueba', payload);
   return response.data;

@@ -31,6 +31,7 @@ export default function MercadoPagoBrick({
   amount = 100,
   payerEmail = 'test@test.com',
   payerName = 'Cliente',
+  payerDocument = '',
   encomiendaId = null,
   usuario = '',
   onApproved,
@@ -121,6 +122,8 @@ export default function MercadoPagoBrick({
 
         const bricksBuilder = mp.bricks();
         const normalizedName = String(payerName || 'Cliente').trim();
+        const normalizedDocument = String(payerDocument || '').trim();
+        const validPayerDocument = /^\d{8}$/.test(normalizedDocument) ? normalizedDocument : '';
         const [firstName, ...lastNameParts] = normalizedName.split(/\s+/);
         const activeContainer = document.getElementById(containerId);
         if (!mounted || !activeContainer) return;
@@ -132,6 +135,10 @@ export default function MercadoPagoBrick({
               email: effectivePayerEmail,
               firstName: firstName || 'Cliente',
               lastName: lastNameParts.join(' '),
+              entityType: 'individual',
+              ...(validPayerDocument
+                ? { identification: { type: 'DNI', number: validPayerDocument } }
+                : {}),
             },
           },
           customization: {
@@ -159,6 +166,13 @@ export default function MercadoPagoBrick({
                   throw new Error('Mercado Pago no genero el token de la tarjeta.');
                 }
 
+                const identification = formData?.payer?.identification || {};
+                const identificationType = String(identification.type || 'DNI').trim().toUpperCase();
+                const identificationNumber = validPayerDocument || String(identification.number || '').trim();
+                if (identificationType === 'DNI' && !/^\d{8}$/.test(identificationNumber)) {
+                  throw new Error('El DNI del titular debe tener exactamente 8 digitos.');
+                }
+
                 const paymentPayload = {
                   ...formData,
                   description: formData.description || 'Pago encomienda - Carmencita Express',
@@ -167,6 +181,11 @@ export default function MercadoPagoBrick({
                   payer: {
                     ...(formData.payer || {}),
                     email: effectivePayerEmail || formData.payer?.email,
+                    entity_type: 'individual',
+                    identification: {
+                      type: identificationType,
+                      number: identificationNumber,
+                    },
                   },
                 };
 
@@ -239,7 +258,7 @@ export default function MercadoPagoBrick({
         container.innerHTML = '';
       }
     };
-  }, [amount, containerId, encomiendaId, payerEmail, payerName, usuario]);
+  }, [amount, containerId, encomiendaId, payerDocument, payerEmail, payerName, usuario]);
 
   return (
     <div className="min-h-[328px] rounded-md bg-white">
@@ -247,7 +266,7 @@ export default function MercadoPagoBrick({
 
       {isTestEnvironment && (
         <p className="mt-3 rounded-md border border-amber-200 bg-amber-50 px-3 py-2 text-xs font-semibold text-amber-800">
-          Entorno de prueba: para simular aprobación usa titular APRO y documento 123456789.
+          Entorno de prueba: para simular aprobacion usa titular APRO y un DNI peruano de 8 digitos.
         </p>
       )}
 

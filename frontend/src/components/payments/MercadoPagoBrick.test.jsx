@@ -41,7 +41,7 @@ describe('MercadoPagoBrick', () => {
     expect(onError).not.toHaveBeenCalled();
   });
 
-  it('crea solo metodos de tarjeta sin mostrar instrucciones amarillas', async () => {
+  it('inicializa el pagador individual con DNI peruano de 8 digitos', async () => {
     const create = vi.fn().mockResolvedValue({ unmount: vi.fn() });
     window.MercadoPago = vi.fn(() => ({
       bricks: () => ({ create }),
@@ -51,7 +51,7 @@ describe('MercadoPagoBrick', () => {
       text: async () => JSON.stringify({ publicKey: 'TEST-public-key' }),
     }));
 
-    const view = render(<MercadoPagoBrick amount={25} />);
+    const view = render(<MercadoPagoBrick amount={25} payerDocument="70123456" />);
     await waitFor(() => expect(create).toHaveBeenCalledOnce());
 
     const [, , settings] = create.mock.calls[0];
@@ -60,7 +60,41 @@ describe('MercadoPagoBrick', () => {
       debitCard: 'all',
       maxInstallments: 1,
     });
-    expect(settings.initialization.payer).not.toHaveProperty('entityType');
+    expect(settings.initialization.payer).toMatchObject({
+      entityType: 'individual',
+      identification: { type: 'DNI', number: '70123456' },
+    });
     expect(view.queryByText(/entorno de prueba/i)).not.toBeInTheDocument();
+  });
+
+  it('no envia un pago cuando el Brick devuelve un DNI de 9 digitos', async () => {
+    const create = vi.fn().mockResolvedValue({ unmount: vi.fn() });
+    window.MercadoPago = vi.fn(() => ({
+      bricks: () => ({ create }),
+    }));
+    vi.stubGlobal('fetch', vi.fn().mockResolvedValue({
+      ok: true,
+      text: async () => JSON.stringify({ publicKey: 'TEST-public-key' }),
+    }));
+    const onError = vi.fn();
+
+    render(<MercadoPagoBrick amount={25} onError={onError} />);
+    await waitFor(() => expect(create).toHaveBeenCalledOnce());
+    const [, , settings] = create.mock.calls[0];
+
+    await act(async () => {
+      await expect(settings.callbacks.onSubmit({
+        formData: {
+          token: 'TEST-token',
+          payer: {
+            email: 'test@test.com',
+            identification: { type: 'DNI', number: '123456789' },
+          },
+        },
+      })).rejects.toThrow('El DNI del titular debe tener exactamente 8 digitos.');
+    });
+
+    expect(fetch).toHaveBeenCalledOnce();
+    expect(onError).toHaveBeenCalledOnce();
   });
 });

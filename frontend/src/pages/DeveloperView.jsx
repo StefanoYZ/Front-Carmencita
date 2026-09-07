@@ -198,7 +198,7 @@ function OptimizationTestModeCard({ canWrite, onNotify }) {
       onNotify?.(
         'success',
         nextActive
-          ? `Modo prueba ACTIVADO: se generaron ${data.count} paquetes variados para la optimizacion.`
+          ? `Modo prueba ACTIVADO: se cargaron ${data.count} paquetes exactos para la optimizacion.`
           : 'Modo prueba APAGADO: la optimizacion usa las encomiendas reales de la web.',
       );
     } catch (toggleError) {
@@ -221,7 +221,7 @@ function OptimizationTestModeCard({ canWrite, onNotify }) {
             <h3 className="text-base font-black text-brand-black">Modo prueba de optimizacion</h3>
             <p className="mt-0.5 text-sm text-brand-gray">
               {active
-                ? `Activo: la optimizacion 3D usa ${status?.count ?? 0} paquetes de prueba generados.`
+                ? `Activo: usa ${status?.count ?? 0} paquetes exactos y agrega las encomiendas nuevas.`
                 : 'Apagado: la optimizacion 3D usa las encomiendas reales registradas por la web.'}
             </p>
           </div>

@@ -18,23 +18,23 @@ test.describe('Aterrizaje por rol tras iniciar sesión', () => {
     await expect(page).toHaveURL(/\/admin\/optimizacion-carga/);
   });
 
-  test('E2E-UI-03 · ADMINISTRADOR aterriza en el dashboard', async ({ page }) => {
-    await page.route('**/api/v1/encomiendas', (route) => route.fulfill({
+  test('E2E-UI-03 · ADMIN_GENERAL aterriza en agencias', async ({ page }) => {
+    await page.route('**/api/v1/agencias', (route) => route.fulfill({
       status: 200, contentType: 'application/json', body: '[]',
     }));
     await loginAs(page, roleUsers.admin);
-    await expect(page).toHaveURL(/\/admin\/dashboard/);
+    await expect(page).toHaveURL(/\/admin\/agencias/);
   });
 });
 
 test('E2E-UI-04 · la tecla Enter envía el formulario de login', async ({ page }) => {
   // Antes era un caso manual ("probar Enter en el formulario"). Aquí se automatiza:
   // con foco en el campo de contraseña, Enter debe disparar el submit y redirigir.
-  await page.route('**/api/v1/encomiendas', (route) => route.fulfill({
+  await page.route('**/api/v1/agencias', (route) => route.fulfill({
     status: 200, contentType: 'application/json', body: '[]',
   }));
   await loginAs(page, roleUsers.admin, { submitWithEnter: true });
-  await expect(page).toHaveURL(/\/admin\/dashboard/);
+  await expect(page).toHaveURL(/\/admin\/agencias/);
 });
 
 test.describe('Rutas protegidas sin sesión', () => {

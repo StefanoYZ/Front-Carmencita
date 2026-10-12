@@ -1,5 +1,7 @@
-import React, { useEffect, useState } from 'react';
-import { getEncomiendaByCodigo } from '../../services/encomiendasService.js';
+import { useEffect, useState } from 'react';
+import { Link } from 'react-router-dom';
+import { ArrowRight, MessageSquareWarning } from 'lucide-react';
+import { getPublicShipmentStatus } from '../../services/encomiendasService.js';
 import {
   formatShipmentCode,
   isCompleteTrackingCode,
@@ -46,7 +48,7 @@ function TrackingCard({ initialCode = '' }) {
       setLoading(true);
       setMessage('');
       setResult(null);
-      const data = await getEncomiendaByCodigo(parseShipmentCode(cleanCode));
+      const data = await getPublicShipmentStatus(parseShipmentCode(cleanCode));
       setResult(data);
     } catch (error) {
       setResult(null);
@@ -137,12 +139,9 @@ function TrackingCard({ initialCode = '' }) {
               <p className="text-gray-500">Estado actual</p>
               <p className="font-black text-[#3C5940]">{result.estado || 'Sin estado'}</p>
             </div>
-            <div>
-              <p className="text-gray-500">Destinatario</p>
-              <p className="font-black text-[#212529]">{result.destinatario_nombre || '-'}</p>
-            </div>
           </div>
         )}
+        {result && <Link to={`/reclamos?codigo=${encodeURIComponent(result.codigo_encomienda)}`} className="group mt-4 inline-flex min-h-9 items-center gap-2 rounded-lg border border-brand-green/40 bg-[#edf6e8] px-3 py-2 text-xs font-bold text-brand-dark transition hover:border-brand-green hover:bg-brand-lime/20 focus-visible:outline focus-visible:outline-2 focus-visible:outline-brand-green"><MessageSquareWarning size={16} className="text-brand-green" aria-hidden="true" />¿Problemas con esta encomienda? Reclama aquí <ArrowRight size={14} className="text-brand-green transition-transform group-hover:translate-x-0.5" aria-hidden="true" /></Link>}
       </div>
     </article>
   );

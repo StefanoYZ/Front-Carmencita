@@ -1,7 +1,7 @@
 import apiClient from './apiClient.js';
 
-export async function createEncomienda(payload) {
-  const response = await apiClient.post('/encomiendas', payload);
+export async function createEncomienda(payload, agencyId) {
+  const response = await apiClient.post(agencyId ? `/agencias/${agencyId}/encomiendas` : '/encomiendas', payload);
   return response.data;
 }
 
@@ -36,6 +36,11 @@ export async function getEncomiendaById(id) {
 }
 
 export async function getEncomiendaByCodigo(codigo) {
+  const response = await apiClient.get(`/encomiendas/interno/codigo/${encodeURIComponent(codigo)}`);
+  return response.data;
+}
+
+export async function getPublicShipmentStatus(codigo) {
   const response = await apiClient.get(`/encomiendas/codigo/${encodeURIComponent(codigo)}`);
   return response.data;
 }

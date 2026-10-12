@@ -1,32 +1,27 @@
 export const adminNavigationItems = [
   {
-    label: 'Dashboard',
-    path: '/admin/dashboard',
+    label: 'Agencias',
+    path: '/admin/agencias',
     anyOf: [],
-    roles: ['ADMINISTRADOR', 'SECRETARIA'],
+    roles: ['ADMIN_GENERAL'],
+  },
+  {
+    label: 'Mi agencia',
+    path: '/admin/agencias/mia',
+    anyOf: [],
+    roles: ['AGENCY_ADMIN'],
   },
   {
     label: 'Clientes',
     path: '/admin/clientes',
-    anyOf: ['encomiendas.write', 'users.read'],
-    roles: ['ADMINISTRADOR', 'SECRETARIA'],
+    anyOf: [],
+    roles: ['ADMIN_GENERAL'],
   },
   {
-    label: 'Encomiendas',
-    path: '/admin/encomiendas',
-    anyOf: ['encomiendas.read'],
-  },
-  {
-    label: 'Destinos',
+    label: 'Lugares',
     path: '/admin/destinos',
-    anyOf: ['encomiendas.write'],
-    roles: ['ADMINISTRADOR', 'SECRETARIA'],
-  },
-  {
-    label: 'Usuarios internos',
-    path: '/admin/usuarios',
-    anyOf: ['users.read'],
-    roles: ['ADMINISTRADOR'],
+    anyOf: [],
+    roles: ['ADMIN_GENERAL'],
   },
   {
     label: 'Vista Developer',
@@ -60,7 +55,7 @@ export function hasRole(user, roles = []) {
 export function hasAnyPermission(user, permissions = []) {
   const requiredPermissions = permissions.filter(Boolean);
   if (requiredPermissions.length === 0) return true;
-  if (hasRole(user, ['ADMINISTRADOR'])) return true;
+  if (hasRole(user, ['ADMIN_GENERAL'])) return true;
   const currentPermissions = getUserPermissions(user);
   return requiredPermissions.some((permission) => currentPermissions.includes(permission));
 }
@@ -76,16 +71,32 @@ export function getAllowedNavigation(user) {
   return adminNavigationItems.filter((item) => canAccess(user, item));
 }
 
+export function getAgencyNavigation(user, agencyId) {
+  if (!agencyId || !hasRole(user, ['ADMIN_GENERAL', 'AGENCY_ADMIN'])) return [];
+  if (hasRole(user, ['AGENCY_ADMIN']) && Number(user.agency_id) !== Number(agencyId)) return [];
+  const root = `/admin/agencias/${agencyId}`;
+  return [
+    { label: 'Dashboard', path: root },
+    { label: 'Encomiendas', path: `${root}/encomiendas` },
+    { label: 'Clientes', path: `${root}/clientes` },
+    { label: 'Reclamos', path: `${root}/reclamos` },
+    { label: 'Usuarios internos', path: `${root}/usuarios` },
+  ];
+}
+
 export function getRoleHomePath(user) {
+  if (hasRole(user, ['ADMIN_GENERAL'])) return '/admin/agencias';
+  if (hasRole(user, ['AGENCY_ADMIN'])) {
+    return user?.agency_id ? `/admin/agencias/${user.agency_id}` : '/login';
+  }
   if (hasRole(user, ['ESTIBA']) && hasAnyPermission(user, ['optimization.read'])) {
     return '/admin/optimizacion-carga';
   }
-  if (hasRole(user, ['DEVELOPER']) && !hasRole(user, ['ADMINISTRADOR', 'SECRETARIA'])) {
+  if (hasRole(user, ['DEVELOPER']) && !hasRole(user, ['ADMIN_GENERAL', 'SECRETARIA', 'AGENCY_ADMIN'])) {
     return '/admin/developer';
   }
   if (hasRole(user, ['SECRETARIA']) && canAccess(user, { anyOf: ['encomiendas.write'] })) {
     return '/secretaria';
   }
-  if (hasRole(user, ['ADMINISTRADOR'])) return '/admin/dashboard';
   return getAllowedNavigation(user)[0]?.path || '/login';
 }

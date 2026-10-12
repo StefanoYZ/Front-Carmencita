@@ -14,14 +14,20 @@ function alignClass(align) {
   return 'text-left';
 }
 
-function DataTable({ columns, data, emptyMessage = 'No hay registros disponibles.', caption }) {
+function DataTable({
+  columns,
+  data,
+  emptyMessage = 'No hay registros disponibles.',
+  caption,
+  headerClassName = 'border-b border-gray-200 bg-gradient-to-b from-brand-surface to-white',
+}) {
   return (
     <div className="overflow-hidden rounded-2xl border border-gray-200/70 bg-white shadow-[0_1px_2px_rgba(33,37,41,0.04),0_14px_34px_-18px_rgba(33,37,41,0.22)]">
       <div className="overflow-x-auto">
         <table className="min-w-full text-sm">
           {caption && <caption className="sr-only">{caption}</caption>}
           <thead>
-            <tr className="border-b border-gray-200 bg-gradient-to-b from-brand-surface to-white">
+            <tr className={headerClassName}>
               {columns.map((column) => (
                 <th
                   key={column.accessor}

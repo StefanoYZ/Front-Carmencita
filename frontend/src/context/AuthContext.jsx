@@ -39,6 +39,7 @@ export function AuthProvider({ children }) {
 
   useEffect(() => {
     const handleExpiredSession = () => {
+      if (!isAuthenticated) return;
       logout();
       navigate('/login', {
         replace: true,
@@ -48,7 +49,7 @@ export function AuthProvider({ children }) {
 
     window.addEventListener('carmencita:auth-expired', handleExpiredSession);
     return () => window.removeEventListener('carmencita:auth-expired', handleExpiredSession);
-  }, [logout, navigate]);
+  }, [isAuthenticated, logout, navigate]);
 
   useEffect(() => {
     if (

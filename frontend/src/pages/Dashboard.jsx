@@ -10,6 +10,8 @@ import DataTable from '../components/tables/DataTable.jsx';
 import { useAuth } from '../context/AuthContext.jsx';
 import { getApiErrorMessage } from '../services/apiClient.js';
 import { getEncomiendas } from '../services/encomiendasService.js';
+import { getAgencyDashboard } from '../services/agenciasService.js';
+import { userRoleLabels } from '../utils/roleLabels.js';
 
 const columns = [
   { header: 'Codigo', accessor: 'codigo_encomienda' },
@@ -32,10 +34,16 @@ function sortShipmentsByRecent(items) {
   });
 }
 
-function Dashboard() {
+function Dashboard({ agencyId, agencyName }) {
   const { user } = useAuth();
-  const allowedLinks = getAllowedNavigation(user).filter((item) => item.path !== '/admin/dashboard');
+  const allowedLinks = agencyId
+    ? [
+      { label: 'Encomiendas', path: `/admin/agencias/${agencyId}/encomiendas` },
+      { label: 'Usuarios internos', path: `/admin/agencias/${agencyId}/usuarios` },
+    ]
+    : getAllowedNavigation(user).filter((item) => item.path !== '/admin/dashboard');
   const [shipments, setShipments] = useState([]);
+  const [agencySummary, setAgencySummary] = useState(null);
   const [loadingShipments, setLoadingShipments] = useState(true);
   const [shipmentsError, setShipmentsError] = useState('');
 
@@ -44,7 +52,22 @@ function Dashboard() {
       try {
         setLoadingShipments(true);
         setShipmentsError('');
-        setShipments(await getEncomiendas());
+        if (agencyId) {
+          const summary = await getAgencyDashboard(agencyId);
+          setAgencySummary(summary);
+          setShipments(summary.recent_shipments.map((item) => ({
+            ...item,
+            codigo_encomienda: item.shipment_code,
+            origen: item.origin,
+            destino: item.destination,
+            destinatario_nombre: item.recipient_name,
+            peso_kg: item.weight_kg,
+            estado: item.status,
+            fecha_creacion: item.created_at,
+          })));
+        } else {
+          setShipments(await getEncomiendas());
+        }
       } catch (error) {
         setShipmentsError(getApiErrorMessage(error, 'No se pudo cargar las ultimas encomiendas.'));
       } finally {
@@ -53,44 +76,48 @@ function Dashboard() {
     }
 
     loadShipments();
-  }, []);
+  }, [agencyId]);
 
   const latestShipments = useMemo(() => sortShipmentsByRecent(shipments).slice(0, 5), [shipments]);
   const dashboardStats = useMemo(() => {
-    const active = shipments.filter((shipment) => !['ENTREGADA', 'ANULADA'].includes(shipment.estado)).length;
-    const delivered = shipments.filter((shipment) => shipment.estado === 'ENTREGADA').length;
-    const preRegistered = shipments.filter((shipment) => shipment.estado === 'PRE_REGISTRADA').length;
+    const active = agencySummary?.active_shipments ?? shipments.filter((shipment) => !['ENTREGADA', 'ANULADA'].includes(shipment.estado)).length;
+    const delivered = agencySummary?.delivered_shipments ?? shipments.filter((shipment) => shipment.estado === 'ENTREGADA').length;
+    const preRegistered = agencySummary?.status_counts?.PRE_REGISTRADA ?? shipments.filter((shipment) => shipment.estado === 'PRE_REGISTRADA').length;
     return [
-      { label: 'Encomiendas totales', value: shipments.length, accent: 'bg-brand-green', icon: Package, ring: 'from-brand-green/15 to-brand-green/5 text-brand-green' },
+      { label: 'Encomiendas totales', value: agencySummary?.total_shipments ?? shipments.length, accent: 'bg-brand-green', icon: Package, ring: 'from-brand-green/15 to-brand-green/5 text-brand-green' },
       { label: 'En proceso', value: active, accent: 'bg-brand-dark', icon: Truck, ring: 'from-brand-dark/15 to-brand-dark/5 text-brand-dark' },
       { label: 'Entregadas', value: delivered, accent: 'bg-brand-lime', icon: CheckCircle2, ring: 'from-brand-lime/30 to-brand-lime/10 text-brand-dark' },
       { label: 'Pre-registros', value: preRegistered, accent: 'bg-brand-gray', icon: ClipboardList, ring: 'from-brand-gray/15 to-brand-gray/5 text-brand-gray' },
     ];
-  }, [shipments]);
+  }, [shipments, agencySummary]);
   const statusDistribution = useMemo(() => {
+    const count = (statuses) => agencySummary
+      ? statuses.reduce((total, status) => total + (agencySummary.status_counts?.[status] || 0), 0)
+      : shipments.filter((shipment) => statuses.includes(shipment.estado)).length;
     const groups = [
       {
         label: 'Pendientes',
-        value: shipments.filter((shipment) => ['PRE_REGISTRADA', 'REGISTRADA', 'COTIZADA', 'PAGO_CONFIRMADO', 'BOLETA_EMITIDA'].includes(shipment.estado)).length,
+        value: count(['PRE_REGISTRADA', 'REGISTRADA', 'COTIZADA', 'PAGO_CONFIRMADO', 'BOLETA_EMITIDA']),
         color: '#A3CF84',
       },
       {
         label: 'En camino',
-        value: shipments.filter((shipment) => shipment.estado === 'EN_TRANSITO').length,
+        value: count(['EN_TRANSITO']),
         color: '#28A745',
       },
       {
         label: 'Entregadas',
-        value: shipments.filter((shipment) => shipment.estado === 'ENTREGADA').length,
+        value: count(['ENTREGADA']),
         color: '#3C5940',
       },
       {
         label: 'Anuladas',
-        value: shipments.filter((shipment) => shipment.estado === 'ANULADA').length,
+        value: count(['ANULADA']),
         color: '#6C757D',
       },
     ];
-    const total = Math.max(shipments.length, 1);
+    const totalCount = agencySummary?.total_shipments ?? shipments.length;
+    const total = Math.max(totalCount, 1);
     let offset = 0;
     const segments = groups.map((group) => {
       const start = offset;
@@ -100,9 +127,9 @@ function Dashboard() {
     return {
       groups,
       max: Math.max(...groups.map((group) => group.value), 1),
-      gradient: shipments.length ? `conic-gradient(${segments.join(', ')})` : '#E4ECE2',
+      gradient: totalCount ? `conic-gradient(${segments.join(', ')})` : '#E4ECE2',
     };
-  }, [shipments]);
+  }, [shipments, agencySummary]);
 
   return (
     <div className="space-y-6">
@@ -114,11 +141,11 @@ function Dashboard() {
             <p className="text-xs font-black uppercase tracking-[0.18em] text-brand-lime">Panel operativo</p>
             <h2 className="mt-1.5 text-3xl font-black tracking-tight text-white">Dashboard</h2>
             <p className="mt-2 max-w-3xl text-sm leading-6 text-white/75">
-              Resumen operativo para {user?.full_name || user?.username || 'usuario interno'}.
+               Resumen operativo de {agencyName || user?.full_name || user?.username || 'usuario interno'}.
             </p>
           </div>
           <div className="rounded-2xl border border-white/15 bg-white/10 px-4 py-3 text-sm backdrop-blur">
-            <p className="font-bold text-white">{(user?.roles || []).join(', ') || 'Sin rol asignado'}</p>
+            <p className="font-bold text-white">{userRoleLabels(user)}</p>
             <p className="mt-1 text-brand-lime/90">{user?.permissions?.length || 0} permisos habilitados</p>
           </div>
         </div>
@@ -174,7 +201,7 @@ function Dashboard() {
             >
               <div className="grid h-24 w-24 place-items-center rounded-full bg-white text-center shadow-inner">
                 <div>
-                  <strong className="block text-2xl text-brand-black">{shipments.length}</strong>
+                  <strong className="block text-2xl text-brand-black">{agencySummary?.total_shipments ?? shipments.length}</strong>
                   <span className="text-xs font-semibold text-brand-gray">Total</span>
                 </div>
               </div>

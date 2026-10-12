@@ -11,7 +11,7 @@ import { getApiErrorMessage } from '../services/apiClient.js';
 import { createDestino, getDestinos, updateDestino } from '../services/destinosService.js';
 
 const columns = [
-  { header: 'Destino', accessor: 'nombre', cell: (row) => <span className="font-semibold text-brand-black">{row.nombre}</span> },
+  { header: 'Lugar', accessor: 'nombre', cell: (row) => <span className="font-semibold text-brand-black">{row.nombre}</span> },
   { header: 'Estado', accessor: 'activo', cell: (row) => <StatusBadge value={row.activo ? 'ACTIVO' : 'INACTIVO'} /> },
 ];
 
@@ -29,7 +29,7 @@ function Destinos() {
       setError('');
       setDestinos(await getDestinos({ incluirInactivos: true }));
     } catch (loadError) {
-      setError(getApiErrorMessage(loadError, 'No se pudo cargar destinos.'));
+      setError(getApiErrorMessage(loadError, 'No se pudieron cargar los lugares.'));
     } finally {
       setLoading(false);
     }
@@ -43,7 +43,7 @@ function Destinos() {
     event.preventDefault();
     const normalized = nombre.trim();
     if (normalized.length < 2) {
-      setError('Ingresa un destino valido.');
+      setError('Ingresa un lugar válido.');
       return;
     }
 
@@ -53,10 +53,10 @@ function Destinos() {
       setMessage('');
       await createDestino({ nombre: normalized });
       setNombre('');
-      setMessage('Destino agregado correctamente.');
+      setMessage('Lugar agregado correctamente.');
       await loadDestinos();
     } catch (saveError) {
-      setError(getApiErrorMessage(saveError, 'No se pudo agregar el destino.'));
+      setError(getApiErrorMessage(saveError, 'No se pudo agregar el lugar.'));
     } finally {
       setSaving(false);
     }
@@ -69,7 +69,7 @@ function Destinos() {
       await updateDestino(destino.id, { activo: !destino.activo });
       await loadDestinos();
     } catch (updateError) {
-      setError(getApiErrorMessage(updateError, 'No se pudo actualizar el destino.'));
+      setError(getApiErrorMessage(updateError, 'No se pudo actualizar el lugar.'));
     }
   };
 
@@ -105,8 +105,8 @@ function Destinos() {
   return (
     <div className="space-y-6">
       <div>
-        <h2 className="page-title">Destinos</h2>
-        <p className="page-subtitle">Catalogo usado como sugerencia para origen y destino en encomiendas.</p>
+        <h2 className="page-title">Lugares</h2>
+        <p className="page-subtitle">Paradas de la ruta; solo los lugares registrados como agencia tienen oficina física.</p>
       </div>
 
       {error && <Alert tone="error">{error}</Alert>}
@@ -115,7 +115,7 @@ function Destinos() {
       <Card>
         <form className="grid gap-4 md:grid-cols-[1fr_auto] md:items-end" onSubmit={handleSubmit}>
           <Input
-            label="Nuevo destino"
+            label="Nuevo lugar"
             value={nombre}
             onChange={(event) => setNombre(event.target.value)}
             placeholder="Ej. Mollepata"
@@ -126,7 +126,7 @@ function Destinos() {
         </form>
       </Card>
 
-      {loading && <Loader label="Cargando destinos..." />}
+      {loading && <Loader label="Cargando lugares..." />}
 
       <Card>
         <DataTable columns={tableColumns} data={destinos} />

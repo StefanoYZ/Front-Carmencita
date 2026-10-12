@@ -4,8 +4,8 @@ const users = {
   admin: {
     username: 'qa_admin',
     full_name: 'TEST QA ADMIN',
-    roles: ['ADMINISTRADOR'],
-    permissions: ['users.read', 'encomiendas.read', 'encomiendas.write'],
+    roles: ['ADMIN_GENERAL'],
+    permissions: ['agencias.read', 'agencias.write', 'users.read'],
   },
 };
 
@@ -21,9 +21,9 @@ async function mockLogin(page, user) {
   }));
 }
 
-test('administrador entra al dashboard y no ve optimizacion', async ({ page }) => {
+test('administrador general entra a agencias y no ve optimizacion', async ({ page }) => {
   await mockLogin(page, users.admin);
-  await page.route('**/api/v1/encomiendas', (route) => route.fulfill({
+  await page.route('**/api/v1/agencias', (route) => route.fulfill({
     status: 200,
     contentType: 'application/json',
     body: '[]',
@@ -33,15 +33,15 @@ test('administrador entra al dashboard y no ve optimizacion', async ({ page }) =
   await page.locator('input[name="password"]').fill('QaPassword123');
   await page.getByRole('button', { name: 'Ingresar' }).click();
 
-  await expect(page).toHaveURL(/admin\/dashboard/);
-  await expect(page.getByRole('heading', { name: 'Dashboard' }).first()).toBeVisible();
+  await expect(page).toHaveURL(/admin\/agencias/);
+  await expect(page.getByRole('heading', { name: 'Agencias' }).first()).toBeVisible();
   await page.goto('/admin/optimizacion-carga', { waitUntil: 'domcontentloaded' });
-  await expect(page).toHaveURL(/admin\/dashboard/);
+  await expect(page).toHaveURL(/admin\/agencias/);
 });
 
 test('una pestaña nueva no reutiliza sessionStorage', async ({ page, context }) => {
   await mockLogin(page, users.admin);
-  await page.route('**/api/v1/encomiendas', (route) => route.fulfill({
+  await page.route('**/api/v1/agencias', (route) => route.fulfill({
     status: 200,
     contentType: 'application/json',
     body: '[]',
@@ -50,7 +50,7 @@ test('una pestaña nueva no reutiliza sessionStorage', async ({ page, context })
   await page.locator('input[name="username"]').fill('qa_admin');
   await page.locator('input[name="password"]').fill('QaPassword123');
   await page.getByRole('button', { name: 'Ingresar' }).click();
-  await expect(page).toHaveURL(/admin\/dashboard/);
+  await expect(page).toHaveURL(/admin\/agencias/);
 
   const secondPage = await context.newPage();
   await secondPage.goto('/admin', { waitUntil: 'domcontentloaded' });

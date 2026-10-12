@@ -1,4 +1,4 @@
-import React, { useEffect, useMemo, useState } from 'react';
+import React, { useCallback, useEffect, useMemo, useState } from 'react';
 import { Link, useNavigate } from 'react-router-dom';
 import { Ban, Eye, FileSpreadsheet, FileText, Loader2, Pencil } from 'lucide-react';
 import Alert from '../components/common/Alert.jsx';
@@ -20,6 +20,7 @@ import {
   generarPdfBetaDesdeEncomienda,
 } from '../services/sunatService.js';
 import { getApiErrorMessage } from '../services/apiClient.js';
+import { getAgencyReport, getAgencyShipments } from '../services/agenciasService.js';
 import { canEditEncomienda, getDimensions, normalizeEncomiendasList, sortEncomiendasByRecent } from '../utils/encomiendas.js';
 import { downloadBlob } from '../utils/downloadBlob.js';
 import { formatDateInput, formatDateTime } from '../utils/formatDate.js';
@@ -27,8 +28,9 @@ import { formatShipmentCode } from '../utils/formatShipmentCode.js';
 
 const PAGE_SIZE = 35;
 
-function Encomiendas() {
+function Encomiendas({ agencyId }) {
   const navigate = useNavigate();
+  const agencyPath = agencyId ? `/admin/agencias/${agencyId}` : '/admin';
   const [rows, setRows] = useState([]);
   const [filters, setFilters] = useState({
     fecha: '',
@@ -41,11 +43,11 @@ function Encomiendas() {
   const [message, setMessage] = useState('');
   const [page, setPage] = useState(1);
 
-  async function loadRows() {
+  const loadRows = useCallback(async () => {
     try {
       setLoading(true);
       setError('');
-      const data = await getEncomiendas();
+      const data = agencyId ? await getAgencyShipments(agencyId) : await getEncomiendas();
       setRows(normalizeEncomiendasList(data));
       if (normalizeEncomiendasList(data).length === 0) {
         setMessage('No hay encomiendas registradas en PostgreSQL.');
@@ -55,11 +57,11 @@ function Encomiendas() {
     } finally {
       setLoading(false);
     }
-  }
+  }, [agencyId]);
 
   useEffect(() => {
     loadRows();
-  }, []);
+  }, [loadRows]);
 
   const getRowDate = (row) => {
     const value = row.fecha_creacion || row.created_at;
@@ -109,7 +111,7 @@ function Encomiendas() {
     try {
       setActionLoading(`export-${format}`);
       setError('');
-      const blob = await exportarReporteEncomiendas(format, filters);
+      const blob = agencyId ? await getAgencyReport(agencyId, format, filters) : await exportarReporteEncomiendas(format, filters);
       const dateSuffix = filters.fecha || new Date().toISOString().slice(0, 10);
       downloadBlob(blob, `reporte_encomiendas_${dateSuffix}.${format === 'excel' ? 'xlsx' : 'pdf'}`);
       setMessage(`Reporte ${format === 'excel' ? 'Excel' : 'PDF'} descargado correctamente.`);
@@ -250,7 +252,7 @@ function Encomiendas() {
         const editable = canEditEncomienda(row.estado);
         return (
           <div className="flex flex-nowrap items-center justify-end gap-1.5">
-            <IconAction icon={Eye} label="Ver detalle" onClick={() => navigate(`/admin/encomiendas/${row.id}`)} />
+            <IconAction icon={Eye} label="Ver detalle" onClick={() => navigate(`${agencyPath}/encomiendas/${row.id}`)} />
             <IconAction
               icon={FileText}
               label="Emitir boleta"
@@ -262,7 +264,7 @@ function Encomiendas() {
               icon={Pencil}
               label={editable ? 'Editar' : 'No editable: ya esta en transito o entregada'}
               disabled={!editable}
-              onClick={() => navigate(`/admin/encomiendas/${row.id}/editar`)}
+              onClick={() => navigate(`${agencyPath}/encomiendas/${row.id}/editar`)}
             />
             <IconAction
               icon={Ban}
@@ -283,11 +285,11 @@ function Encomiendas() {
       <div className="flex flex-col gap-3 sm:flex-row sm:items-center sm:justify-between">
         <div>
           <h2 className="page-title">Encomiendas</h2>
-          <p className="page-subtitle">Listado conectado a FastAPI y PostgreSQL.</p>
+          <p className="page-subtitle">{agencyId ? 'Solo las encomiendas de esta agencia.' : 'Listado conectado a FastAPI y PostgreSQL.'}</p>
         </div>
         <div className="flex flex-wrap gap-2">
-          <Link to="/admin/encomiendas/buscar"><Button variant="secondary">Buscar por codigo</Button></Link>
-          <Link to="/admin/encomiendas/nueva"><Button>Nueva encomienda</Button></Link>
+          <Link to={`${agencyPath}/encomiendas/buscar`}><Button variant="secondary">Buscar por código</Button></Link>
+          <Link to={`${agencyPath}/encomiendas/nueva`}><Button>Nueva encomienda</Button></Link>
         </div>
       </div>
 

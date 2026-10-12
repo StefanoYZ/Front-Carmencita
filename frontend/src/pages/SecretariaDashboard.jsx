@@ -1,6 +1,6 @@
 import React, { useEffect, useMemo, useState } from 'react';
 import { AnimatePresence } from 'framer-motion';
-import { Calculator, CreditCard, Eye, FileText, LayoutDashboard, ListChecks, Loader2, LogOut, PackageCheck, QrCode, ScanLine, Search, Trash2 } from 'lucide-react';
+import { Calculator, CreditCard, Eye, FileText, LayoutDashboard, ListChecks, Loader2, LogOut, MessageCircleWarning, PackageCheck, QrCode, ScanLine, Search, Trash2 } from 'lucide-react';
 import Alert from '../components/common/Alert.jsx';
 import Button from '../components/common/Button.jsx';
 import Loader from '../components/common/Loader.jsx';
@@ -49,12 +49,14 @@ import { formatShipmentCode } from '../utils/formatShipmentCode.js';
 import { formatDateTime } from '../utils/formatDate.js';
 import { sortEncomiendasByRecent } from '../utils/encomiendas.js';
 import { formatCurrency } from '../utils/formatCurrency.js';
+import Reclamos from './Reclamos.jsx';
 
 const tabs = [
   { id: 'registro', label: 'Registro presencial', icon: Calculator },
   { id: 'cobro', label: 'Cobro en agencia', icon: CreditCard },
   { id: 'entrega', label: 'Entrega', icon: PackageCheck },
   { id: 'lista', label: 'Encomiendas registradas', icon: ListChecks },
+  { id: 'reclamos', label: 'Reclamos', icon: MessageCircleWarning },
 ];
 
 const CONTENT_TYPE_OPTIONS = [
@@ -152,13 +154,14 @@ function SecretariaDashboard() {
           {activeTab === 'cobro' && <CobroAgencia />}
           {activeTab === 'entrega' && <EntregaEncomienda />}
           {activeTab === 'lista' && <ListaEncomiendasRegistradas />}
+          {activeTab === 'reclamos' && <Reclamos agencyId={user?.agency_id} agencyName="Mi agencia" caseBasePath="/secretaria/reclamos" />}
         </main>
       </div>
     </div>
   );
 }
 
-export function RegistroPresencial() {
+export function RegistroPresencial({ agencyId }) {
   const { user } = useAuth();
   const [flowStep, setFlowStep] = useState('form');
   const [form, setForm] = useState({ ...emptyPublicShipmentForm, origen: 'Trujillo' });
@@ -225,7 +228,7 @@ export function RegistroPresencial() {
       setLoading(true);
       setApiError('');
       const payload = buildPublicShipmentPayload(form);
-      const shipment = await createEncomienda(payload);
+      const shipment = await createEncomienda(payload, agencyId);
       await calcularCotizacion({ encomienda_id: shipment.id });
       setCreated(shipment);
       setFlowStep('payment');

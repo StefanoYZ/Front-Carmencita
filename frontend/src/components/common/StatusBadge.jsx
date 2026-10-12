@@ -1,4 +1,3 @@
-import React from 'react';
 import Badge from './Badge.jsx';
 
 /**
@@ -19,6 +18,15 @@ const TONE_BY_STATE = {
   EN_RUTA: 'amber',
   ENTREGADA: 'green',
   ANULADA: 'red',
+  RECIBIDO: 'gray',
+  EN_REVISION: 'amber',
+  ESPERANDO_INFORMACION: 'amber',
+  INVESTIGANDO: 'amber',
+  PROPUESTA_ENVIADA: 'green',
+  PAGO_POR_VERIFICAR: 'amber',
+  RESUELTO: 'green',
+  NO_PROCEDE: 'red',
+  CERRADO: 'gray',
   // Estado activo/inactivo (destinos, usuarios)
   ACTIVO: 'green',
   INACTIVO: 'gray',

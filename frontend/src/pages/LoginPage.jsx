@@ -40,9 +40,8 @@ function LoginPage() {
       setError('');
       const session = await login(form);
       const fallbackPath = getRoleHomePath(session.user);
-      const requestedPath = location.state?.from?.pathname;
-      const allowedRequestedPath = requestedPath?.startsWith('/admin') || requestedPath?.startsWith('/secretaria');
-      navigate(allowedRequestedPath ? requestedPath : fallbackPath, { replace: true });
+      // Después del acceso, cada cuenta entra en su vista autorizada, no en una URL anterior arbitraria.
+      navigate(fallbackPath, { replace: true });
     } catch (authError) {
       setError(getApiErrorMessage(authError, 'Usuario o contrasena incorrectos.'));
     } finally {

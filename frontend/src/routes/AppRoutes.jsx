@@ -1,13 +1,14 @@
-import React from 'react';
 import { Navigate, Outlet, Route, Routes, useLocation, useParams } from 'react-router-dom';
 import { getRoleHomePath } from '../auth/accessControl.js';
 import ProtectedRoute from '../components/auth/ProtectedRoute.jsx';
+import AgencyRouteGuard from '../components/auth/AgencyRouteGuard.jsx';
 import { useAuth } from '../context/AuthContext.jsx';
 import AdminLayout from '../layouts/AdminLayout.jsx';
 import PublicLayout from '../layouts/PublicLayout.jsx';
 import StowageLayout from '../layouts/StowageLayout.jsx';
 import Clientes from '../pages/Clientes.jsx';
-import Dashboard from '../pages/Dashboard.jsx';
+import AgenciaDetalle from '../pages/AgenciaDetalle.jsx';
+import Agencias from '../pages/Agencias.jsx';
 import Destinos from '../pages/Destinos.jsx';
 import DeveloperView from '../pages/DeveloperView.jsx';
 import EncomiendaBuscar from '../pages/EncomiendaBuscar.jsx';
@@ -25,9 +26,11 @@ import CotizarPublicPage from '../pages/public/CotizarPublicPage.jsx';
 import HomePublicPage from '../pages/public/HomePublicPage.jsx';
 import LoginPage from '../pages/LoginPage.jsx';
 import RegistrarEnvioPage from '../pages/public/RegistrarEnvioPage.jsx';
+import ReclamosPublicPage from '../pages/public/ReclamosPublicPage.jsx';
 import RegistroExitosoPage from '../pages/public/RegistroExitosoPage.jsx';
+import ReclamoDetalle from '../pages/ReclamoDetalle.jsx';
+import Reclamos from '../pages/Reclamos.jsx';
 import TrackingPublicPage from '../pages/public/TrackingPublicPage.jsx';
-import UsuariosInternos from '../pages/UsuariosInternos.jsx';
 
 function LegacyRedirect({ to }) {
   const location = useLocation();
@@ -46,6 +49,19 @@ function RoleEntryRedirect() {
   return <Navigate to={getRoleHomePath(user)} replace />;
 }
 
+function MyAgencyRedirect() {
+  const { user } = useAuth();
+  return <Navigate to={user?.agency_id ? `/admin/agencias/${user.agency_id}` : getRoleHomePath(user)} replace />;
+}
+
+function SecretaryClaimsPage({ detail = false }) {
+  const { user } = useAuth();
+  if (!user?.agency_id) return <Navigate to="/login" replace />;
+  return detail
+    ? <ReclamoDetalle agencyIdOverride={user.agency_id} />
+    : <Reclamos agencyId={user.agency_id} agencyName="Mi agencia" caseBasePath="/secretaria/reclamos" />;
+}
+
 function AppRoutes() {
   return (
     <Routes>
@@ -59,10 +75,13 @@ function AppRoutes() {
           </ProtectedRoute>
         }
       />
+      <Route path="/secretaria/reclamos" element={<ProtectedRoute roles={['SECRETARIA']} strict><SecretaryClaimsPage /></ProtectedRoute>} />
+      <Route path="/secretaria/reclamos/:claimId" element={<ProtectedRoute roles={['SECRETARIA']} strict><SecretaryClaimsPage detail /></ProtectedRoute>} />
 
       <Route element={<PublicLayout />}>
         <Route path="/" element={<HomePublicPage />} />
         <Route path="/registrar-envio" element={<RegistrarEnvioPage />} />
+        <Route path="/reclamos" element={<ReclamosPublicPage />} />
         <Route path="/tracking" element={<TrackingPublicPage />} />
         <Route path="/tracking/:codigo" element={<TrackingPublicPage />} />
         <Route path="/cotizar" element={<CotizarPublicPage />} />
@@ -82,23 +101,28 @@ function AppRoutes() {
 
         <Route
           element={
-            <ProtectedRoute roles={['ADMINISTRADOR', 'DEVELOPER']} strict>
+            <ProtectedRoute roles={['ADMIN_GENERAL', 'AGENCY_ADMIN', 'DEVELOPER']} strict>
               <AdminLayout />
             </ProtectedRoute>
           }
         >
           <Route
             path="dashboard"
-            element={
-              <ProtectedRoute roles={['ADMINISTRADOR']} strict>
-                <Dashboard />
-              </ProtectedRoute>
-            }
+            element={<LegacyRedirect to="/admin/agencias" />}
           />
+          <Route path="agencias/mia" element={<ProtectedRoute roles={['AGENCY_ADMIN']} strict><MyAgencyRedirect /></ProtectedRoute>} />
+          <Route path="agencias" element={<ProtectedRoute roles={['ADMIN_GENERAL']} strict><Agencias /></ProtectedRoute>} />
+          <Route path="agencias/:agencyId" element={<ProtectedRoute roles={['ADMIN_GENERAL', 'AGENCY_ADMIN']} strict><AgencyRouteGuard><AgenciaDetalle /></AgencyRouteGuard></ProtectedRoute>} />
+          <Route path="agencias/:agencyId/:section" element={<ProtectedRoute roles={['ADMIN_GENERAL', 'AGENCY_ADMIN']} strict><AgencyRouteGuard><AgenciaDetalle /></AgencyRouteGuard></ProtectedRoute>} />
+          <Route path="agencias/:agencyId/encomiendas/nueva" element={<ProtectedRoute roles={['ADMIN_GENERAL', 'AGENCY_ADMIN']} strict><AgencyRouteGuard><EncomiendaNueva /></AgencyRouteGuard></ProtectedRoute>} />
+          <Route path="agencias/:agencyId/encomiendas/buscar" element={<ProtectedRoute roles={['ADMIN_GENERAL', 'AGENCY_ADMIN']} strict><AgencyRouteGuard><EncomiendaBuscar /></AgencyRouteGuard></ProtectedRoute>} />
+          <Route path="agencias/:agencyId/encomiendas/:id" element={<ProtectedRoute roles={['ADMIN_GENERAL', 'AGENCY_ADMIN']} strict><AgencyRouteGuard><EncomiendaDetalle /></AgencyRouteGuard></ProtectedRoute>} />
+          <Route path="agencias/:agencyId/encomiendas/:id/editar" element={<ProtectedRoute roles={['ADMIN_GENERAL', 'AGENCY_ADMIN']} strict><AgencyRouteGuard><EncomiendaEditar /></AgencyRouteGuard></ProtectedRoute>} />
+          <Route path="agencias/:agencyId/reclamos/:claimId" element={<ProtectedRoute roles={['ADMIN_GENERAL', 'AGENCY_ADMIN', 'SECRETARIA']} strict><AgencyRouteGuard><ReclamoDetalle /></AgencyRouteGuard></ProtectedRoute>} />
           <Route
             path="developer"
             element={
-              <ProtectedRoute roles={['DEVELOPER']} strict>
+            <ProtectedRoute roles={['DEVELOPER']} strict>
                 <DeveloperView />
               </ProtectedRoute>
             }
@@ -106,7 +130,7 @@ function AppRoutes() {
           <Route
             path="clientes"
             element={
-              <ProtectedRoute anyOf={['encomiendas.write', 'users.read']} roles={['ADMINISTRADOR', 'SECRETARIA']}>
+              <ProtectedRoute roles={['ADMIN_GENERAL']} strict>
                 <Clientes />
               </ProtectedRoute>
             }
@@ -114,7 +138,7 @@ function AppRoutes() {
           <Route
             path="encomiendas"
             element={
-              <ProtectedRoute anyOf={['encomiendas.read']}>
+              <ProtectedRoute roles={['ADMIN_GENERAL']} strict>
                 <Encomiendas />
               </ProtectedRoute>
             }
@@ -122,23 +146,19 @@ function AppRoutes() {
           <Route
             path="destinos"
             element={
-              <ProtectedRoute anyOf={['encomiendas.write']} roles={['ADMINISTRADOR', 'SECRETARIA']}>
+              <ProtectedRoute roles={['ADMIN_GENERAL']} strict>
                 <Destinos />
               </ProtectedRoute>
             }
           />
           <Route
             path="usuarios"
-            element={
-              <ProtectedRoute anyOf={['users.read']} roles={['ADMINISTRADOR']}>
-                <UsuariosInternos />
-              </ProtectedRoute>
-            }
+            element={<LegacyRedirect to="/admin/agencias" />}
           />
           <Route
             path="encomiendas/nueva"
             element={
-              <ProtectedRoute anyOf={['encomiendas.write']}>
+              <ProtectedRoute roles={['ADMIN_GENERAL']} strict>
                 <EncomiendaNueva />
               </ProtectedRoute>
             }
@@ -146,7 +166,7 @@ function AppRoutes() {
           <Route
             path="encomiendas/buscar"
             element={
-              <ProtectedRoute anyOf={['encomiendas.read']}>
+              <ProtectedRoute roles={['ADMIN_GENERAL']} strict>
                 <EncomiendaBuscar />
               </ProtectedRoute>
             }
@@ -154,7 +174,7 @@ function AppRoutes() {
           <Route
             path="encomiendas/:id/editar"
             element={
-              <ProtectedRoute anyOf={['encomiendas.update']}>
+              <ProtectedRoute roles={['ADMIN_GENERAL']} strict>
                 <EncomiendaEditar />
               </ProtectedRoute>
             }
@@ -162,7 +182,7 @@ function AppRoutes() {
           <Route
             path="encomiendas/:id"
             element={
-              <ProtectedRoute anyOf={['encomiendas.read']}>
+              <ProtectedRoute roles={['ADMIN_GENERAL']} strict>
                 <EncomiendaDetalle />
               </ProtectedRoute>
             }
@@ -170,7 +190,7 @@ function AppRoutes() {
           <Route
             path="tracking"
             element={
-              <ProtectedRoute anyOf={['tracking.read']}>
+              <ProtectedRoute roles={['ADMIN_GENERAL']} strict>
                 <Tracking />
               </ProtectedRoute>
             }
@@ -179,7 +199,7 @@ function AppRoutes() {
           <Route
             path="sunat/boletas"
             element={
-              <ProtectedRoute anyOf={['sunat.read', 'sunat.emit', 'sunat.download_pdf']}>
+              <ProtectedRoute roles={['ADMIN_GENERAL']} strict>
                 <SunatBoletas />
               </ProtectedRoute>
             }
@@ -187,7 +207,7 @@ function AppRoutes() {
           <Route
             path="reniec"
             element={
-              <ProtectedRoute anyOf={['encomiendas.write']} roles={['ADMINISTRADOR', 'SECRETARIA']}>
+              <ProtectedRoute roles={['ADMIN_GENERAL']} strict>
                 <ReniecConsulta />
               </ProtectedRoute>
             }

@@ -69,7 +69,11 @@ apiClient.interceptors.request.use((config) => {
 apiClient.interceptors.response.use(
   (response) => response,
   (error) => {
-    if (error?.response?.status === 401) {
+    const headers = error?.config?.headers;
+    const authorization = headers?.Authorization || headers?.authorization || headers?.get?.('Authorization');
+    const requestUrl = String(error?.config?.url || '');
+    const isLoginRequest = /(?:^|\/)auth\/login(?:[?#]|$)/.test(requestUrl);
+    if (error?.response?.status === 401 && /^Bearer\s+\S+/i.test(String(authorization || '')) && !isLoginRequest) {
       window.dispatchEvent(new CustomEvent('carmencita:auth-expired'));
     }
     return Promise.reject(error);

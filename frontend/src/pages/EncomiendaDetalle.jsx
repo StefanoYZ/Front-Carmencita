@@ -8,6 +8,7 @@ import Loader from '../components/common/Loader.jsx';
 import EncomiendaSummary from '../components/encomiendas/EncomiendaSummary.jsx';
 import { getApiErrorMessage } from '../services/apiClient.js';
 import { deleteEncomienda, getEncomiendaById } from '../services/encomiendasService.js';
+import { getAgencyShipment } from '../services/agenciasService.js';
 import { descargarPdfMock, emitirBoletaDesdeEncomienda } from '../services/sunatService.js';
 import { canEditEncomienda } from '../utils/encomiendas.js';
 import { downloadBlob } from '../utils/downloadBlob.js';
@@ -15,7 +16,8 @@ import { formatCurrency } from '../utils/formatCurrency.js';
 import { extractSunatSummary } from '../utils/sunatResponse.js';
 
 function EncomiendaDetalle() {
-  const { id } = useParams();
+  const { id, agencyId } = useParams();
+  const listPath = agencyId ? `/admin/agencias/${agencyId}/encomiendas` : '/admin/encomiendas';
   const [encomienda, setEncomienda] = useState(null);
   const [boleta, setBoleta] = useState(null);
   const [loading, setLoading] = useState('detalle');
@@ -27,7 +29,7 @@ function EncomiendaDetalle() {
       try {
         setLoading('detalle');
         setError('');
-        setEncomienda(await getEncomiendaById(id));
+        setEncomienda(agencyId ? await getAgencyShipment(agencyId, id) : await getEncomiendaById(id));
       } catch (detailError) {
         setError(getApiErrorMessage(detailError, 'No se pudo cargar el detalle de la encomienda.'));
       } finally {
@@ -36,7 +38,7 @@ function EncomiendaDetalle() {
     }
 
     loadDetail();
-  }, [id]);
+  }, [id, agencyId]);
 
   const runAction = async (action, callback) => {
     try {
@@ -84,7 +86,7 @@ function EncomiendaDetalle() {
           <h2 className="page-title">Detalle de encomienda</h2>
           <p className="page-subtitle">Datos completos y acciones SUNAT de la encomienda.</p>
         </div>
-        <Link to="/admin/encomiendas"><Button variant="secondary">Volver al listado</Button></Link>
+        <Link to={listPath}><Button variant="secondary">Volver al listado</Button></Link>
       </div>
 
       {error && <Alert tone="error">{error}</Alert>}
@@ -101,7 +103,7 @@ function EncomiendaDetalle() {
                 {loading === 'boleta' ? 'Emitiendo...' : 'Emitir boleta SUNAT'}
               </Button>
               {canEditEncomienda(encomienda.estado) ? (
-                <Link to={`/admin/encomiendas/${id}/editar`}><Button variant="secondary">Editar</Button></Link>
+                 <Link to={`${listPath}/${id}/editar`}><Button variant="secondary">Editar</Button></Link>
               ) : (
                 <Button variant="secondary" disabled title="No editable: ya esta en transito o entregada">
                   Editar

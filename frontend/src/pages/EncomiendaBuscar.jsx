@@ -1,5 +1,5 @@
 import React, { useState } from 'react';
-import { Link } from 'react-router-dom';
+import { Link, useParams } from 'react-router-dom';
 import Alert from '../components/common/Alert.jsx';
 import Button from '../components/common/Button.jsx';
 import Card from '../components/common/Card.jsx';
@@ -8,9 +8,11 @@ import Loader from '../components/common/Loader.jsx';
 import EncomiendaSummary from '../components/encomiendas/EncomiendaSummary.jsx';
 import { getApiErrorMessage } from '../services/apiClient.js';
 import { getEncomiendaByCodigo } from '../services/encomiendasService.js';
+import { findAgencyShipment } from '../services/agenciasService.js';
 import { parseShipmentCode } from '../utils/formatShipmentCode.js';
 
 function EncomiendaBuscar() {
+  const { agencyId } = useParams();
   const [codigo, setCodigo] = useState('');
   const [result, setResult] = useState(null);
   const [loading, setLoading] = useState(false);
@@ -22,7 +24,8 @@ function EncomiendaBuscar() {
       setLoading(true);
       setError('');
       setResult(null);
-      setResult(await getEncomiendaByCodigo(parseShipmentCode(codigo)));
+      const code = parseShipmentCode(codigo);
+      setResult(agencyId ? await findAgencyShipment(agencyId, code) : await getEncomiendaByCodigo(code));
     } catch (searchError) {
       setError(getApiErrorMessage(searchError, 'No se encontro la encomienda solicitada.'));
     } finally {
@@ -52,7 +55,7 @@ function EncomiendaBuscar() {
       {result && (
         <>
           <EncomiendaSummary encomienda={result} />
-          <Link to={`/admin/encomiendas/${result.id}`}><Button>Ver detalle completo</Button></Link>
+          <Link to={agencyId ? `/admin/agencias/${agencyId}/encomiendas/${result.id}` : `/admin/encomiendas/${result.id}`}><Button>Ver detalle completo</Button></Link>
         </>
       )}
     </div>

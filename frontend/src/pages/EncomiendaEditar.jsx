@@ -7,6 +7,7 @@ import Loader from '../components/common/Loader.jsx';
 import EncomiendaForm from '../components/encomiendas/EncomiendaForm.jsx';
 import { getApiErrorMessage } from '../services/apiClient.js';
 import { getEncomiendaById, updateEncomienda } from '../services/encomiendasService.js';
+import { getAgencyShipment } from '../services/agenciasService.js';
 import {
   buildEncomiendaPayload,
   isEnvelopeContent,
@@ -19,7 +20,8 @@ import { formatShipmentCode } from '../utils/formatShipmentCode.js';
 import { isShipmentNumericField, validateShipmentNumericField } from '../utils/shipmentValidation.js';
 
 function EncomiendaEditar() {
-  const { id } = useParams();
+  const { id, agencyId } = useParams();
+  const listPath = agencyId ? `/admin/agencias/${agencyId}/encomiendas` : '/admin/encomiendas';
   const navigate = useNavigate();
   const [form, setForm] = useState(null);
   const [encomienda, setEncomienda] = useState(null);
@@ -33,7 +35,7 @@ function EncomiendaEditar() {
       try {
         setLoading('detalle');
         setError('');
-        const data = await getEncomiendaById(id);
+        const data = agencyId ? await getAgencyShipment(agencyId, id) : await getEncomiendaById(id);
         setEncomienda(data);
         setForm(normalizeEncomiendaForForm(data));
       } catch (loadError) {
@@ -44,7 +46,7 @@ function EncomiendaEditar() {
     }
 
     loadEncomienda();
-  }, [id]);
+  }, [id, agencyId]);
 
   const updateField = (event) => {
     const { name, value } = event.target;
@@ -106,8 +108,8 @@ function EncomiendaEditar() {
           <p className="page-subtitle">Actualiza datos permitidos. El codigo no se puede modificar.</p>
         </div>
         <div className="flex flex-wrap gap-2">
-          <Link to={`/admin/encomiendas/${id}`}><Button variant="secondary">Ver detalle</Button></Link>
-          <Button variant="ghost" onClick={() => navigate('/admin/encomiendas')}>Volver al listado</Button>
+          <Link to={`${listPath}/${id}`}><Button variant="secondary">Ver detalle</Button></Link>
+          <Button variant="ghost" onClick={() => navigate(listPath)}>Volver al listado</Button>
         </div>
       </div>
 

@@ -43,8 +43,8 @@ export const roleUsers = {
   admin: {
     username: 'qa_admin',
     full_name: 'TEST QA ADMIN',
-    roles: ['ADMINISTRADOR'],
-    permissions: ['users.read', 'encomiendas.read', 'encomiendas.write'],
+    roles: ['ADMIN_GENERAL'],
+    permissions: ['agencias.read', 'agencias.write', 'users.read'],
   },
   secretaria: {
     username: 'qa_secretaria',

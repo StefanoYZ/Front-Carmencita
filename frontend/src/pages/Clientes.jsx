@@ -5,6 +5,7 @@ import Alert from '../components/common/Alert.jsx';
 import Loader from '../components/common/Loader.jsx';
 import { getApiErrorMessage } from '../services/apiClient.js';
 import { clientesService } from '../services/clientes.service.js';
+import { getAgencyClients } from '../services/agenciasService.js';
 
 const columns = [
   {
@@ -24,7 +25,7 @@ const columns = [
   },
 ];
 
-function Clientes() {
+function Clientes({ agencyId }) {
   const [clientes, setClientes] = useState([]);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState('');
@@ -34,7 +35,7 @@ function Clientes() {
       try {
         setLoading(true);
         setError('');
-        setClientes(await clientesService.list());
+        setClientes(agencyId ? await getAgencyClients(agencyId) : await clientesService.list());
       } catch (loadError) {
         setError(getApiErrorMessage(loadError, 'No se pudo cargar clientes.'));
       } finally {
@@ -43,14 +44,14 @@ function Clientes() {
     }
 
     loadClientes();
-  }, []);
+  }, [agencyId]);
 
   return (
     <div className="space-y-6">
       <div className="flex flex-col gap-3 sm:flex-row sm:items-center sm:justify-between">
         <div>
           <h2 className="page-title">Clientes</h2>
-          <p className="page-subtitle">Clientes guardados desde registros y pre-registros.</p>
+          <p className="page-subtitle">{agencyId ? 'Clientes vinculados a las encomiendas de esta agencia.' : 'Clientes guardados desde registros y pre-registros.'}</p>
         </div>
       </div>
 

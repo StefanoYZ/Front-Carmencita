@@ -199,7 +199,7 @@ function UsuariosInternos() {
     <div className="space-y-6">
       <div>
         <h2 className="page-title">Usuarios internos</h2>
-        <p className="page-subtitle">Control de usuarios, estado y rol operativo.</p>
+        <p className="page-subtitle">Control de usuarios, estado y rol operativo global.</p>
       </div>
 
       {error && <Alert tone="error">{error}</Alert>}

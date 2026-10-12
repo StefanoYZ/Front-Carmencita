@@ -214,7 +214,7 @@ function LocationField({ label, name, value, onChange, error, options, required 
   );
 }
 
-function ShipmentFormStep({ form, errors, reniecStatus, locationOptions = [], onChange, onReniecLookup, onSubmit, onCancel, alertMode = 'chat' }) {
+function ShipmentFormStep({ form, errors, reniecStatus, locationOptions = [], originOptions = locationOptions, onChange, onReniecLookup, onSubmit, onCancel, alertMode = 'chat' }) {
   const isEnvelope = form.tipo_contenido === 'DOCUMENTOS';
   const coherenceWarnings = useCoherenceWarnings({
     tipoContenido: form.tipo_contenido,
@@ -259,7 +259,7 @@ function ShipmentFormStep({ form, errors, reniecStatus, locationOptions = [], on
       <section className="min-w-0 rounded-2xl border border-[#A3CF84]/60 bg-gradient-to-b from-[#F4F8F1] to-white p-5 shadow-[0_1px_2px_rgba(33,37,41,0.04),0_16px_38px_-18px_rgba(33,37,41,0.22)] sm:p-6">
         <SectionTitle icon={packageIcon} title="Datos de la encomienda" />
         <div className="grid min-w-0 items-start gap-4 md:grid-cols-2 xl:grid-cols-4">
-          <LocationField label="Origen" required name="origen" value={form.origen} onChange={onChange} error={errors.origen} options={locationOptions} />
+          <LocationField label="Origen" required name="origen" value={form.origen} onChange={onChange} error={errors.origen} options={originOptions} />
           <LocationField label="Destino" required name="destino" value={form.destino} onChange={onChange} error={errors.destino} options={locationOptions} />
           <Field as="select" label="Tipo de contenido" required name="tipo_contenido" value={form.tipo_contenido} onChange={onChange} error={errors.tipo_contenido} warning={coherenceWarnings.tipo_contenido} alertMode={alertMode}>
             <option value="">Seleccionar</option>

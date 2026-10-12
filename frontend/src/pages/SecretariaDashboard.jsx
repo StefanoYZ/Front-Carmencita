@@ -1,4 +1,4 @@
-import React, { useEffect, useMemo, useState } from 'react';
+import React, { useEffect, useMemo, useRef, useState } from 'react';
 import { AnimatePresence } from 'framer-motion';
 import { Calculator, CreditCard, Eye, FileText, LayoutDashboard, ListChecks, Loader2, LogOut, MessageCircleWarning, PackageCheck, QrCode, ScanLine, Search, Trash2 } from 'lucide-react';
 import Alert from '../components/common/Alert.jsx';
@@ -50,6 +50,7 @@ import { formatDateTime } from '../utils/formatDate.js';
 import { sortEncomiendasByRecent } from '../utils/encomiendas.js';
 import { formatCurrency } from '../utils/formatCurrency.js';
 import Reclamos from './Reclamos.jsx';
+import { getPublicClaimAgencies } from '../services/reclamosService.js';
 
 const tabs = [
   { id: 'registro', label: 'Registro presencial', icon: Calculator },
@@ -78,7 +79,24 @@ function getInitials(user) {
 
 function SecretariaDashboard() {
   const [activeTab, setActiveTab] = useState('registro');
+  const [agencyName, setAgencyName] = useState('');
   const { user, logout } = useAuth();
+
+  useEffect(() => {
+    let active = true;
+    if (!user?.agency_id) {
+      setAgencyName('Agencia no asignada');
+      return () => { active = false; };
+    }
+    getPublicClaimAgencies()
+      .then((agencies) => {
+        if (!active) return;
+        const agency = agencies.find((item) => Number(item.id) === Number(user.agency_id));
+        setAgencyName(agency ? `Agencia ${agency.place}` : 'Agencia no disponible');
+      })
+      .catch(() => { if (active) setAgencyName('Agencia no disponible'); });
+    return () => { active = false; };
+  }, [user?.agency_id]);
 
   return (
     <div className="min-h-screen bg-[radial-gradient(120%_120%_at_0%_0%,#FFFFFF_0%,#F8F9FA_45%,#EFF3ED_100%)] px-4 py-6 sm:px-6 lg:px-8">
@@ -105,6 +123,7 @@ function SecretariaDashboard() {
                   <div className="min-w-0 text-left">
                     <p className="truncate text-sm font-black leading-tight">{user.full_name || user.username}</p>
                     <p className="text-xs font-semibold leading-tight text-brand-lime/90">SECRETARIA</p>
+                    <p className="max-w-52 truncate text-[11px] font-semibold leading-tight text-white/75" title={agencyName || 'Cargando agencia…'}>{agencyName || 'Cargando agencia…'}</p>
                   </div>
                 </div>
                 <button
@@ -150,7 +169,7 @@ function SecretariaDashboard() {
         </nav>
 
         <main id="panel-secretaria" role="tabpanel" aria-labelledby={`tab-${activeTab}`} tabIndex={-1}>
-          {activeTab === 'registro' && <RegistroPresencial />}
+          {activeTab === 'registro' && <RegistroPresencial agencyId={user?.agency_id} />}
           {activeTab === 'cobro' && <CobroAgencia />}
           {activeTab === 'entrega' && <EntregaEncomienda />}
           {activeTab === 'lista' && <ListaEncomiendasRegistradas />}
@@ -164,7 +183,7 @@ function SecretariaDashboard() {
 export function RegistroPresencial({ agencyId }) {
   const { user } = useAuth();
   const [flowStep, setFlowStep] = useState('form');
-  const [form, setForm] = useState({ ...emptyPublicShipmentForm, origen: 'Trujillo' });
+  const [form, setForm] = useState(() => ({ ...emptyPublicShipmentForm, origen: agencyId ? '' : 'Trujillo' }));
   const [errors, setErrors] = useState({});
   const [reniecStatus, setReniecStatus] = useState({ remitente: null, destinatario: null });
   const [locationOptions, setLocationOptions] = useState([]);
@@ -174,13 +193,31 @@ export function RegistroPresencial({ agencyId }) {
   const [paymentNotice, setPaymentNotice] = useState('');
   const [loading, setLoading] = useState(false);
   const [apiError, setApiError] = useState('');
+  const [agencyOriginName, setAgencyOriginName] = useState('');
+  const originWasEdited = useRef(false);
 
   useEffect(() => {
-    loadDestinations(setLocationOptions);
-  }, []);
+    let active = true;
+    void loadDestinations(setLocationOptions);
+    if (agencyId) {
+      getPublicClaimAgencies()
+        .then((agencies) => {
+          if (!active) return;
+          const agency = agencies.find((item) => Number(item.id) === Number(agencyId));
+          if (!agency) return;
+          setAgencyOriginName(agency.place);
+          if (!originWasEdited.current) {
+            setForm((current) => ({ ...current, origen: agency.place }));
+          }
+        })
+        .catch(() => {});
+    }
+    return () => { active = false; };
+  }, [agencyId]);
 
   const updateField = (event) => {
     const { name, value } = event.target;
+    if (name === 'origen') originWasEdited.current = true;
     setForm((current) => {
       const next = { ...current, [name]: sanitizeShipmentField(name, value, current) };
       if (name === 'tipo_contenido' && value === 'DOCUMENTOS') {
@@ -228,7 +265,10 @@ export function RegistroPresencial({ agencyId }) {
       setLoading(true);
       setApiError('');
       const payload = buildPublicShipmentPayload(form);
-      const shipment = await createEncomienda(payload, agencyId);
+      const canCreateInSelectedAgency = user?.roles?.some((role) => (
+        ['ADMIN_GENERAL', 'AGENCY_ADMIN'].includes(String(role).toUpperCase())
+      ));
+      const shipment = await createEncomienda(payload, canCreateInSelectedAgency ? agencyId : undefined);
       await calcularCotizacion({ encomienda_id: shipment.id });
       setCreated(shipment);
       setFlowStep('payment');
@@ -293,17 +333,20 @@ export function RegistroPresencial({ agencyId }) {
   return (
     <section className="space-y-5">
       {apiError && <Alert tone="error">{apiError}</Alert>}
+      {agencyOriginName && <p className="rounded-xl border border-brand-green/10 bg-brand-lime/10 px-4 py-3 text-sm font-semibold text-brand-dark">Agencia de origen: <span className="font-black">{agencyOriginName}</span>. La encomienda aparecerá en su panel.</p>}
       <ShipmentFormStep
         form={form}
         errors={errors}
         reniecStatus={reniecStatus}
         locationOptions={locationOptions}
+        originOptions={agencyId && agencyOriginName ? [agencyOriginName] : locationOptions}
         alertMode="popover"
         onChange={updateField}
         onReniecLookup={(role) => handleReniecLookup(role, form, setForm, setErrors, setReniecStatus)}
         onSubmit={handleContinue}
         onCancel={() => {
-          setForm({ ...emptyPublicShipmentForm, origen: 'Trujillo' });
+          setForm({ ...emptyPublicShipmentForm, origen: agencyOriginName || (agencyId ? '' : 'Trujillo') });
+          originWasEdited.current = false;
           setErrors({});
           setApiError('');
         }}

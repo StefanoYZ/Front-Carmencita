@@ -1,8 +1,9 @@
-import React from 'react';
+import React, { useEffect, useState } from 'react';
 import { LogOut, PackageOpen } from 'lucide-react';
 import { Outlet, useNavigate } from 'react-router-dom';
 import logo from '../assets/external/logo.png';
 import { useAuth } from '../context/AuthContext.jsx';
+import { getPublicClaimAgencies } from '../services/reclamosService.js';
 
 function getInitials(user) {
   const name = user?.full_name || user?.username || '';
@@ -14,6 +15,23 @@ function getInitials(user) {
 function StowageLayout() {
   const navigate = useNavigate();
   const { logout, user } = useAuth();
+  const [agencyName, setAgencyName] = useState('');
+
+  useEffect(() => {
+    let active = true;
+    if (!user?.agency_id) {
+      setAgencyName('Agencia no asignada');
+      return () => { active = false; };
+    }
+    getPublicClaimAgencies()
+      .then((agencies) => {
+        if (!active) return;
+        const agency = agencies.find((item) => Number(item.id) === Number(user.agency_id));
+        setAgencyName(agency ? `Agencia ${agency.place}` : 'Agencia no disponible');
+      })
+      .catch(() => { if (active) setAgencyName('Agencia no disponible'); });
+    return () => { active = false; };
+  }, [user?.agency_id]);
 
   const handleLogout = () => {
     logout();
@@ -54,6 +72,7 @@ function StowageLayout() {
               <div className="min-w-0 text-left">
                 <p className="truncate text-sm font-black leading-tight">{user?.full_name || user?.username}</p>
                 <p className="text-xs font-semibold leading-tight text-brand-lime/90">ESTIBA</p>
+                <p className="max-w-52 truncate text-[11px] font-semibold leading-tight text-white/75" title={agencyName || 'Cargando agencia…'}>{agencyName || 'Cargando agencia…'}</p>
               </div>
             </div>
             <button

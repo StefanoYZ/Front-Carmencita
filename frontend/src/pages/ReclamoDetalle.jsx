@@ -32,6 +32,17 @@ const NEXT_STATUSES = {
   RESUELTO: ['CERRADO', 'INVESTIGANDO'],
   NO_PROCEDE: ['CERRADO', 'EN_REVISION'],
 };
+const HISTORY_STATUS_STYLES = {
+  RECIBIDO: 'border-l-sky-500 bg-sky-50/70',
+  EN_REVISION: 'border-l-amber-500 bg-amber-50/70',
+  ESPERANDO_INFORMACION: 'border-l-orange-500 bg-orange-50/70',
+  INVESTIGANDO: 'border-l-violet-500 bg-violet-50/70',
+  PROPUESTA_ENVIADA: 'border-l-indigo-500 bg-indigo-50/70',
+  PAGO_POR_VERIFICAR: 'border-l-orange-500 bg-orange-50/70',
+  RESUELTO: 'border-l-emerald-500 bg-emerald-50/70',
+  NO_PROCEDE: 'border-l-rose-500 bg-rose-50/70',
+  CERRADO: 'border-l-slate-500 bg-slate-100',
+};
 function ReclamoDetalle({ agencyIdOverride }) {
   const { claimId, agencyId: routeAgencyId } = useParams();
   const agencyId = routeAgencyId || agencyIdOverride;
@@ -165,8 +176,18 @@ function ReclamoDetalle({ agencyIdOverride }) {
         </Card>
       </div>
       <Card>
-        <h3 className="text-lg font-black">Historial de atención</h3>
-         <ol className="mt-4 space-y-4">{events.map((event) => <li key={event.id} className="flex gap-3 border-l-2 border-gray-200 pl-4"><div className="min-w-0 flex-1"><p className="font-bold">{event.to_status ? STATUS_LABELS[event.to_status] || event.to_status : event.event_type}</p><p className="whitespace-pre-wrap text-sm text-brand-gray">{event.note}</p><p className="text-xs text-brand-gray">Responsable: {event.actor_name || 'Sistema'} · {new Date(event.created_at).toLocaleString('es-PE')}</p></div><span className="text-xs font-bold text-brand-gray">{event.visible_to_customer ? 'Cliente' : 'Interno'}</span></li>)}</ol>
+        <div className="flex flex-wrap items-center justify-between gap-2"><h3 className="text-lg font-black">Historial de atención</h3><span className="rounded-full bg-brand-lime/30 px-3 py-1 text-xs font-bold text-brand-green">{events.length} {events.length === 1 ? 'actualización' : 'actualizaciones'}</span></div>
+        <ol className="mt-4 space-y-3">{events.map((event) => {
+          const eventStatus = event.to_status || event.event_type;
+          const style = HISTORY_STATUS_STYLES[eventStatus] || 'border-l-brand-green bg-brand-surface';
+          const label = event.to_status ? STATUS_LABELS[event.to_status] || event.to_status : event.event_type;
+          return <li key={event.id} className={`rounded-xl border border-gray-100 border-l-4 p-4 shadow-sm ${style}`}>
+            <div className="flex flex-wrap items-start justify-between gap-3">
+              <div className="min-w-0 flex-1"><span className="inline-flex rounded-full bg-white/80 px-2.5 py-1 text-xs font-black text-brand-dark ring-1 ring-black/5">{label}</span><p className="mt-2 whitespace-pre-wrap text-sm leading-5 text-brand-dark">{event.note}</p><p className="mt-2 text-xs text-brand-gray">Responsable: {event.actor_name || 'Sistema'} · {new Date(event.created_at).toLocaleString('es-PE')}</p></div>
+              <span className={`shrink-0 rounded-full px-2.5 py-1 text-xs font-bold ${event.visible_to_customer ? 'bg-emerald-100 text-emerald-800' : 'bg-slate-200 text-slate-700'}`}>{event.visible_to_customer ? 'Visible al cliente' : 'Interno'}</span>
+            </div>
+          </li>;
+        })}</ol>
         <form className="mt-5 grid gap-3 border-t pt-4" onSubmit={addNote}><h4 className="font-bold">Añadir actualización</h4><textarea className="rounded-xl border p-3" rows={3} value={note} onChange={(event) => setNote(event.target.value)} required placeholder="Registra una gestión o comunicación" /><div className="flex flex-wrap items-center gap-3"><select className="min-h-10 rounded-xl border px-3" value={nextStatus} onChange={(event) => setNextStatus(event.target.value)}><option value="">Sin cambiar estado</option>{nextOptions.map((status) => <option key={status} value={status}>{STATUS_LABELS[status]}</option>)}</select><label className="flex items-center gap-2 text-sm"><input type="checkbox" checked={customerVisible} onChange={(event) => setCustomerVisible(event.target.checked)} />Visible para cliente</label><Button type="submit" disabled={busy}>Guardar actualización</Button></div></form>
       </Card>
       <Card>

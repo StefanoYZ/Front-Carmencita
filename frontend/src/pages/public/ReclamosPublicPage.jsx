@@ -26,7 +26,32 @@ const STATUS_LABELS = {
   INVESTIGANDO: 'En investigación', PROPUESTA_ENVIADA: 'Solución propuesta',
   PAGO_POR_VERIFICAR: 'Verificando pago', RESUELTO: 'Resuelto', NO_PROCEDE: 'No procede', CERRADO: 'Cerrado',
 };
+const STATUS_STYLES = {
+  RECIBIDO: 'border-sky-200 bg-sky-50 text-sky-800',
+  EN_REVISION: 'border-amber-200 bg-amber-50 text-amber-800',
+  ESPERANDO_INFORMACION: 'border-orange-200 bg-orange-50 text-orange-800',
+  INVESTIGANDO: 'border-violet-200 bg-violet-50 text-violet-800',
+  PROPUESTA_ENVIADA: 'border-indigo-200 bg-indigo-50 text-indigo-800',
+  PAGO_POR_VERIFICAR: 'border-orange-200 bg-orange-50 text-orange-800',
+  RESUELTO: 'border-emerald-200 bg-emerald-50 text-emerald-800',
+  NO_PROCEDE: 'border-rose-200 bg-rose-50 text-rose-800',
+  CERRADO: 'border-slate-200 bg-slate-100 text-slate-700',
+};
+const PUBLIC_EVENT_LABELS = {
+  RECIBIDO: 'Reclamo recibido',
+  INVESTIGACION: 'Revisión del caso',
+  ACTUALIZACION_CLIENTE: 'Actualización del caso',
+  RESOLUCION_REGISTRADA: 'Resolución registrada',
+  PAGO_POR_VERIFICAR: 'Pago por verificar',
+  PAGO_VERIFICADO: 'Pago verificado',
+  PAGO_OBSERVADO: 'Pago observado',
+};
+const CATEGORY_LABELS = Object.fromEntries(CATEGORIES);
 const EMPTY_SENDER_LOOKUP = { loading: false, error: '', message: '' };
+
+function statusStyle(status) {
+  return STATUS_STYLES[status] || 'border-slate-200 bg-slate-100 text-slate-700';
+}
 
 function normalizeShipmentCode(value) {
   return String(value || '').trim().replace(/\s+/g, '').toUpperCase();
@@ -255,7 +280,22 @@ function ReclamosPublicPage() {
               <Input label="DNI" value={lookup.document_number} onChange={(event) => setLookup({ ...lookup, document_number: event.target.value })} inputMode="numeric" maxLength={20} />
               <div className="md:col-span-3"><Button type="submit" disabled={saving}>{saving ? 'Consultando…' : 'Consultar caso'}</Button></div>
             </form>
-            {lookupResult && <div className="mt-6 space-y-3" aria-live="polite"><h3 className="font-bold text-brand-dark">{lookupResult.length === 1 ? 'Caso encontrado' : `Casos encontrados (${lookupResult.length})`}</h3>{lookupResult.map((result) => <div key={result.case_code} className="rounded-xl border border-gray-200 bg-brand-surface p-4"><div className="flex flex-wrap items-center justify-between gap-2"><strong>{result.case_code}</strong><span className="rounded-full bg-white px-3 py-1 text-sm font-bold text-brand-dark">{STATUS_LABELS[result.status] || result.status}</span></div><p className="mt-2 text-sm text-brand-gray">Fecha de registro: <time>{new Date(result.created_at).toLocaleDateString('es-PE')}</time></p></div>)}</div>}
+            {lookupResult && <div className="mt-6 space-y-4" aria-live="polite">
+              <h3 className="font-bold text-brand-dark">{lookupResult.length === 1 ? 'Caso encontrado' : `Casos encontrados (${lookupResult.length})`}</h3>
+              {lookupResult.map((result) => <article key={result.case_code} className="overflow-hidden rounded-2xl border border-brand-lime/50 bg-white shadow-sm">
+                <div className="flex flex-wrap items-center justify-between gap-3 border-b border-brand-lime/30 bg-gradient-to-r from-brand-lime/20 via-white to-emerald-50 px-5 py-4">
+                  <div><p className="text-xs font-black uppercase tracking-wider text-brand-green">{CATEGORY_LABELS[result.category] || result.category}</p><h4 className="mt-1 text-lg font-black text-brand-dark">Caso {result.case_code}</h4></div>
+                  <span className={`rounded-full border px-3 py-1.5 text-sm font-bold ${statusStyle(result.status)}`}>{STATUS_LABELS[result.status] || result.status}</span>
+                </div>
+                <div className="space-y-4 p-5">
+                  <p className="text-xs font-semibold text-brand-gray">Registrado el <time className="text-brand-dark">{new Date(result.created_at).toLocaleDateString('es-PE', { day: 'numeric', month: 'long', year: 'numeric' })}</time></p>
+                  <section className="rounded-xl border border-sky-100 bg-sky-50/70 p-4"><h5 className="text-xs font-black uppercase tracking-wide text-sky-800">Descripción del reclamo</h5><p className="mt-2 whitespace-pre-wrap text-sm leading-6 text-brand-dark">{result.description}</p></section>
+                  {result.requested_solution && <section className="rounded-xl border border-amber-100 bg-amber-50/70 p-4"><h5 className="text-xs font-black uppercase tracking-wide text-amber-800">Solución solicitada</h5><p className="mt-2 whitespace-pre-wrap text-sm leading-6 text-brand-dark">{result.requested_solution}</p></section>}
+                  {result.resolution_text && <section className="rounded-xl border border-emerald-200 bg-emerald-50 p-4"><h5 className="text-xs font-black uppercase tracking-wide text-emerald-800">Resolución</h5><p className="mt-2 whitespace-pre-wrap text-sm leading-6 text-emerald-950">{result.resolution_text}</p></section>}
+                  {result.events?.length > 0 && <section><h5 className="mb-3 text-sm font-black text-brand-dark">Actualizaciones para ti</h5><ol className="space-y-3">{result.events.map((event) => <li key={event.id} className="rounded-xl border border-gray-100 border-l-4 border-l-brand-green bg-brand-surface/70 p-3"><div className="flex flex-wrap items-center justify-between gap-2"><span className={`rounded-full border px-2.5 py-1 text-xs font-bold ${statusStyle(event.to_status || result.status)}`}>{event.to_status ? STATUS_LABELS[event.to_status] || event.to_status : PUBLIC_EVENT_LABELS[event.event_type] || 'Actualización'}</span><time className="text-xs text-brand-gray">{new Date(event.created_at).toLocaleString('es-PE')}</time></div><p className="mt-2 whitespace-pre-wrap text-sm leading-5 text-brand-dark">{event.note}</p></li>)}</ol></section>}
+                </div>
+              </article>)}
+            </div>}
           </Card>
         )}
       </div>

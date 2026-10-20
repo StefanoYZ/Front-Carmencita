@@ -28,7 +28,10 @@ describe('flujo público de reclamos', () => {
     api.createPublicClaim.mockResolvedValue({ case_code: 'RC-2026-AB123', status: 'RECIBIDO' });
     api.uploadPublicClaimEvidence.mockResolvedValue({ id: 18 });
     api.lookupPublicClaim.mockResolvedValue([{
-      case_code: 'RC-2026-AB123', status: 'RECIBIDO', created_at: '2026-10-12T10:00:00Z',
+      case_code: 'RC-2026-AB123', category: 'DANO', description: 'La caja llegó abierta y dañada.',
+      requested_solution: 'Solicito la reposición del contenido.', status: 'RECIBIDO',
+      created_at: '2026-10-12T10:00:00Z', resolution_text: null,
+      events: [{ id: 1, event_type: 'RECIBIDO', to_status: null, note: 'Recibimos tu reclamo.', created_at: '2026-10-12T10:05:00Z' }],
     }]);
   });
 
@@ -87,16 +90,22 @@ describe('flujo público de reclamos', () => {
       document_number: '70123456',
     }));
     expect(await screen.findByText('Caso encontrado')).toBeInTheDocument();
-    expect(screen.getByText('Fecha de registro:')).toBeInTheDocument();
+    expect(screen.getByText(/Registrado el/)).toBeInTheDocument();
     expect(screen.getByText('Recibido')).toBeInTheDocument();
+    expect(screen.getByText('Descripción del reclamo')).toBeInTheDocument();
+    expect(screen.getByText('La caja llegó abierta y dañada.')).toBeInTheDocument();
+    expect(screen.getByText('Solicito la reposición del contenido.')).toBeInTheDocument();
+    expect(screen.getByText('Actualizaciones para ti')).toBeInTheDocument();
+    expect(screen.getByText('Recibimos tu reclamo.')).toBeInTheDocument();
+    expect(screen.getByText('Reclamo recibido')).toBeInTheDocument();
     expect(screen.queryByText('Personal interno')).not.toBeInTheDocument();
   });
 
   it('consulta con solo uno de los identificadores y muestra una lista de resúmenes', async () => {
     const user = userEvent.setup();
     api.lookupPublicClaim.mockResolvedValue([
-      { case_code: 'RC-2026-AB123', status: 'RECIBIDO', created_at: '2026-10-12T10:00:00Z' },
-      { case_code: 'RC-2026-CD456', status: 'RESUELTO', created_at: '2026-10-13T10:00:00Z' },
+      { case_code: 'RC-2026-AB123', category: 'DANO', description: 'Caja dañada.', status: 'RECIBIDO', created_at: '2026-10-12T10:00:00Z', events: [] },
+      { case_code: 'RC-2026-CD456', category: 'PERDIDA', description: 'Paquete no recibido.', status: 'RESUELTO', created_at: '2026-10-13T10:00:00Z', resolution_text: 'Se realizó la compensación acordada.', events: [] },
     ]);
     render(<MemoryRouter><ReclamosPublicPage /></MemoryRouter>);
     await screen.findByText('Agencia Trujillo');
@@ -106,8 +115,9 @@ describe('flujo público de reclamos', () => {
 
     await screen.findByText('Casos encontrados (2)');
     expect(api.lookupPublicClaim).toHaveBeenCalledWith({ document_number: '70123456' });
-    expect(screen.getByText('RC-2026-AB123')).toBeInTheDocument();
-    expect(screen.getByText('RC-2026-CD456')).toBeInTheDocument();
+    expect(screen.getByRole('heading', { name: 'Caso RC-2026-AB123' })).toBeInTheDocument();
+    expect(screen.getByRole('heading', { name: 'Caso RC-2026-CD456' })).toBeInTheDocument();
+    expect(screen.getByText('Se realizó la compensación acordada.')).toBeInTheDocument();
   });
 
   it('autocompleta el DNI al escribir el código sin salir del campo', async () => {

@@ -27,12 +27,9 @@ describe('flujo público de reclamos', () => {
     });
     api.createPublicClaim.mockResolvedValue({ case_code: 'RC-2026-AB123', status: 'RECIBIDO' });
     api.uploadPublicClaimEvidence.mockResolvedValue({ id: 18 });
-    api.lookupPublicClaim.mockResolvedValue({
-      case_code: 'RC-2026-AB123',
-      status: 'RECIBIDO',
-      events: [{ id: 1, note: 'Recibimos tu reclamo.', created_at: '2026-10-12T10:00:00Z', actor_name: 'Personal interno' }],
-      shipment_events: [{ id: 2, evento: 'REGISTRADA', estado: 'REGISTRADA', detalle: 'Encomienda registrada.', fecha: '2026-10-12T09:00:00Z', actor_name: 'Personal interno' }],
-    });
+    api.lookupPublicClaim.mockResolvedValue([{
+      case_code: 'RC-2026-AB123', status: 'RECIBIDO', created_at: '2026-10-12T10:00:00Z',
+    }]);
   });
 
   it('completa el reclamo, adjunta evidencia y consulta el caso sin exponer actores internos', async () => {
@@ -89,8 +86,28 @@ describe('flujo público de reclamos', () => {
       shipment_code: 'J000000001',
       document_number: '70123456',
     }));
-    expect(await screen.findByText('Encomienda registrada.')).toBeInTheDocument();
+    expect(await screen.findByText('Caso encontrado')).toBeInTheDocument();
+    expect(screen.getByText('Fecha de registro:')).toBeInTheDocument();
+    expect(screen.getByText('Recibido')).toBeInTheDocument();
     expect(screen.queryByText('Personal interno')).not.toBeInTheDocument();
+  });
+
+  it('consulta con solo uno de los identificadores y muestra una lista de resúmenes', async () => {
+    const user = userEvent.setup();
+    api.lookupPublicClaim.mockResolvedValue([
+      { case_code: 'RC-2026-AB123', status: 'RECIBIDO', created_at: '2026-10-12T10:00:00Z' },
+      { case_code: 'RC-2026-CD456', status: 'RESUELTO', created_at: '2026-10-13T10:00:00Z' },
+    ]);
+    render(<MemoryRouter><ReclamosPublicPage /></MemoryRouter>);
+    await screen.findByText('Agencia Trujillo');
+    await user.click(screen.getByRole('tab', { name: 'Consultar un caso' }));
+    await user.type(screen.getByLabelText('DNI'), '70123456');
+    await user.click(screen.getByRole('button', { name: 'Consultar caso' }));
+
+    await screen.findByText('Casos encontrados (2)');
+    expect(api.lookupPublicClaim).toHaveBeenCalledWith({ document_number: '70123456' });
+    expect(screen.getByText('RC-2026-AB123')).toBeInTheDocument();
+    expect(screen.getByText('RC-2026-CD456')).toBeInTheDocument();
   });
 
   it('autocompleta el DNI al escribir el código sin salir del campo', async () => {

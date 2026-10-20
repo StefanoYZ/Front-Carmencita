@@ -12,7 +12,6 @@ import { getApiErrorMessage } from '../services/apiClient.js';
 import {
   createClaimEvent,
   downloadClaimAttachment,
-  addShipmentTraceEvent,
   getClaim,
   saveClaimResolution,
   uploadClaimAttachment,
@@ -33,11 +32,6 @@ const NEXT_STATUSES = {
   RESUELTO: ['CERRADO', 'INVESTIGANDO'],
   NO_PROCEDE: ['CERRADO', 'EN_REVISION'],
 };
-const TRACE_TYPES = [
-  ['RECOGIDA', 'Recogida'], ['SALIDA_AGENCIA', 'Salida de agencia'], ['EN_TRANSITO', 'En tránsito'],
-  ['LLEGADA_AGENCIA', 'Llegada a agencia'], ['INCIDENCIA', 'Incidencia'], ['OTRO', 'Otro'],
-];
-
 function ReclamoDetalle({ agencyIdOverride }) {
   const { claimId, agencyId: routeAgencyId } = useParams();
   const agencyId = routeAgencyId || agencyIdOverride;
@@ -52,7 +46,6 @@ function ReclamoDetalle({ agencyIdOverride }) {
   const [note, setNote] = useState('');
   const [nextStatus, setNextStatus] = useState('');
   const [customerVisible, setCustomerVisible] = useState(false);
-  const [trace, setTrace] = useState({ event_type: 'INCIDENCIA', location: '', description: '', visible_to_customer: true });
   const [resolution, setResolution] = useState({ resolution_type: 'NO_MONETARIA', resolution_text: '', amount: '', payment_method: '', payment_reference: '' });
   const [proof, setProof] = useState(null);
   const [verificationNote, setVerificationNote] = useState('');
@@ -84,22 +77,6 @@ function ReclamoDetalle({ agencyIdOverride }) {
       await loadDetail();
     } catch (saveError) {
       setError(getApiErrorMessage(saveError, 'No se pudo guardar la actualización.'));
-    } finally {
-      setBusy(false);
-    }
-  }
-
-  async function addTraceEvent(event) {
-    event.preventDefault();
-    if (!agencyId || !trace.location.trim() || !trace.description.trim()) return;
-    try {
-      setBusy(true);
-      await addShipmentTraceEvent(agencyId, detail.claim.shipment_id, trace);
-      setTrace({ event_type: 'INCIDENCIA', location: '', description: '', visible_to_customer: true });
-      setMessage('Hito añadido a la trazabilidad de la encomienda.');
-      await loadDetail();
-    } catch (traceError) {
-      setError(getApiErrorMessage(traceError, 'No se pudo registrar el hito de trazabilidad.'));
     } finally {
       setBusy(false);
     }
@@ -167,7 +144,7 @@ function ReclamoDetalle({ agencyIdOverride }) {
   if (!agencyId) return <Navigate to="/login" replace />;
   if (loading) return <Loader label="Cargando reclamo…" />;
   if (!detail) return <Alert tone="error">{error || 'Reclamo no encontrado.'}</Alert>;
-  const { claim, events, shipment_events: shipmentEvents, attachments } = detail;
+  const { claim, events, attachments } = detail;
   const backPath = hasRole(user, ['SECRETARIA'])
     ? '/secretaria/reclamos'
     : `/admin/agencias/${agencyId}/reclamos`;
@@ -179,17 +156,12 @@ function ReclamoDetalle({ agencyIdOverride }) {
     <div className="space-y-6">
       <div className="flex flex-wrap items-center justify-between gap-3"><div><p className="text-xs font-black uppercase tracking-wider text-brand-green">Caso {claim.case_code}</p><h2 className="page-title">Detalle del reclamo</h2><p className="page-subtitle">Encomienda {detail.shipment.shipment_code} · Atención operativa</p></div><Link to={backPath} className="font-bold text-brand-green underline">Volver a reclamos</Link></div>
       {error && <Alert tone="error">{error}</Alert>}{message && <Alert tone="success">{message}</Alert>}
-      <div className="grid gap-5 xl:grid-cols-2">
+      <div className="grid gap-5">
         <Card>
           <div className="flex flex-wrap items-center justify-between gap-2"><h3 className="text-lg font-black">Solicitud</h3><StatusBadge value={claim.status} /></div>
           <dl className="mt-4 grid gap-3 text-sm sm:grid-cols-2"><div><dt className="text-brand-gray">Encomienda</dt><dd className="font-bold">{detail.shipment.shipment_code} · {detail.shipment.origin} → {detail.shipment.destination}</dd></div><div><dt className="text-brand-gray">Persona</dt><dd className="font-bold">{claim.claimant_name} · {claim.claimant_role === 'REMITENTE' ? 'Remitente' : 'Destinatario'}</dd></div><div><dt className="text-brand-gray">Motivo</dt><dd className="font-bold">{claim.category}</dd></div><div><dt className="text-brand-gray">Canal</dt><dd className="font-bold">{claim.source}</dd></div><div><dt className="text-brand-gray">Contacto</dt><dd className="font-bold">{claim.contact_phone || claim.contact_email || 'No registrado'}</dd></div></dl>
           <div className="mt-4 rounded-xl bg-brand-surface p-4"><p className="whitespace-pre-wrap text-sm leading-6">{claim.description}</p>{claim.requested_solution && <p className="mt-3 text-sm"><strong>Solicita:</strong> {claim.requested_solution}</p>}</div>
           {(claim.resolution_recorded_by_name || claim.resolved_by_name || claim.payment_verified_by_name) && <div className="mt-3 grid gap-1 text-xs text-brand-gray"><p>Solución ingresada por: <strong className="text-brand-dark">{claim.resolution_recorded_by_name || '—'}</strong></p><p>Resolución confirmada por: <strong className="text-brand-dark">{claim.resolved_by_name || '—'}</strong></p>{claim.payment_verified_by_name && <p>Pago verificado por: <strong className="text-brand-dark">{claim.payment_verified_by_name}</strong></p>}</div>}
-        </Card>
-        <Card>
-          <h3 className="text-lg font-black">Trazabilidad de la encomienda</h3>
-          {shipmentEvents.length ? <ol className="mt-4 space-y-4">{shipmentEvents.map((event) => <li key={event.id} className="border-l-2 border-brand-lime pl-4"><p className="font-bold">{event.location || 'Evento de envío'} · {event.status || event.event_type}</p><p className="text-sm text-brand-gray">{event.description}</p><p className="text-xs text-brand-gray">Responsable: {event.actor_name || 'Sistema'} · {new Date(event.created_at).toLocaleString('es-PE')}</p></li>)}</ol> : <p className="mt-3 text-sm text-brand-gray">No hay hitos registrados para esta encomienda.</p>}
-          {agencyId && <form className="mt-5 grid gap-3 border-t pt-4" onSubmit={addTraceEvent}><h4 className="font-bold">Registrar hito de seguimiento</h4><select className="min-h-10 rounded-xl border px-3" value={trace.event_type} onChange={(event) => setTrace({ ...trace, event_type: event.target.value })}>{TRACE_TYPES.map(([key, label]) => <option key={key} value={key}>{label}</option>)}</select><Input label="Lugar" value={trace.location} onChange={(event) => setTrace({ ...trace, location: event.target.value })} required /><label className="grid gap-1 text-sm font-semibold">Detalle<textarea className="rounded-xl border p-3 font-normal" rows={2} value={trace.description} onChange={(event) => setTrace({ ...trace, description: event.target.value })} required /></label><label className="flex items-center gap-2 text-sm"><input type="checkbox" checked={trace.visible_to_customer} onChange={(event) => setTrace({ ...trace, visible_to_customer: event.target.checked })} />Visible para el cliente</label><Button type="submit" disabled={busy}>Guardar hito</Button></form>}
         </Card>
       </div>
       <Card>
@@ -201,7 +173,28 @@ function ReclamoDetalle({ agencyIdOverride }) {
         <h3 className="text-lg font-black">Evidencias</h3>
         {attachments.length ? <ul className="mt-3 space-y-2">{attachments.map((attachment) => <li key={attachment.id} className="flex items-center justify-between gap-3 rounded-lg bg-brand-surface p-3 text-sm"><span>{attachment.file_name} · {attachment.attachment_kind} · {Math.ceil(attachment.file_size / 1024)} KB</span><button type="button" className="font-bold text-brand-green underline" onClick={() => void openAttachment(attachment)}>Abrir</button></li>)}</ul> : <p className="mt-2 text-sm text-brand-gray">Aún no se adjuntaron imágenes.</p>}
       </Card>
-      {canResolve && !['RESUELTO', 'NO_PROCEDE', 'CERRADO', 'PAGO_POR_VERIFICAR'].includes(claim.status) && <Card><h3 className="text-lg font-black">Registrar solución</h3><form className="mt-4 grid gap-4 md:grid-cols-2" onSubmit={submitResolution}><select className="min-h-11 rounded-xl border px-3" value={resolution.resolution_type} onChange={(event) => setResolution({ ...resolution, resolution_type: event.target.value })}><option value="NO_MONETARIA">Solución no monetaria</option><option value="MONETARIA">Devolución o compensación monetaria</option></select><Input label="Descripción de la solución" value={resolution.resolution_text} onChange={(event) => setResolution({ ...resolution, resolution_text: event.target.value })} required />{resolution.resolution_type === 'MONETARIA' && <><Input label="Monto (S/)" type="number" min="0.01" step="0.01" value={resolution.amount} onChange={(event) => setResolution({ ...resolution, amount: event.target.value })} required /><select className="min-h-11 rounded-xl border px-3" value={resolution.payment_method} onChange={(event) => setResolution({ ...resolution, payment_method: event.target.value })} required><option value="">Medio de pago</option>{['TRANSFERENCIA', 'YAPE', 'PLIN', 'EFECTIVO', 'OTRO'].map((method) => <option key={method} value={method}>{method}</option>)}</select><Input label="Referencia de pago" value={resolution.payment_reference} onChange={(event) => setResolution({ ...resolution, payment_reference: event.target.value })} /><label className="grid gap-1 text-sm font-semibold">Comprobante de pago (imagen)<input type="file" accept="image/png,image/jpeg,image/webp" onChange={(event) => setProof(event.target.files?.[0] || null)} required /></label></>}<div className="md:col-span-2"><Button type="submit" disabled={busy}>{busy ? 'Guardando…' : 'Registrar solución'}</Button></div></form></Card>}
+      {claim.resolution_text && <Card>
+        <div className="flex flex-wrap items-center justify-between gap-2"><h3 className="text-lg font-black">Solución registrada</h3><StatusBadge value={claim.status} /></div>
+        <p className="mt-3 whitespace-pre-wrap text-sm leading-6">{claim.resolution_text}</p>
+        {claim.resolution_type === 'MONETARIA' && <p className="mt-3 rounded-lg bg-brand-surface p-3 text-sm">Monto: <strong>S/ {claim.resolution_amount?.toFixed(2)}</strong> · Medio: <strong>{claim.payment_method || '—'}</strong>{claim.payment_reference && <> · Referencia: <strong>{claim.payment_reference}</strong></>}</p>}
+      </Card>}
+      {canResolve && !['RESUELTO', 'NO_PROCEDE', 'CERRADO', 'PAGO_POR_VERIFICAR'].includes(claim.status) && <Card>
+        <h3 className="text-lg font-black">Registrar solución</h3>
+        <p className="mt-1 text-sm text-brand-gray">Describe claramente la medida acordada. Una solución monetaria quedará pendiente de verificación antes de cerrar el caso.</p>
+        <form className="mt-4 grid gap-4" onSubmit={submitResolution}>
+          <fieldset className="grid gap-3 sm:grid-cols-2"><legend className="mb-2 text-sm font-bold">Tipo de solución</legend>
+            {[['NO_MONETARIA', 'Solución no monetaria', 'Reposición, reparación u otra medida.'], ['MONETARIA', 'Devolución o compensación', 'Requiere comprobante y verificación.']].map(([value, label, description]) => <label key={value} className={`flex cursor-pointer gap-3 rounded-xl border p-4 ${resolution.resolution_type === value ? 'border-brand-green bg-brand-lime/10 ring-2 ring-brand-green/20' : 'border-gray-200'}`}><input type="radio" name="resolution_type" value={value} checked={resolution.resolution_type === value} onChange={(event) => setResolution({ ...resolution, resolution_type: event.target.value })} className="mt-1 accent-green-700" /><span><strong className="block text-sm">{label}</strong><span className="mt-1 block text-xs font-normal text-brand-gray">{description}</span></span></label>)}
+          </fieldset>
+          <label className="grid gap-1.5 text-sm font-semibold">Descripción de la solución<textarea className="rounded-xl border border-gray-200 p-3 font-normal" rows={3} minLength={10} maxLength={4000} value={resolution.resolution_text} onChange={(event) => setResolution({ ...resolution, resolution_text: event.target.value })} required placeholder="Indica qué se acordó con el cliente y cómo se atenderá el caso." /></label>
+          {resolution.resolution_type === 'MONETARIA' && <div className="grid gap-4 rounded-xl bg-brand-surface p-4 md:grid-cols-2">
+            <Input label="Monto a devolver o compensar (S/)" type="number" min="0.01" step="0.01" value={resolution.amount} onChange={(event) => setResolution({ ...resolution, amount: event.target.value })} required />
+            <label className="grid gap-1.5 text-sm font-semibold">Medio de pago<select className="min-h-11 rounded-xl border border-gray-200 bg-white px-3" value={resolution.payment_method} onChange={(event) => setResolution({ ...resolution, payment_method: event.target.value })} required><option value="">Selecciona un medio</option>{['TRANSFERENCIA', 'YAPE', 'PLIN', 'EFECTIVO', 'OTRO'].map((method) => <option key={method} value={method}>{method}</option>)}</select></label>
+            <Input label="Referencia de pago (opcional)" value={resolution.payment_reference} onChange={(event) => setResolution({ ...resolution, payment_reference: event.target.value })} />
+            <label className="grid gap-1.5 text-sm font-semibold">Comprobante de pago<input type="file" accept="image/png,image/jpeg,image/webp" onChange={(event) => setProof(event.target.files?.[0] || null)} required className="rounded-xl border border-gray-200 bg-white p-2.5 text-sm font-normal" /><span className="text-xs font-normal text-brand-gray">Imagen JPG, PNG o WebP; máximo 5 MB.</span></label>
+          </div>}
+          <div><Button type="submit" disabled={busy}>{busy ? 'Guardando…' : 'Registrar solución'}</Button></div>
+        </form>
+      </Card>}
       {canResolve && claim.status === 'PAGO_POR_VERIFICAR' && <Card><h3 className="text-lg font-black">Verificación del pago</h3><p className="mt-2 text-sm text-brand-gray">La solución es de S/ {claim.resolution_amount?.toFixed(2)} por {claim.payment_method}. Revisa la evidencia adjunta y deja constancia de tu revisión.</p><label className="mt-4 grid gap-1.5 text-sm font-semibold">Nota de verificación<textarea className="rounded-xl border border-gray-200 p-3 font-normal" rows={3} value={verificationNote} onChange={(event) => setVerificationNote(event.target.value)} placeholder="Observaciones de la revisión" /></label><div className="mt-4 flex flex-wrap gap-3"><Button disabled={busy} onClick={() => void handlePaymentVerification(true)}>Verificar pago y resolver</Button><Button variant="secondary" disabled={busy || !verificationNote.trim()} onClick={() => void handlePaymentVerification(false)}>Observar comprobante</Button></div></Card>}
     </div>
   );

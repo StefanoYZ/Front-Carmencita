@@ -177,10 +177,18 @@ function ReclamosPublicPage() {
 
   async function handleLookup(event) {
     event.preventDefault();
+    const identifiers = Object.fromEntries(
+      Object.entries(lookup).map(([key, value]) => [key, value.trim()]).filter(([, value]) => value),
+    );
+    if (!Object.keys(identifiers).length) {
+      setError('Ingresa al menos un dato para buscar: número de caso, código de encomienda o DNI.');
+      setLookupResult(null);
+      return;
+    }
     try {
       setSaving(true);
       setError('');
-      setLookupResult(await lookupPublicClaim(lookup));
+      setLookupResult(await lookupPublicClaim(identifiers));
     } catch (lookupError) {
       setLookupResult(null);
       setError(getApiErrorMessage(lookupError, 'No encontramos el caso o no pudimos validar los datos.'));
@@ -235,18 +243,19 @@ function ReclamosPublicPage() {
                 <div className="md:col-span-2"><Button type="submit" disabled={saving || senderLookup.loading || !agencies.length || !notice}>{saving ? 'Enviando…' : 'Enviar reclamo'}</Button></div>
               </form>
             </Card>
-            {createdCase && <Card><h2 className="font-black text-brand-black">Tu número de caso</h2><p className="mt-2 text-2xl font-black text-brand-green">{createdCase.case_code}</p><p className="mt-1 text-sm text-brand-gray">Guarda el número; lo necesitarás para consultar el avance junto al código de encomienda y tu DNI.</p></Card>}
+            {createdCase && <Card><h2 className="font-black text-brand-black">Tu número de caso</h2><p className="mt-2 text-2xl font-black text-brand-green">{createdCase.case_code}</p><p className="mt-1 text-sm text-brand-gray">Guarda el número de caso para encontrarlo fácilmente. También puedes buscar tus casos por encomienda o DNI.</p></Card>}
           </div>
         ) : (
           <Card>
             <h2 className="text-lg font-black text-brand-black">Consulta el estado de tu caso</h2>
+            <p className="mt-2 text-sm text-brand-gray">Completa cualquiera de estos datos. Si ingresas más de uno, deben coincidir con el mismo caso.</p>
             <form className="mt-4 grid gap-4 md:grid-cols-3" onSubmit={handleLookup}>
-              <Input label="Número de caso" value={lookup.case_code} onChange={(event) => setLookup({ ...lookup, case_code: event.target.value })} required />
-              <Input label="Código de encomienda" value={lookup.shipment_code} onChange={(event) => setLookup({ ...lookup, shipment_code: event.target.value })} required />
-              <Input label="DNI" value={lookup.document_number} onChange={(event) => setLookup({ ...lookup, document_number: event.target.value })} inputMode="numeric" maxLength={8} required />
+              <Input label="Número de caso" value={lookup.case_code} onChange={(event) => setLookup({ ...lookup, case_code: event.target.value })} />
+              <Input label="Código de encomienda" value={lookup.shipment_code} onChange={(event) => setLookup({ ...lookup, shipment_code: event.target.value })} />
+              <Input label="DNI" value={lookup.document_number} onChange={(event) => setLookup({ ...lookup, document_number: event.target.value })} inputMode="numeric" maxLength={20} />
               <div className="md:col-span-3"><Button type="submit" disabled={saving}>{saving ? 'Consultando…' : 'Consultar caso'}</Button></div>
             </form>
-            {lookupResult && <div className="mt-6 rounded-xl border border-gray-200 bg-brand-surface p-4"><div className="flex flex-wrap items-center justify-between gap-2"><strong>{lookupResult.case_code}</strong><span className="rounded-full bg-white px-3 py-1 text-sm font-bold text-brand-dark">{STATUS_LABELS[lookupResult.status] || lookupResult.status}</span></div><ol className="mt-4 space-y-3">{lookupResult.shipment_events.map((event) => <li key={`s-${event.id}`} className="border-l-2 border-brand-lime pl-3"><p className="font-bold text-brand-dark">{event.lugar || 'Evento de envío'} · {event.estado || event.evento}</p><p className="text-sm text-brand-gray">{event.detalle}</p><time className="text-xs text-brand-gray">{new Date(event.fecha).toLocaleString('es-PE')}</time></li>)}{lookupResult.events.map((event, index) => <li key={`c-${index}`} className="border-l-2 border-brand-green pl-3"><p className="font-bold text-brand-dark">{event.to_status ? (STATUS_LABELS[event.to_status] || event.to_status) : 'Actualización del reclamo'}</p><p className="text-sm text-brand-gray">{event.note}</p><time className="text-xs text-brand-gray">{new Date(event.created_at).toLocaleString('es-PE')}</time></li>)}</ol>{lookupResult.resolution_text && <div className="mt-4 rounded-lg bg-white p-3"><strong>Solución:</strong><p className="mt-1 text-sm">{lookupResult.resolution_text}</p></div>}</div>}
+            {lookupResult && <div className="mt-6 space-y-3" aria-live="polite"><h3 className="font-bold text-brand-dark">{lookupResult.length === 1 ? 'Caso encontrado' : `Casos encontrados (${lookupResult.length})`}</h3>{lookupResult.map((result) => <div key={result.case_code} className="rounded-xl border border-gray-200 bg-brand-surface p-4"><div className="flex flex-wrap items-center justify-between gap-2"><strong>{result.case_code}</strong><span className="rounded-full bg-white px-3 py-1 text-sm font-bold text-brand-dark">{STATUS_LABELS[result.status] || result.status}</span></div><p className="mt-2 text-sm text-brand-gray">Fecha de registro: <time>{new Date(result.created_at).toLocaleDateString('es-PE')}</time></p></div>)}</div>}
           </Card>
         )}
       </div>
